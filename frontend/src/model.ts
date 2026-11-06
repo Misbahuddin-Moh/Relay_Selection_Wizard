@@ -35,6 +35,26 @@ export interface Study {
   ct_inventory?: CtInventory | null
 }
 
+export function applyBushingCtBoundaries(study: Study): Study {
+  const inventory = study.ct_inventory
+  if (!inventory) return study
+
+  const phaseStatus = (count: number | null): Ct =>
+    count === null ? 'unknown' : count === 0 ? 'absent' : 'present'
+
+  const sideA = phaseStatus(inventory.lv_breaker_135)
+  const sideB = phaseStatus(inventory.lv_breaker_246)
+  // The inventory does not identify which side faces the feeder.
+  const collectorStatus: Ct = sideA === sideB ? sideA : 'unknown'
+
+  return {
+    ...study,
+    hv_ct: phaseStatus(inventory.transformer_hv_phase),
+    lv_ct: phaseStatus(inventory.transformer_lv_phase),
+    bays: study.bays.map(bay => ({ ...bay, ct: collectorStatus })),
+  }
+}
+
 export interface Candidate {
   id: string
   title: string

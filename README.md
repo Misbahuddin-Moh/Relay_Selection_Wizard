@@ -60,6 +60,8 @@ Compare the proposed fields and extraction notes with the source, correct the dr
 
 Both entry paths show editable CT counts after the topology review. Breaker counts default to two CTs per phase on each breaker side (A and B). The collector counts apply uniformly to each physical collector breaker. Transformer phase counts default to three per phase on each side, with two separate neutral CTs per side. Enter zero where none exist or clear a count to leave it unknown.
 
+In topology review, **Use bushing CT counts for boundaries** sets the transformer HV and LV boundaries from their phase bushing CT counts. It sets collector boundaries to Present when both breaker sides have CTs, Absent when both sides have zero, and Unknown when the inventory cannot establish availability at the feeder-side boundary. Review exceptions using the individual boundary fields. Reapply the counts if you edit the inventory and want to update the boundary selections.
+
 The inventory records quantities for the study and its what-if scenarios. Review boundary location, CT suitability, and assignment to primary and backup protection separately. Check winding grounding and the intended ground differential or restricted earth fault application before assigning neutral CTs. Phase-bank requirements are calculated from modeled measurement boundaries.
 
 ## Study scope

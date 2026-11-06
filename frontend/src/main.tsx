@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
-import { auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory } from './model'
+import { applyBushingCtBoundaries, auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory } from './model'
 import type { Analysis, Candidate, CtInventory, DrawingDraft, Snapshot, Study } from './model'
 import './styles.css'
 
@@ -111,7 +111,7 @@ function CtInventoryEditor({ study, update, disabled = false }: {
   return (
     <fieldset className="editor-fields ct-inventory" disabled={disabled}>
       <legend>Number of CTs</legend>
-      <p className="draft-note">Count phase CTs per phase and neutral CTs per winding neutral. Sides A and B are the two sides of each breaker. Collector settings apply to all {study.bays.length} collector breaker positions. Use 0 for none or leave blank for unknown. These quantities start with standard defaults. Use the boundary CT fields to confirm which locations have a suitable measurement.</p>
+      <p className="draft-note">Count phase CTs per phase and neutral CTs per winding neutral. Sides A and B are the two sides of each breaker. Collector settings apply to all {study.bays.length} collector breaker positions. Use 0 for none or leave blank for unknown. New studies start with standard defaults. Verify the phase counts before using them to set protection boundaries.</p>
       <div className="field-row">
         {ctInventoryFields.map(([key, label]) => (
           <label className="field" key={key}>
@@ -483,7 +483,8 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
             </dl>
             <fieldset className="editor-fields ct-inventory" disabled={busy}>
               <legend>Confirm boundary CTs</legend>
-              <p className="draft-note">Set each boundary to Present when the drawing or design confirms a usable phase CT bank at that location. Leave unresolved boundaries Unknown.</p>
+              <p className="draft-note">For the standard bushing CT arrangement, apply the inventory counts below to set the transformer and collector boundaries. This replaces the current selections. Review and adjust any exceptions, including collector breakers where only one side has CTs.</p>
+              <button type="button" className="text-button" onClick={() => setDraft(applyBushingCtBoundaries(draft))}>Use bushing CT counts for boundaries</button>
               <div className="field-row">
                 <Select label="Transformer HV boundary CT" options={ctLabels} value={draft.hv_ct} change={hv_ct => setDraft({ ...draft, hv_ct })} />
                 <Select label="Transformer LV boundary CT" options={ctLabels} value={draft.lv_ct} change={lv_ct => setDraft({ ...draft, lv_ct })} />
