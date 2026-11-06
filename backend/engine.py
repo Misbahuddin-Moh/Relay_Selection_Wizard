@@ -34,16 +34,18 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
         "auxiliary isolation, and breaker-failure actions."
     )
 
-    combined_boundaries = {"HV breaker POI-side phase CT bank": hv_ct}
-    combined_boundaries.update(
-        {f'{bay["id"]} phase CT bank': bay.get("ct", "unknown") for bay in bays}
-    )
-    if auxiliary == "unknown":
-        combined_boundaries["auxiliary branch treatment"] = "unknown"
-    separate_boundaries = {
-        **combined_boundaries,
-        "transformer LV phase CT bank": lv_ct,
+    hv_boundary = {"HV breaker POI-side phase CT bank": hv_ct}
+    lv_boundary = {"Transformer LV phase CT bank": lv_ct}
+    collector_boundaries = {
+        f'{bay["id"]} PV circuit-side phase CT bank': bay.get("ct", "unknown")
+        for bay in bays
     }
+    if auxiliary != "excluded":
+        collector_boundaries["Auxiliary tap phase CT bank"] = (
+            "present" if auxiliary == "included" else "unknown"
+        )
+    combined_boundaries = {**hv_boundary, **collector_boundaries}
+    separate_boundaries = {**combined_boundaries, **lv_boundary}
 
     def measurement_finding(boundaries: dict[str, str]) -> tuple[Optional[str], str]:
         absent = [name for name, status in boundaries.items() if status == "absent"]
@@ -148,6 +150,21 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
         }
     )
 
+    zones = []
+    for zone_id, title, boundaries in (
+        ("transformer", "Transformer zone", {**hv_boundary, **lv_boundary}),
+        ("bus", "Collector bus zone", {**lv_boundary, **collector_boundaries}),
+        ("combined", "Combined zone", combined_boundaries),
+    ):
+        status, _ = measurement_finding(boundaries)
+        zones.append({
+            "id": zone_id,
+            "title": title,
+            "status": status or "Boundaries present",
+            "boundaries": [{"label": label, "state": state} for label, state in boundaries.items()],
+            "trip_targets": trip_targets,
+        })
+
     return {
         "counts": {
             "breakers": len(bays),
@@ -183,4 +200,5 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
         ],
         "questions": questions,
         "trip_basis": trip_basis,
+        "zones": zones,
     }

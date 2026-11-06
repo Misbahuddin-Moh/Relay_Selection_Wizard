@@ -203,6 +203,51 @@ function CandidateCard({ candidate, tripBasis }: { candidate: Candidate; tripBas
   )
 }
 
+function ProtectionZoneReview({ study, analysis }: Snapshot) {
+  const options = [
+    { id: 'dedicated', title: 'Separate transformer and bus zones', zones: analysis.zones.filter(zone => zone.id !== 'combined') },
+    { id: 'combined', title: 'Combined transformer and bus zone', zones: analysis.zones.filter(zone => zone.id === 'combined') },
+  ]
+
+  return (
+    <section className="panel">
+      <PanelHeader title="Protection-zone review" description="Compare the proposed measurement boundaries and preliminary trip targets. Shading shows intended coverage, including where a CT is missing or unconfirmed." />
+      <div className="zone-options">
+        {options.map(option => {
+          const candidate = analysis.candidates.find(item => item.id === option.id)
+          return (
+            <article key={option.id} className="zone-option" aria-label={option.title}>
+              <div className="candidate-heading"><h3>{option.title}</h3>{candidate && <Status value={candidate.status} />}</div>
+              <OneLine study={study} zones={option.zones.map(zone => zone.id)} />
+              {option.zones.map(zone => (
+                <div className="zone-details" key={zone.id}>
+                  <div className="candidate-heading">
+                    <h4><i className={`zone-swatch zone-${zone.id}`} aria-hidden="true" />{zone.title}</h4>
+                    <Status value={zone.status} />
+                  </div>
+                  <ul className="zone-boundaries">
+                    {zone.boundaries.map(boundary => (
+                      <li key={boundary.label}><span>{boundary.label}</span><span className={`boundary-state ${boundary.state}`}>{ctLabels[boundary.state]}</span></li>
+                    ))}
+                  </ul>
+                  <p className="trip-targets"><strong>Proposed trip targets</strong> {zone.trip_targets.join(' · ')}</p>
+                </div>
+              ))}
+              {candidate && <p>{candidate.reason}</p>}
+            </article>
+          )
+        })}
+      </div>
+      <p className="zone-basis"><strong>Auxiliary tap</strong> {study.auxiliary === 'included'
+        ? 'Modeled as a separately measured boundary for the bus and combined zones.'
+        : study.auxiliary === 'excluded'
+          ? 'Excluded from the measurement model. Verify actual tap treatment.'
+          : 'Measurement treatment is open for the bus and combined zones.'}</p>
+      <p className="zone-basis">{analysis.trip_basis}</p>
+    </section>
+  )
+}
+
 function Questions({ questions }: { questions: Analysis['questions'] }) {
   return (
     <section className="panel questions">
@@ -270,6 +315,7 @@ function Comparison({ baseline, scenario, onCreate }: { baseline: Snapshot; scen
           )
         })}
       </section>
+      <ProtectionZoneReview {...scenario} />
       <Questions questions={scenario.analysis.questions} />
     </div>
   )
@@ -629,6 +675,7 @@ function App() {
                   <div className="workspace-grid">
                     <div className="workspace-main">
                       <Topology study={visibleStudy} tag={draft ? (isDraft ? 'DRAFT' : 'SCENARIO') : 'BASELINE'} />
+                      <ProtectionZoneReview {...analyzedCase} />
                       <section className="panel">
                         <PanelHeader title="Protection philosophies" description={scenario ? 'Most recent analyzed scenario.' : 'Preliminary results for the baseline.'} />
                         {activeAnalysis.candidates.map(candidate => <CandidateCard key={candidate.id} candidate={candidate} tripBasis={activeAnalysis.trip_basis} />)}

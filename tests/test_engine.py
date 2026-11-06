@@ -105,6 +105,28 @@ class StudyBenchmarkTests(unittest.TestCase):
         self.assertEqual(result["counts"]["combined_phase_channels"], 12)
         self.assertIn("ct_inventory.neutral", {question["field"] for question in result["questions"]})
 
+    def test_zone_review_identifies_missing_boundaries_and_auxiliary_scope(self):
+        self.study["auxiliary"] = "included"
+        for bay in self.study["bays"]:
+            bay["ct"] = "present"
+        self.study["lv_ct"] = "absent"
+
+        result = analyze(self.study)
+        zones = {zone["id"]: zone for zone in result["zones"]}
+        self.assertEqual(zones["transformer"]["status"], "Missing measurement")
+        self.assertEqual(zones["bus"]["status"], "Missing measurement")
+        self.assertEqual(zones["combined"]["status"], "Boundaries present")
+        auxiliary = {"label": "Auxiliary tap phase CT bank", "state": "present"}
+        self.assertNotIn(auxiliary, zones["transformer"]["boundaries"])
+        self.assertIn(auxiliary, zones["bus"]["boundaries"])
+        self.assertIn(auxiliary, zones["combined"]["boundaries"])
+        self.assertEqual(zones["combined"]["trip_targets"], ["HV breaker", "CB-01", "CB-02", "CB-03"])
+
+        self.study["hv_ct"] = "absent"
+        combined = next(zone for zone in analyze(self.study)["zones"] if zone["id"] == "combined")
+        self.assertEqual(combined["status"], "Missing measurement")
+        self.assertIn({"label": "HV breaker POI-side phase CT bank", "state": "absent"}, combined["boundaries"])
+
     @staticmethod
     def _candidate(result, candidate_id):
         return next(candidate for candidate in result["candidates"] if candidate["id"] == candidate_id)

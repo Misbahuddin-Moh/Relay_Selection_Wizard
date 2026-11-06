@@ -58,6 +58,14 @@ export interface Candidate {
   trip_targets: string[]
 }
 
+export interface ProtectionZone {
+  id: 'transformer' | 'bus' | 'combined'
+  title: string
+  status: string
+  boundaries: { label: string; state: Ct }[]
+  trip_targets: string[]
+}
+
 export interface Analysis {
   counts: {
     breakers: number
@@ -67,6 +75,7 @@ export interface Analysis {
     combined_phase_channels: number | null
   }
   trip_basis: string
+  zones: ProtectionZone[]
   candidates: Candidate[]
   questions: { field: string; prompt: string; why: string }[]
 }

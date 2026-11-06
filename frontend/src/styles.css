@@ -179,3 +179,21 @@ tbody tr:last-child > * { border-bottom: 0; }
 .ct-inventory legend { padding: 0 5px; margin-left: 10px; font-size: 14px; font-weight: 700; }
 .ct-inventory .draft-note { margin: 0; }
 .ct-inventory .text-button { justify-self: start; }
+
+.zone-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0 15px; }
+.zone-option { border: 1px solid #dce7e0; border-radius: 12px; min-width: 0; padding: 12px; }
+.zone-option .drawing-scroll { margin: 10px 0; }
+.zone-overlay { stroke-width: 1.3; stroke-dasharray: 4 3; }
+.zone-transformer { fill: #dceafb; stroke: #4c78b3; background: #dceafb; }
+.zone-bus { fill: #e2f0da; stroke: #59804c; background: #e2f0da; }
+.zone-combined { fill: #ece2fa; stroke: #7957a3; background: #ece2fa; }
+.zone-details { margin-top: 12px; padding-top: 10px; border-top: 1px solid #eaf0ec; }
+.zone-details h4 { display: flex; align-items: center; gap: 6px; margin: 0; }
+.zone-swatch { width: 12px; height: 12px; border: 1px solid currentColor; border-radius: 3px; }
+.zone-boundaries { padding: 0; list-style: none; font-size: 12px; }
+.zone-boundaries li { display: flex; justify-content: space-between; gap: 8px; margin: 6px 0; }
+.boundary-state { font-weight: 700; }
+.boundary-state.absent { color: #9c302e; }
+.boundary-state.unknown { color: #80560e; }
+.zone-basis { margin: 12px 15px; }
+@media (max-width: 850px) { .zone-options { grid-template-columns: minmax(0, 1fr); } }
