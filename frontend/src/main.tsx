@@ -308,14 +308,14 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
   const [draft, setDraft] = useState(emptyConcept)
   const [source, setSource] = useState<'concept' | 'drawing'>('concept')
   const [file, setFile] = useState<File | null>(null)
-  const [configured, setConfigured] = useState<boolean | null>(null)
+  const [provider, setProvider] = useState<'Claude' | 'OpenAI' | null>(null)
   const [entry, setEntry] = useState(false)
   const [notes, setNotes] = useState<string[]>([])
 
   useEffect(() => {
     const controller = new AbortController()
-    getJson<{ configured: boolean }>('/api/drawing/status', { signal: controller.signal })
-      .then(status => setConfigured(status.configured)).catch(() => {})
+    getJson<{ provider: 'Claude' | 'OpenAI' | null }>('/api/drawing/status', { signal: controller.signal })
+      .then(status => setProvider(status.provider)).catch(() => {})
     return () => controller.abort()
   }, [])
 
@@ -430,7 +430,7 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
       ) : source === 'drawing' && !entry ? (
         <div className="workspace-grid">
           <section className="panel">
-            <PanelHeader title="Select a single-line drawing" description="Use a PDF, PNG, or JPEG up to 8 MiB. Extraction sends the selected drawing to OpenAI. Use a synthetic drawing or one approved for that processing." />
+            <PanelHeader title="Select a single-line drawing" description={provider ? `Use a PDF, PNG, or JPEG up to 8 MiB. Extraction sends the drawing to ${provider}. Use a synthetic or approved drawing.` : "Use a PDF, PNG, or JPEG up to 8 MiB."} />
             <div className="editor-fields">
               <label className="field"><span>Drawing file</span><input type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" disabled={busy} onChange={event => {
                 const selected = event.target.files?.[0]
@@ -439,7 +439,7 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
                 setNotes([])
                 setError(selected && !allowed ? 'Choose a nonempty PDF, PNG, or JPEG no larger than 8 MiB.' : null)
               }} /></label>
-              {configured === false && <p className="draft-note">Live extraction is unconfigured. You can still enter the layout while viewing the drawing.</p>}
+              {!provider && <p className="draft-note">Live extraction is unavailable. You can still enter the layout while viewing the drawing.</p>}
             </div>
             <div className="editor-actions">
               <button className="button secondary" type="button" disabled={!file || busy} onClick={() => {
@@ -447,7 +447,7 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
                 setError(null)
                 setEntry(true)
               }}>Enter manually</button>
-              <button className="button primary" type="button" disabled={!file || busy || configured === false} onClick={extract}>{busy ? 'Extracting…' : 'Extract topology'}</button>
+              <button className="button primary" type="button" disabled={!file || busy || !provider} onClick={extract}>{busy ? 'Extracting…' : 'Extract topology'}</button>
             </div>
             {error && <p className="error form-error" role="alert">{error}</p>}
           </section>

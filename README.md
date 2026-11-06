@@ -44,15 +44,15 @@ Select **Review topology** to check the one-line, then **Confirm and analyze** t
 
 Choose **New protection study → Upload a drawing**. Select a PDF, PNG, or JPEG up to 8 MiB. **Enter manually** keeps the original available while you enter the topology without sending the file to an extraction service.
 
-For live extraction, set `OPENAI_API_KEY` in the terminal that runs Uvicorn. On macOS with zsh, stop the running server first, then enter:
+For Claude extraction, set `ANTHROPIC_API_KEY` in the terminal that runs Uvicorn. On macOS with zsh, stop the running server first, then enter:
 
 ```zsh
-read -rs 'OPENAI_API_KEY?OpenAI API key: '
-export OPENAI_API_KEY
+read -rs 'ANTHROPIC_API_KEY?Claude API key: '
+export ANTHROPIC_API_KEY
 .venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-The server defaults to `gpt-4.1`. You can set `RELAY_DRAWING_MODEL` to an approved model with PDF, image, and structured output support. Clicking **Extract topology** sends the drawing to OpenAI. Use synthetic or approved drawings, and keep the extraction endpoint local until authenticated access is in place.
+The server uses Claude Sonnet 4.6 when `ANTHROPIC_API_KEY` is set. With only `OPENAI_API_KEY`, it uses OpenAI with `gpt-4.1`. You can set `RELAY_DRAWING_MODEL` to a model supported by the selected provider. Clicking **Extract topology** sends the drawing to the provider shown in the upload screen. Use synthetic or approved drawings, and keep the extraction endpoint local until authenticated access is in place.
 
 Compare the proposed fields and extraction notes with the source, correct the draft, and choose **Review topology**. Only **Confirm and analyze** runs the engineering checks.
 

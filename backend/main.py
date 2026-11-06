@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -8,7 +7,7 @@ from starlette.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
-from .drawing import FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, extract_drawing
+from .drawing import FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, drawing_provider, extract_drawing
 from .engine import analyze
 
 Measurement = Literal["unknown", "present", "absent"]
@@ -68,7 +67,8 @@ def analyze_study(study: Study):
 
 @app.get("/api/drawing/status")
 def drawing_status():
-    return {"configured": bool(os.getenv("OPENAI_API_KEY", "").strip())}
+    provider = drawing_provider()
+    return {"configured": provider is not None, "provider": provider}
 
 
 @app.post("/api/drawing/extract")
@@ -85,8 +85,8 @@ async def extract_single_line(request: Request):
         data.extend(chunk)
     if not data.startswith(signature):
         raise HTTPException(422, "The drawing bytes do not match the selected file type.")
-    if not drawing_status()["configured"]:
-        raise HTTPException(503, "Drawing extraction is unconfigured. Set OPENAI_API_KEY on the server or enter the topology manually.")
+    if drawing_provider() is None:
+        raise HTTPException(503, "Drawing extraction is unconfigured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY on the server, or enter the topology manually.")
 
     try:
         return await run_in_threadpool(extract_drawing, bytes(data), content_type)

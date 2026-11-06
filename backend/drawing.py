@@ -55,45 +55,73 @@ class ExtractionError(Exception):
     pass
 
 
+def drawing_provider() -> Optional[Literal["Claude", "OpenAI"]]:
+    if os.getenv("ANTHROPIC_API_KEY", "").strip():
+        return "Claude"
+    if os.getenv("OPENAI_API_KEY", "").strip():
+        return "OpenAI"
+    return None
+
+
 def extract_drawing(data: bytes, content_type: str) -> DrawingDraft:
-    key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not key:
-        raise ExtractionError("Drawing extraction is unconfigured. Set OPENAI_API_KEY on the server or enter the topology manually.")
+    provider = drawing_provider()
+    if provider is None:
+        raise ExtractionError("Set ANTHROPIC_API_KEY or OPENAI_API_KEY on the server, or enter the topology manually.")
 
     encoded = base64.b64encode(data).decode("ascii")
-    data_url = f"data:{content_type};base64,{encoded}"
-    if content_type == "application/pdf":
-        drawing = {"type": "input_file", "filename": "drawing.pdf", "file_data": data_url, "detail": "high"}
+    schema = DrawingDraft.model_json_schema()
+    task = "Extract the drawing into a draft topology."
+    headers = {"Content-Type": "application/json"}
+    if provider == "Claude":
+        url = "https://api.anthropic.com/v1/messages"
+        headers.update({
+            "x-api-key": os.environ["ANTHROPIC_API_KEY"].strip(),
+            "anthropic-version": "2023-06-01",
+        })
+        drawing = {
+            "type": "document" if content_type == "application/pdf" else "image",
+            "source": {"type": "base64", "media_type": content_type, "data": encoded},
+        }
+        payload = {
+            "model": os.getenv("RELAY_DRAWING_MODEL") or "claude-sonnet-4-6",
+            "system": PROMPT,
+            "messages": [{"role": "user", "content": [drawing, {"type": "text", "text": task}]}],
+            "max_tokens": 5000,
+            "output_config": {"format": {"type": "json_schema", "schema": schema}},
+        }
     else:
-        drawing = {"type": "input_image", "image_url": data_url, "detail": "high"}
-    request = Request(
-        "https://api.openai.com/v1/responses",
-        data=json.dumps({
+        url = "https://api.openai.com/v1/responses"
+        headers["Authorization"] = f"Bearer {os.environ['OPENAI_API_KEY'].strip()}"
+        data_url = f"data:{content_type};base64,{encoded}"
+        if content_type == "application/pdf":
+            drawing = {"type": "input_file", "filename": "drawing.pdf", "file_data": data_url, "detail": "high"}
+        else:
+            drawing = {"type": "input_image", "image_url": data_url, "detail": "high"}
+        payload = {
             "model": os.getenv("RELAY_DRAWING_MODEL") or "gpt-4.1",
             "store": False,
             "instructions": PROMPT,
-            "input": [{"role": "user", "content": [drawing, {"type": "input_text", "text": "Extract the drawing into a draft topology."}]}],
+            "input": [{"role": "user", "content": [drawing, {"type": "input_text", "text": task}]}],
             "max_output_tokens": 5000,
-            "text": {"format": {
-                "type": "json_schema",
-                "name": "drawing_draft",
-                "schema": DrawingDraft.model_json_schema(),
-                "strict": True,
-            }},
-        }).encode("utf-8"),
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-    )
+            "text": {"format": {"type": "json_schema", "name": "drawing_draft", "schema": schema, "strict": True}},
+        }
+
+    request = Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers)
     try:
         with urlopen(request, timeout=90) as response:
             result = json.load(response)
-        if result.get("status") == "completed":
+        if provider == "Claude" and result.get("stop_reason") == "end_turn":
+            for part in result.get("content", []):
+                if part.get("type") == "text":
+                    return DrawingDraft.model_validate_json(part["text"])
+        if provider == "OpenAI" and result.get("status") == "completed":
             for item in result.get("output", []):
                 if item.get("type") == "message":
                     for part in item.get("content", []):
                         if part.get("type") == "output_text":
                             return DrawingDraft.model_validate_json(part["text"])
     except HTTPError as error:
-        raise ExtractionError(f"The extraction provider returned HTTP {error.code}. Check your model access and try again.") from error
+        raise ExtractionError(f"{provider} returned HTTP {error.code}. Check your API key, balance, and model access.") from error
     except (URLError, TimeoutError) as error:
         raise ExtractionError("The extraction provider could not be reached. Try again or enter the topology manually.") from error
     except (ValueError, KeyError) as error:
