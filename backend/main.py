@@ -7,7 +7,7 @@ from starlette.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
-from .drawing import FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, drawing_provider, extract_drawing
+from .drawing import CLAUDE_IMAGE_BYTES, FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, drawing_provider, extract_drawing
 from .engine import analyze
 
 Measurement = Literal["unknown", "present", "absent"]
@@ -78,14 +78,20 @@ async def extract_single_line(request: Request):
     if signature is None:
         raise HTTPException(415, "Choose a PDF, PNG, or JPEG drawing.")
 
+    provider = drawing_provider()
+    limit = CLAUDE_IMAGE_BYTES if provider == "Claude" and content_type != "application/pdf" else MAX_DRAWING_BYTES
     data = bytearray()
     async for chunk in request.stream():
-        if len(data) + len(chunk) > MAX_DRAWING_BYTES:
-            raise HTTPException(413, "Choose a drawing no larger than 8 MiB.")
+        if len(data) + len(chunk) > limit:
+            detail = (
+                "Claude’s inline image limit is 7.5 MB before encoding. Use the upload screen to send it as a PDF."
+                if limit == CLAUDE_IMAGE_BYTES else "Choose a drawing no larger than 20 MiB."
+            )
+            raise HTTPException(413, detail)
         data.extend(chunk)
     if not data.startswith(signature):
         raise HTTPException(422, "The drawing bytes do not match the selected file type.")
-    if drawing_provider() is None:
+    if provider is None:
         raise HTTPException(503, "Drawing extraction is unconfigured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY on the server, or enter the topology manually.")
 
     try:

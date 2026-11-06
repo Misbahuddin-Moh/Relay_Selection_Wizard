@@ -42,7 +42,7 @@ Select **Review topology** to check the one-line, then **Confirm and analyze** t
 
 ## Start from a one-line drawing
 
-Choose **New protection study → Upload a drawing**. Select a PDF, PNG, or JPEG up to 8 MiB. **Enter manually** keeps the original available while you enter the topology without sending the file to an extraction service.
+Choose **New protection study → Upload a drawing**. Select a PDF, PNG, or JPEG up to 20 MiB. The app wraps images above the provider’s inline threshold in a PDF without reducing their pixel resolution. The source preview uses your original file. A direct PDF export is preferable when available. **Enter manually** keeps the original available while you enter the topology without sending the file to an extraction service.
 
 For Claude extraction, set `ANTHROPIC_API_KEY` in the terminal that runs Uvicorn. On macOS with zsh, stop the running server first, then enter:
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
+import { extractionFile, maxDrawingBytes } from './drawingUpload'
 import { auxiliaryLabels, ctLabels } from './model'
 import type { Analysis, Candidate, DrawingDraft, Snapshot, Study } from './model'
 import './styles.css'
@@ -331,10 +332,11 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
     setError(null)
     setNotes([])
     try {
+      const upload = await extractionFile(file, provider)
       const result = await getJson<DrawingDraft>('/api/drawing/extract', {
         method: 'POST',
-        headers: { 'Content-Type': file.type },
-        body: file,
+        headers: { 'Content-Type': upload.type },
+        body: upload,
       })
       setNotes(result.notes)
       if (result.scope === 'unsupported') {
@@ -430,14 +432,14 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
       ) : source === 'drawing' && !entry ? (
         <div className="workspace-grid">
           <section className="panel">
-            <PanelHeader title="Select a single-line drawing" description={provider ? `Use a PDF, PNG, or JPEG up to 8 MiB. Extraction sends the drawing to ${provider}. Use a synthetic or approved drawing.` : "Use a PDF, PNG, or JPEG up to 8 MiB."} />
+            <PanelHeader title="Select a single-line drawing" description={provider ? `Use a PDF, PNG, or JPEG up to 20 MiB. Extraction sends the drawing to ${provider}. Use a synthetic or approved drawing.` : "Use a PDF, PNG, or JPEG up to 20 MiB."} />
             <div className="editor-fields">
               <label className="field"><span>Drawing file</span><input type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" disabled={busy} onChange={event => {
                 const selected = event.target.files?.[0]
-                const allowed = selected && ['application/pdf', 'image/png', 'image/jpeg'].includes(selected.type) && selected.size > 0 && selected.size <= 8 * 1024 * 1024
+                const allowed = selected && ['application/pdf', 'image/png', 'image/jpeg'].includes(selected.type) && selected.size > 0 && selected.size <= maxDrawingBytes
                 setFile(allowed ? selected : null)
                 setNotes([])
-                setError(selected && !allowed ? 'Choose a nonempty PDF, PNG, or JPEG no larger than 8 MiB.' : null)
+                setError(selected && !allowed ? 'Choose a nonempty PDF, PNG, or JPEG no larger than 20 MiB.' : null)
               }} /></label>
               {!provider && <p className="draft-note">Live extraction is unavailable. You can still enter the layout while viewing the drawing.</p>}
             </div>

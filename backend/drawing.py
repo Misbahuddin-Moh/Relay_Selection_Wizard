@@ -9,7 +9,8 @@ from urllib.request import Request, urlopen
 
 from pydantic import BaseModel, ConfigDict
 
-MAX_DRAWING_BYTES = 8 * 1024 * 1024
+MAX_DRAWING_BYTES = 20 * 1024 * 1024
+CLAUDE_IMAGE_BYTES = 7_500_000
 FILE_TYPES = {
     "application/pdf": b"%PDF-",
     "image/png": b"\x89PNG\r\n\x1a\n",
