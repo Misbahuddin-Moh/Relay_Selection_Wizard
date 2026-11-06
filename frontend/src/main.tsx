@@ -81,7 +81,7 @@ function nextLabel(prefix: string, existing: string[]) {
   return `${prefix}-${id}`
 }
 
-function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error }: {
+function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error, concept = false }: {
   draft: Study
   update: (next: Study) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
@@ -89,6 +89,7 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error }: {
   busy: boolean
   dirty: boolean
   error: string | null
+  concept?: boolean
 }) {
   const changeBay = (index: number, next: Study['bays'][number]) => update({
     ...draft,
@@ -97,11 +98,11 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error }: {
   const branches = draft.bays.flatMap(bay => bay.branches)
   return (
     <section className="panel editor" id="scenario-editor">
-      <PanelHeader title="Scenario inputs" description="Edit the case, then run the engineering checks." />
+      <PanelHeader title={concept ? "Concept inputs" : "Scenario inputs"} description={concept ? "Enter the station layout and leave unconfirmed measurements unknown." : "Edit the case, then run the engineering checks."} />
       <form onSubmit={onSubmit}>
         <fieldset disabled={busy}>
           <div className="editor-fields">
-            <label className="field"><span>Scenario name</span><input value={draft.title} onChange={event => update({ ...draft, title: event.target.value })} maxLength={100} required /></label>
+            <label className="field"><span>{concept ? "Study name" : "Scenario name"}</span><input value={draft.title} onChange={event => update({ ...draft, title: event.target.value })} maxLength={100} required /></label>
             <div className="field-row">
               <label className="field"><span>HV (kV)</span><input type="number" min="0.1" step="any" value={draft.hv_kv || ''} onChange={event => update({ ...draft, hv_kv: Number(event.target.value) })} required /></label>
               <label className="field"><span>Collector (kV)</span><input type="number" min="0.1" step="any" value={draft.mv_kv || ''} onChange={event => update({ ...draft, mv_kv: Number(event.target.value) })} required /></label>
@@ -115,9 +116,10 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error }: {
           <div className="bay-list">
             <div className="bay-list-header"><h3>Collector bays</h3><button type="button" className="text-button" disabled={draft.bays.length >= 40} onClick={() => update({ ...draft, bays: [...draft.bays, { id: nextLabel('52-F', draft.bays.map(bay => bay.id)), ct: 'unknown', branches: [nextLabel('Feeder', branches)] }] })}><Icon name="plus" size={15} /> Add bay</button></div>
             {draft.bays.map((bay, index) => (
-              <details className="bay" key={bay.id}>
+              <details className="bay" key={concept ? index : bay.id}>
                 <summary><strong>{bay.id}</strong><span>{bay.branches.length} {bay.branches.length === 1 ? 'branch' : 'branches'} · CT {ctLabels[bay.ct].toLowerCase()}</span></summary>
                 <div className="bay-fields">
+                  {concept && <label className="field"><span>Breaker tag</span><input value={bay.id} maxLength={100} required onChange={event => changeBay(index, { ...bay, id: event.target.value })} /></label>}
                   <Select label={`${bay.id} boundary CT`} options={ctLabels} value={bay.ct} change={ct => changeBay(index, { ...bay, ct })} />
                   {bay.branches.map((branch, branchIndex) => (
                     <div className="branch-row" key={branchIndex}>
@@ -135,7 +137,7 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error }: {
           </div>
           <div className="editor-actions">
             <button className="button secondary" type="button" onClick={onReset} disabled={!dirty}>Reset edits</button>
-            <button className="button primary" type="submit">{busy ? 'Analyzing…' : 'Analyze scenario'}<Icon name="arrow" size={17} /></button>
+            <button className="button primary" type="submit">{concept ? 'Review topology' : busy ? 'Analyzing…' : 'Analyze scenario'}<Icon name="arrow" size={17} /></button>
           </div>
         </fieldset>
         {error && <p className="error form-error" role="alert">{error}</p>}
@@ -225,8 +227,123 @@ function Comparison({ baseline, scenario, onCreate }: { baseline: Snapshot; scen
   )
 }
 
+const emptyConcept: Study = {
+  title: '',
+  hv_kv: 0,
+  mv_kv: 0,
+  hv_ct: 'unknown',
+  lv_ct: 'unknown',
+  auxiliary: 'unknown',
+  bays: [{ id: '52-F-1', branches: ['Feeder-1'], ct: 'unknown' }],
+}
+
+function normalizeStudy(draft: Study) {
+  return {
+    ...draft,
+    title: draft.title.trim(),
+    bays: draft.bays.map(bay => ({ ...bay, id: bay.id.trim(), branches: bay.branches.map(name => name.trim()) })),
+  }
+}
+
+function validateStudy(study: Study) {
+  const breakerTags = study.bays.map(bay => bay.id.toLowerCase())
+  const branches = study.bays.flatMap(bay => bay.branches.map(branch => branch.toLowerCase()))
+  if (!study.title) return 'Enter a study name.'
+  if (breakerTags.includes('') || new Set(breakerTags).size !== breakerTags.length) return 'Enter a distinct tag for every breaker.'
+  if (branches.includes('') || new Set(branches).size !== branches.length) return 'Enter a distinct name for every branch.'
+  return null
+}
+
+function analyzeStudy(study: Study) {
+  return getJson<Analysis>('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(study),
+  })
+}
+
+function Topology({ study, tag }: { study: Study; tag: string }) {
+  return (
+    <section className="panel topology">
+      <PanelHeader title="Single-line topology" description="One MPT with a single collector bus." action={<span className="tag diagram-tag">{tag}</span>} />
+      <OneLine study={study} />
+      <div className="legend"><span><i className="legend-present">•</i> CT present</span><span><i className="legend-unknown">?</i> CT unknown</span><span><i className="legend-absent">×</i> CT absent</span></div>
+    </section>
+  )
+}
+
+function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: (snapshot: Snapshot) => void }) {
+  const [draft, setDraft] = useState(emptyConcept)
+  const [review, setReview] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  function reviewTopology(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const study = normalizeStudy(draft)
+    const problem = validateStudy(study)
+    setError(problem)
+    if (problem) return
+    setDraft(study)
+    setReview(true)
+  }
+
+  async function confirmTopology() {
+    setBusy(true)
+    setError(null)
+    try {
+      const analysis = await analyzeStudy(draft)
+      onCreate({ study: draft, analysis })
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to analyze this study.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">{review ? 'STEP 2 OF 2 · TOPOLOGY REVIEW' : 'STEP 1 OF 2 · CONCEPT ENTRY'}</p>
+          <h1>{review ? 'Review topology' : 'New protection study'}</h1>
+          <p>{review ? draft.title : 'Start with one transformer and a single collector bus.'}</p>
+        </div>
+        <button className="button secondary" type="button" onClick={onCancel} disabled={busy}>Cancel new study</button>
+      </div>
+      {review ? (
+        <div className="workspace-grid">
+          <Topology study={draft} tag="CONCEPT DRAFT" />
+          <section className="panel overview">
+            <PanelHeader title="Confirm the modeled layout" description="Check the breaker and branch grouping before analysis. Unknown measurements will carry forward as open questions. Confirming makes this the active baseline and clears its prior scenario." />
+            <dl>
+              <div><dt>Collector breakers</dt><dd>{draft.bays.length}</dd></div>
+              <div><dt>Outgoing branches</dt><dd>{draft.bays.reduce((count, bay) => count + bay.branches.length, 0)}</dd></div>
+              <div><dt>Transformer HV CT</dt><dd>{ctLabels[draft.hv_ct]}</dd></div>
+              <div><dt>Transformer LV CT</dt><dd>{ctLabels[draft.lv_ct]}</dd></div>
+              <div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[draft.auxiliary]}</dd></div>
+            </dl>
+            <div className="editor-actions">
+              <button className="button secondary" type="button" disabled={busy} onClick={() => { setReview(false); setError(null) }}>Edit concept</button>
+              <button className="button primary" type="button" disabled={busy} onClick={confirmTopology}>{busy ? 'Analyzing…' : 'Confirm and analyze'}</button>
+            </div>
+            {error && <p className="error form-error" role="alert">{error}</p>}
+          </section>
+        </div>
+      ) : (
+        <div className="workspace-grid">
+          <StudyEditor concept draft={draft} update={setDraft} onSubmit={reviewTopology} onReset={() => { setDraft(emptyConcept); setError(null) }} busy={false} dirty={draft !== emptyConcept} error={error} />
+          <section className="panel">
+            <PanelHeader title="Build the collector layout" description="Add one bay for each breaker position. Expand a bay to assign all outgoing branches served by that breaker and enter its CT status." />
+          </section>
+        </div>
+      )}
+    </>
+  )
+}
+
 function App() {
-  const [baseline, setBaseline] = useState<Snapshot | null>(null)
+  const [example, setExample] = useState<Snapshot | null>(null)
   const [scenario, setScenario] = useState<Snapshot | null>(null)
   const [draft, setDraft] = useState<Study | null>(null)
   const [view, setView] = useState<'workspace' | 'comparison'>('workspace')
@@ -234,14 +351,18 @@ function App() {
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const [creating, setCreating] = useState(false)
+  const [conceptBaseline, setConceptBaseline] = useState<Snapshot | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
-    getJson<Snapshot>('/api/study', { signal: controller.signal }).then(setBaseline).catch(error => {
+    getJson<Snapshot>('/api/study', { signal: controller.signal }).then(setExample).catch(error => {
       if (!controller.signal.aborted) setLoadError(error.message)
     })
     return () => controller.abort()
   }, [attempt])
+
+  const baseline = conceptBaseline ?? example
 
   function createScenario() {
     if (!baseline) return
@@ -253,22 +374,17 @@ function App() {
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!draft) return
-    const title = draft.title.trim()
-    const study = { ...draft, title, bays: draft.bays.map(bay => ({ ...bay, branches: bay.branches.map(branch => branch.trim()) })) }
-    const branches = study.bays.flatMap(bay => bay.branches)
-    if (!title || branches.includes('') || new Set(branches.map(name => name.toLowerCase())).size !== branches.length) {
-      setFormError('Enter a scenario name and a distinct name for every branch.')
+    const study = normalizeStudy(draft)
+    const problem = validateStudy(study)
+    if (problem) {
+      setFormError(problem)
       return
     }
 
     setBusy(true)
     setFormError(null)
     try {
-      const analysis = await getJson<Analysis>('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(study),
-      })
+      const analysis = await analyzeStudy(study)
       setDraft(study)
       setScenario({ study, analysis })
       setView('comparison')
@@ -294,22 +410,33 @@ function App() {
         </div>
         <nav aria-label="Study views">
           <div className="nav-label">STUDY VIEWS</div>
-          <button type="button" className={view === 'workspace' ? 'active' : ''} aria-current={view === 'workspace' ? 'page' : undefined} onClick={() => setView('workspace')}><Icon name="diagram" size={18} /> Study workspace</button>
-          <button type="button" className={view === 'comparison' ? 'active' : ''} aria-current={view === 'comparison' ? 'page' : undefined} onClick={() => setView('comparison')}><Icon name="compare" size={18} /> Scenario comparison</button>
+          <button type="button" className={view === 'workspace' ? 'active' : ''} aria-current={view === 'workspace' ? 'page' : undefined} disabled={creating} onClick={() => setView('workspace')}><Icon name="diagram" size={18} /> Study workspace</button>
+          <button type="button" className={view === 'comparison' ? 'active' : ''} aria-current={view === 'comparison' ? 'page' : undefined} disabled={creating} onClick={() => setView('comparison')}><Icon name="compare" size={18} /> Scenario comparison</button>
         </nav>
         <div className="sidebar-footer"><i /> Preliminary engineering</div>
       </aside>
       <main className="main">
-        <header className="topbar"><span>Protection studies <b>/</b> Collector substation</span><span className="tag">SYNTHETIC STUDY</span></header>
+        <header className="topbar"><span>Protection studies <b>/</b> Collector substation</span><span className="tag">{creating || conceptBaseline ? 'CONCEPT STUDY' : 'SYNTHETIC STUDY'}</span></header>
         <div className="content">
-          {!baseline && (loadError
+          {creating && <ConceptStudy onCancel={() => setCreating(false)} onCreate={snapshot => {
+            setConceptBaseline(snapshot)
+            setDraft(null)
+            setScenario(null)
+            setFormError(null)
+            setView('workspace')
+            setCreating(false)
+          }} />}
+          {!creating && !baseline && (loadError
             ? <div className="panel load-state"><h1>Unable to load the study</h1><p role="alert">{loadError}</p><button type="button" className="button primary" onClick={() => { setLoadError(null); setAttempt(attempt + 1) }}>Try again</button></div>
             : <div className="panel load-state" role="status">Loading the example study…</div>)}
-          {baseline && (
+          {!creating && baseline && (
             <>
               <div className="page-heading">
                 <div><p className="eyebrow">PROTECTION STUDY</p><h1>{view === 'workspace' ? baseline.study.title : 'Scenario comparison'}</h1><p>{view === 'workspace' ? 'Review the single-line and screen preliminary protection philosophies.' : 'See how measurement and topology changes affect protection candidates.'}</p></div>
-                {view === 'workspace' && !draft && <button type="button" className="button primary" onClick={createScenario}><Icon name="plus" size={18} /> New scenario</button>}
+                {view === 'workspace' && <div className="study-actions">
+                  <button type="button" className="button secondary" disabled={busy} onClick={() => setCreating(true)}><Icon name="plus" size={18} /> New protection study</button>
+                  {!draft && <button type="button" className="button primary" onClick={createScenario}>New scenario</button>}
+                </div>}
                 {view === 'comparison' && draft && <button type="button" className="button secondary" onClick={() => setView('workspace')}>Edit scenario <Icon name="arrow" size={17} /></button>}
               </div>
               {view === 'workspace' && visibleStudy && analyzedCase && activeAnalysis && (
@@ -318,11 +445,7 @@ function App() {
                   <Metrics analysis={activeAnalysis} auxiliary={analyzedCase.study.auxiliary} />
                   <div className="workspace-grid">
                     <div className="workspace-main">
-                      <section className="panel topology">
-                        <PanelHeader title="Single-line topology" description="One MPT with a single collector bus." action={<span className="tag diagram-tag">{draft ? (isDraft ? 'DRAFT' : 'SCENARIO') : 'BASELINE'}</span>} />
-                        <OneLine study={visibleStudy} />
-                        <div className="legend"><span><i className="legend-present">•</i> CT present</span><span><i className="legend-unknown">?</i> CT unknown</span><span><i className="legend-absent">×</i> CT absent</span></div>
-                      </section>
+                      <Topology study={visibleStudy} tag={draft ? (isDraft ? 'DRAFT' : 'SCENARIO') : 'BASELINE'} />
                       <section className="panel">
                         <PanelHeader title="Protection philosophies" description={scenario ? 'Most recent analyzed scenario.' : 'Preliminary results for the baseline.'} />
                         {activeAnalysis.candidates.map(candidate => <CandidateCard key={candidate.id} candidate={candidate} tripBasis={activeAnalysis.trip_basis} />)}

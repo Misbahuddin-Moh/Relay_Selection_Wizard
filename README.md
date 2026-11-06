@@ -34,8 +34,14 @@ For frontend development, run `npm --prefix frontend run dev` with the API still
 npm --prefix frontend run build
 ```
 
+## Start a concept study
+
+Choose **New protection study** from the workspace. Enter a study name and the voltage levels, then add one collector bay per breaker position. Expand each bay to edit its breaker tag, assign the branches it serves, and record CT availability. Leave unconfirmed measurements as **Unknown**.
+
+Select **Review topology** to check the one-line, then **Confirm and analyze** to make it the active baseline. Create a **New scenario** to test a change against that baseline. Concept studies and scenarios reset when you reload the page.
+
 ## Study scope
 
-The baseline is synthetic. Scenario edits stay in the current page and reset when it reloads. A missing CT blocks the corresponding modeled differential boundary, while an unknown CT prompts confirmation. The input budget assumes one phase CT bank per collector breaker position and counts the auxiliary boundary separately when selected. Trip targets are preliminary and assume potential collector backfeed and no LV main breaker. Confirm actual CT locations and performance, auxiliary and remote trip paths, fault contributions, breaker failure, and owner requirements independently.
+The example baseline is synthetic. Scenario edits stay in the current page and reset when it reloads. A missing CT blocks the corresponding modeled differential boundary, while an unknown CT prompts confirmation. The input budget assumes one phase CT bank per collector breaker position and counts the auxiliary boundary separately when selected. Trip targets are preliminary and assume potential collector backfeed and no LV main breaker. Confirm actual CT locations and performance, auxiliary and remote trip paths, fault contributions, breaker failure, and owner requirements independently.
 
-This milestone covers topology editing and preliminary candidate comparison. Drawing extraction, persistent study storage, manufacturer-specific relay selection, and report export are planned for later milestones.
+This milestone covers concept entry, topology review, and preliminary candidate comparison. Drawing extraction, persistent study storage, manufacturer-specific relay selection, and report export are planned for later milestones.

@@ -162,3 +162,8 @@ tbody tr:last-child > * { border-bottom: 0; }
   .candidate-heading { flex-wrap: wrap; }
 }
 .draft-note { color: #76500d; border: 1px solid #ebd8aa; background: #fdf6e4; border-radius: 7px; padding: 8px 12px; font-size: 12px; margin: 0 0 10px; }
+
+.study-actions { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+@media (max-width: 1050px) {
+  .study-actions { flex-shrink: 1; }
+}
