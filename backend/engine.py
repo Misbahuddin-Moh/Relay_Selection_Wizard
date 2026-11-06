@@ -1,6 +1,6 @@
 """Preliminary differential-protection screening for a single-MPT collector bus."""
 
-from typing import Any
+from typing import Any, Optional
 
 
 def analyze(study: dict[str, Any]) -> dict[str, Any]:
@@ -32,7 +32,7 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
         "transformer LV phase CT bank": lv_ct,
     }
 
-    def measurement_finding(boundaries: dict[str, str]) -> tuple[str | None, str]:
+    def measurement_finding(boundaries: dict[str, str]) -> tuple[Optional[str], str]:
         absent = [name for name, status in boundaries.items() if status == "absent"]
         if absent:
             return (
