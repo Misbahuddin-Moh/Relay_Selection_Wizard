@@ -7,6 +7,23 @@ export interface Bay {
   ct: Ct
 }
 
+export const ctInventoryFields = [
+  ['lv_breaker_135', 'Collector breaker · terminals 1/3/5', 2],
+  ['lv_breaker_246', 'Collector breaker · terminals 2/4/6', 2],
+  ['hv_breaker_135', 'HV breaker · terminals 1/3/5', 2],
+  ['hv_breaker_246', 'HV breaker · terminals 2/4/6', 2],
+  ['transformer_hv_phase', 'Transformer HV phase', 3],
+  ['transformer_lv_phase', 'Transformer LV phase', 3],
+  ['transformer_hv_neutral', 'Transformer HV neutral', 2],
+  ['transformer_lv_neutral', 'Transformer LV neutral', 2],
+] as const
+
+export type CtInventory = Record<typeof ctInventoryFields[number][0], number | null>
+
+export function defaultCtInventory(): CtInventory {
+  return Object.fromEntries(ctInventoryFields.map(([key, , count]) => [key, count])) as CtInventory
+}
+
 export interface Study {
   title: string
   hv_kv: number
@@ -15,6 +32,7 @@ export interface Study {
   hv_ct: Ct
   bays: Bay[]
   auxiliary: Auxiliary
+  ct_inventory?: CtInventory | null
 }
 
 export interface Candidate {

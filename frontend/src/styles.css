@@ -174,3 +174,8 @@ tbody tr:last-child > * { border-bottom: 0; }
 .drawing-source-body a { color: var(--accent); text-decoration: underline; }
 .drawing-source-body ul { padding-left: 19px; margin: 6px 0 0; }
 .drawing-source-body li + li { margin-top: 5px; }
+
+.ct-inventory { border: 0; border-top: 1px solid #eaf0ec; margin: 8px 0 0; min-width: 0; }
+.ct-inventory legend { padding: 0 5px; margin-left: 10px; font-size: 14px; font-weight: 700; }
+.ct-inventory .draft-note { margin: 0; }
+.ct-inventory .text-button { justify-self: start; }

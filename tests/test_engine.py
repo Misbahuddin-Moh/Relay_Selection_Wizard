@@ -72,6 +72,26 @@ class StudyBenchmarkTests(unittest.TestCase):
         self.assertEqual(included["breakers"], excluded["breakers"])
         self.assertEqual(included["branches"], excluded["branches"])
 
+    def test_inventory_does_not_establish_boundaries_or_add_neutral_cts_to_phase_budget(self):
+        original = analyze(self.study)
+        self.study["ct_inventory"] = {
+            "lv_breaker_135": 2,
+            "lv_breaker_246": 2,
+            "hv_breaker_135": 2,
+            "hv_breaker_246": 2,
+            "transformer_hv_phase": 3,
+            "transformer_lv_phase": 3,
+            "transformer_hv_neutral": 2,
+            "transformer_lv_neutral": 0,
+        }
+
+        result = analyze(self.study)
+        self.assertEqual(result["counts"], original["counts"])
+        self.assertEqual(result["candidates"], original["candidates"])
+        questions = {question["field"] for question in result["questions"]}
+        self.assertIn("ct_inventory.neutral", questions)
+        self.assertIn("ct_inventory.boundaries", questions)
+
     @staticmethod
     def _candidate(result, candidate_id):
         return next(candidate for candidate in result["candidates"] if candidate["id"] == candidate_id)

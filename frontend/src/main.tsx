@@ -3,8 +3,8 @@ import type { FormEvent, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
-import { auxiliaryLabels, ctLabels } from './model'
-import type { Analysis, Candidate, DrawingDraft, Snapshot, Study } from './model'
+import { auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory } from './model'
+import type { Analysis, Candidate, CtInventory, DrawingDraft, Snapshot, Study } from './model'
 import './styles.css'
 
 const icons = {
@@ -85,6 +85,47 @@ function nextLabel(prefix: string, existing: string[]) {
   return `${prefix}-${id}`
 }
 
+const unknownCtInventory: CtInventory = {
+  lv_breaker_135: null,
+  lv_breaker_246: null,
+  hv_breaker_135: null,
+  hv_breaker_246: null,
+  transformer_hv_phase: null,
+  transformer_lv_phase: null,
+  transformer_hv_neutral: null,
+  transformer_lv_neutral: null,
+}
+
+function CtInventoryEditor({ study, update, disabled = false }: {
+  study: Study
+  update: (next: Study) => void
+  disabled?: boolean
+}) {
+  const inventory = study.ct_inventory ?? unknownCtInventory
+  return (
+    <fieldset className="editor-fields ct-inventory" disabled={disabled}>
+      <legend>CT inventory</legend>
+      <p className="draft-note">Enter phase CT counts per phase and neutral CT counts per winding neutral. Collector settings apply to all {study.bays.length} collector breaker positions. Use 0 for none or leave blank for unknown. Confirm boundary suitability and primary and backup assignments separately.</p>
+      <div className="field-row">
+        {ctInventoryFields.map(([key, label]) => (
+          <label className="field" key={key}>
+            <span>{label}</span>
+            <input type="number" min="0" max="99" step="1" placeholder="Unknown" value={inventory[key] ?? ''} onChange={event => {
+              const count = event.target.value === '' ? null : event.target.valueAsNumber
+              update({ ...study, ct_inventory: { ...inventory, [key]: count } })
+            }} />
+          </label>
+        ))}
+      </div>
+      <button type="button" className="text-button" onClick={() => update({ ...study, ct_inventory: defaultCtInventory() })}>Use standard defaults</button>
+    </fieldset>
+  )
+}
+
+function ctInventoryValue(study: Study, key: keyof CtInventory) {
+  return study.ct_inventory?.[key] ?? 'Unknown'
+}
+
 function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error, concept = false }: {
   draft: Study
   update: (next: Study) => void
@@ -139,6 +180,7 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error, con
               </details>
             ))}
           </div>
+          {!concept && <CtInventoryEditor study={draft} update={update} />}
           <div className="editor-actions">
             <button className="button secondary" type="button" onClick={onReset} disabled={!dirty}>Reset edits</button>
             <button className="button primary" type="submit">{concept ? 'Review topology' : busy ? 'Analyzing…' : 'Analyze scenario'}<Icon name="arrow" size={17} /></button>
@@ -199,6 +241,7 @@ function Comparison({ baseline, scenario, onCreate }: { baseline: Snapshot; scen
             <tbody>
               <tr><th scope="row">Transformer LV CT</th><td>{ctLabels[baseline.study.lv_ct]}</td><td>{ctLabels[scenario.study.lv_ct]}</td></tr>
               <tr><th scope="row">Transformer HV CT</th><td>{ctLabels[baseline.study.hv_ct]}</td><td>{ctLabels[scenario.study.hv_ct]}</td></tr>
+              {ctInventoryFields.map(([key, label]) => <tr key={key}><th scope="row">{label} CT count</th><td>{ctInventoryValue(baseline.study, key)}</td><td>{ctInventoryValue(scenario.study, key)}</td></tr>)}
               <tr><th scope="row">Auxiliary branch treatment</th><td>{auxiliaryLabels[baseline.study.auxiliary]}</td><td>{auxiliaryLabels[scenario.study.auxiliary]}</td></tr>
               {counts.map(([label, key]) => {
                 const combined = key === 'combined_required_banks' || key === 'combined_phase_channels'
@@ -250,6 +293,10 @@ function normalizeStudy(draft: Study) {
 }
 
 function validateStudy(study: Study) {
+  if (study.ct_inventory && Object.values(study.ct_inventory).some(count => count !== null && (!Number.isInteger(count) || count < 0 || count > 99))) {
+    return 'CT counts must be whole numbers from 0 to 99 or blank for unknown.'
+  }
+
   const breakerTags = study.bays.map(bay => bay.id.toLowerCase())
   const branches = study.bays.flatMap(bay => bay.branches.map(branch => branch.toLowerCase()))
   if (!study.title) return 'Enter a study name.'
@@ -376,13 +423,15 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
     const problem = validateStudy(study)
     setError(problem)
     if (problem) return
-    setDraft(study)
+    setDraft({ ...study, ct_inventory: study.ct_inventory ?? defaultCtInventory() })
     setReview(true)
   }
 
   async function confirmTopology() {
+    const problem = validateStudy(draft)
+    setError(problem)
+    if (problem) return
     setBusy(true)
-    setError(null)
     try {
       const analysis = await analyzeStudy(draft)
       onCreate({ study: draft, analysis }, source)
@@ -422,6 +471,7 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
               <div><dt>Transformer LV CT</dt><dd>{ctLabels[draft.lv_ct]}</dd></div>
               <div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[draft.auxiliary]}</dd></div>
             </dl>
+            <CtInventoryEditor study={draft} update={setDraft} disabled={busy} />
             <div className="editor-actions">
               <button className="button secondary" type="button" disabled={busy} onClick={() => { setReview(false); setError(null) }}>Edit inputs</button>
               <button className="button primary" type="button" disabled={busy} onClick={confirmTopology}>{busy ? 'Analyzing…' : 'Confirm and analyze'}</button>
@@ -586,7 +636,7 @@ function App() {
                       }} busy={busy} dirty={dirty} error={formError} /> : (
                         <section className="panel overview">
                           <PanelHeader title="Study inputs" description="Start a scenario to change these inputs." />
-                          <dl><div><dt>Transformer HV CT</dt><dd>{ctLabels[baseline.study.hv_ct]}</dd></div><div><dt>Transformer LV CT</dt><dd>{ctLabels[baseline.study.lv_ct]}</dd></div><div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[baseline.study.auxiliary]}</dd></div><div><dt>Owner criteria</dt><dd><Status value="Pending" /></dd></div></dl>
+                          <dl><div><dt>Transformer HV CT</dt><dd>{ctLabels[baseline.study.hv_ct]}</dd></div><div><dt>Transformer LV CT</dt><dd>{ctLabels[baseline.study.lv_ct]}</dd></div><div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[baseline.study.auxiliary]}</dd></div><div><dt>Owner criteria</dt><dd><Status value="Pending" /></dd></div>{ctInventoryFields.map(([key, label]) => <div key={key}><dt>{label} CT count</dt><dd>{ctInventoryValue(baseline.study, key)}</dd></div>)}</dl>
                         </section>
                       )}
                       <Questions questions={activeAnalysis.questions} />

@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
@@ -22,6 +22,22 @@ class Bay(BaseModel):
     ct: Measurement
 
 
+CtCount = Annotated[int, Field(strict=True, ge=0, le=99)]
+
+
+class CtInventory(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    lv_breaker_135: Optional[CtCount] = Field(...)
+    lv_breaker_246: Optional[CtCount] = Field(...)
+    hv_breaker_135: Optional[CtCount] = Field(...)
+    hv_breaker_246: Optional[CtCount] = Field(...)
+    transformer_hv_phase: Optional[CtCount] = Field(...)
+    transformer_lv_phase: Optional[CtCount] = Field(...)
+    transformer_hv_neutral: Optional[CtCount] = Field(...)
+    transformer_lv_neutral: Optional[CtCount] = Field(...)
+
+
 class Study(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -32,6 +48,7 @@ class Study(BaseModel):
     hv_ct: Measurement
     bays: Annotated[list[Bay], Field(min_length=1, max_length=40)]
     auxiliary: Literal["unknown", "included", "excluded"]
+    ct_inventory: Optional[CtInventory] = None
 
     @model_validator(mode="after")
     def validate_equipment_ids(self):

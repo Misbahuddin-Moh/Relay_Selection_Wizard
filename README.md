@@ -38,7 +38,7 @@ npm --prefix frontend run build
 
 Choose **New protection study** from the workspace. Enter a study name and the voltage levels, then add one collector bay per breaker position. Expand each bay to edit its breaker tag, assign the branches it serves, and record CT availability. Leave unconfirmed measurements as **Unknown**.
 
-Select **Review topology** to check the one-line, then **Confirm and analyze** to make it the active baseline. Create a **New scenario** to test a change against that baseline. Concept studies and scenarios reset when you reload the page.
+Select **Review topology** to check the one-line and review the CT inventory, then **Confirm and analyze** to make it the active baseline. Create a **New scenario** to test a change against that baseline. Concept studies and scenarios reset when you reload the page.
 
 ## Start from a one-line drawing
 
@@ -55,6 +55,12 @@ export ANTHROPIC_API_KEY
 The server uses Claude Sonnet 4.6 when `ANTHROPIC_API_KEY` is set. With only `OPENAI_API_KEY`, it uses OpenAI with `gpt-4.1`. You can set `RELAY_DRAWING_MODEL` to a model supported by the selected provider. Clicking **Extract topology** sends the drawing to the provider shown in the upload screen. Use synthetic or approved drawings, and keep the extraction endpoint local until authenticated access is in place.
 
 Compare the proposed fields and extraction notes with the source, correct the draft, and choose **Review topology**. Only **Confirm and analyze** runs the engineering checks.
+
+## Review the CT inventory
+
+Both entry paths show editable CT counts after the topology review. Breaker counts default to two CTs per phase on each terminal group (1/3/5 and 2/4/6). The collector counts apply uniformly to each physical collector breaker. Transformer phase counts default to three per phase on each side, with two separate neutral CTs per side. Enter zero where none exist or clear a count to leave it unknown.
+
+The inventory records quantities for the study and its what-if scenarios. Review boundary location, CT suitability, and assignment to primary and backup protection separately. Check winding grounding and the intended ground differential or restricted earth fault application before assigning neutral CTs. Phase-bank requirements are calculated from modeled measurement boundaries.
 
 ## Study scope
 

@@ -110,6 +110,24 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
                 "why": "A separately measured auxiliary boundary adds a phase CT bank to the input budget.",
             }
         )
+    inventory = study.get("ct_inventory")
+    if inventory is not None:
+        questions.append(
+            {
+                "field": "ct_inventory.boundaries",
+                "prompt": "Which breaker terminal sides and transformer phase CTs serve each protection zone?",
+                "why": "Inventory counts describe available CT positions. Confirm the terminal orientation, "
+                "actual boundary location, and primary and backup CT assignments before sizing relay inputs.",
+            }
+        )
+        questions.append(
+            {
+                "field": "ct_inventory.neutral",
+                "prompt": "Which transformer winding neutrals are grounded, and how are their CTs assigned?",
+                "why": "Verify each neutral CT location and the primary and backup ground differential or "
+                "restricted earth fault scheme where applicable. Neutral CTs are separate from the phase bank budget.",
+            }
+        )
     questions.append(
         {
             "field": "source_paths",
