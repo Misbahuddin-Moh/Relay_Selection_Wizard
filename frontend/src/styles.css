@@ -139,7 +139,8 @@ tbody tr:last-child > * { border-bottom: 0; }
 @media (max-width: 1100px) {
   .app { grid-template-columns: 185px minmax(0, 1fr); }
   .workspace-grid { grid-template-columns: minmax(0, 1fr); }
-  .workspace-side { grid-row: 2; }
+  .workspace-side { display: contents; }
+  .workspace-side .editor { order: -1; }
 }
 @media (max-width: 750px) {
   .app { display: block; }

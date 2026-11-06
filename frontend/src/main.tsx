@@ -75,8 +75,9 @@ function boundaryCount(value: number | null, auxiliary: Study['auxiliary']) {
 }
 
 function nextLabel(prefix: string, existing: string[]) {
+  const used = new Set(existing.map(label => label.toLowerCase()))
   let id = 1
-  while (existing.includes(`${prefix}-${id}`)) id++
+  while (used.has(`${prefix.toLowerCase()}-${id}`)) id++
   return `${prefix}-${id}`
 }
 
@@ -203,6 +204,9 @@ function Comparison({ baseline, scenario, onCreate }: { baseline: Snapshot; scen
             </tbody>
           </table>
         </div>
+        {(baseline.study.auxiliary === 'unknown' || scenario.study.auxiliary === 'unknown') && (
+          <p className="trip-basis">≥ indicates a minimum while auxiliary branch treatment is open.</p>
+        )}
       </section>
       <section className="panel">
         <PanelHeader title="Protection philosophy comparison" description="Review each candidate’s status and reasoning for both cases." />
@@ -252,7 +256,7 @@ function App() {
     const title = draft.title.trim()
     const study = { ...draft, title, bays: draft.bays.map(bay => ({ ...bay, branches: bay.branches.map(branch => branch.trim()) })) }
     const branches = study.bays.flatMap(bay => bay.branches)
-    if (!title || branches.includes('') || new Set(branches).size !== branches.length) {
+    if (!title || branches.includes('') || new Set(branches.map(name => name.toLowerCase())).size !== branches.length) {
       setFormError('Enter a scenario name and a distinct name for every branch.')
       return
     }
@@ -279,6 +283,7 @@ function App() {
   const analyzedCase = scenario ?? baseline
   const activeAnalysis = analyzedCase?.analysis
   const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(scenario?.study ?? (baseline && { ...baseline.study, title: 'What-if scenario' }))
+  const isDraft = !!draft && (!scenario || dirty)
 
   return (
     <div className="app">
@@ -309,12 +314,12 @@ function App() {
               </div>
               {view === 'workspace' && visibleStudy && analyzedCase && activeAnalysis && (
                 <>
-                  {dirty && <p className="draft-note" role="status">Draft changes appear in the one-line. Counts and findings show the last analyzed case.</p>}
+                  {isDraft && <p className="draft-note" role="status">Draft changes appear in the one-line. Counts and findings show the last analyzed case.</p>}
                   <Metrics analysis={activeAnalysis} auxiliary={analyzedCase.study.auxiliary} />
                   <div className="workspace-grid">
                     <div className="workspace-main">
                       <section className="panel topology">
-                        <PanelHeader title="Single-line topology" description="One MPT with a single collector bus." action={<span className="tag diagram-tag">{draft ? (dirty ? 'DRAFT' : 'SCENARIO') : 'BASELINE'}</span>} />
+                        <PanelHeader title="Single-line topology" description="One MPT with a single collector bus." action={<span className="tag diagram-tag">{draft ? (isDraft ? 'DRAFT' : 'SCENARIO') : 'BASELINE'}</span>} />
                         <OneLine study={visibleStudy} />
                         <div className="legend"><span><i className="legend-present">•</i> CT present</span><span><i className="legend-unknown">?</i> CT unknown</span><span><i className="legend-absent">×</i> CT absent</span></div>
                       </section>

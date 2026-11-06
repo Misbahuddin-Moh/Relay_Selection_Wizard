@@ -12,6 +12,10 @@ function CtSymbol({ x, y, state, label }: { x: number; y: number; state: Ct; lab
   )
 }
 
+function branchLabel(name: string) {
+  return name.length > 11 ? `${name.slice(0, 10)}…` : name
+}
+
 export function OneLine({ study }: { study: Study }) {
   const spans = study.bays.map(bay => Math.max(130, bay.branches.length * 80))
   const span = spans.reduce((total, width) => total + width, 0)
@@ -65,7 +69,7 @@ export function OneLine({ study }: { study: Study }) {
               <CtSymbol x={x} y={309} state={bay.ct} label={`${bay.id} boundary CT`} />
               <text x={x + 14} y="284" className="svg-label breaker-label">{bay.id}</text>
               {ends.map((end, branchIndex) => (
-                <text key={branchIndex} x={end} y="379" textAnchor="middle" className="svg-label branch-label">{bay.branches[branchIndex]}</text>
+                <text key={branchIndex} x={end} y="379" textAnchor="middle" className="svg-label branch-label"><title>{bay.branches[branchIndex]}</title>{branchLabel(bay.branches[branchIndex])}</text>
               ))}
             </g>
           )
