@@ -58,7 +58,7 @@ Compare the proposed fields and extraction notes with the source, correct the dr
 
 ## Review the CT inventory
 
-Both entry paths show editable CT counts after the topology review. Breaker counts default to two CTs per phase on each terminal group (1/3/5 and 2/4/6). The collector counts apply uniformly to each physical collector breaker. Transformer phase counts default to three per phase on each side, with two separate neutral CTs per side. Enter zero where none exist or clear a count to leave it unknown.
+Both entry paths show editable CT counts after the topology review. Breaker counts default to two CTs per phase on each breaker side (A and B). The collector counts apply uniformly to each physical collector breaker. Transformer phase counts default to three per phase on each side, with two separate neutral CTs per side. Enter zero where none exist or clear a count to leave it unknown.
 
 The inventory records quantities for the study and its what-if scenarios. Review boundary location, CT suitability, and assignment to primary and backup protection separately. Check winding grounding and the intended ground differential or restricted earth fault application before assigning neutral CTs. Phase-bank requirements are calculated from modeled measurement boundaries.
 

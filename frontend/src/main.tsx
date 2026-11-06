@@ -25,7 +25,13 @@ async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
   if (!response.ok) {
     const body = await response.json().catch(() => null)
-    throw new Error(typeof body?.detail === 'string' ? body.detail : `The study service returned HTTP ${response.status}.`)
+    const detail = body?.detail
+    if (typeof detail === 'string') throw new Error(detail)
+    if (Array.isArray(detail) && detail.length && typeof detail[0]?.msg === 'string') {
+      const field = Array.isArray(detail[0].loc) ? detail[0].loc.slice(1).join('.') : ''
+      throw new Error(field ? `${field} — ${detail[0].msg}` : detail[0].msg)
+    }
+    throw new Error(`The study service returned HTTP ${response.status}.`)
   }
   return response.json() as Promise<T>
 }
@@ -104,8 +110,8 @@ function CtInventoryEditor({ study, update, disabled = false }: {
   const inventory = study.ct_inventory ?? unknownCtInventory
   return (
     <fieldset className="editor-fields ct-inventory" disabled={disabled}>
-      <legend>CT inventory</legend>
-      <p className="draft-note">Enter phase CT counts per phase and neutral CT counts per winding neutral. Collector settings apply to all {study.bays.length} collector breaker positions. Use 0 for none or leave blank for unknown. Confirm boundary suitability and primary and backup assignments separately.</p>
+      <legend>Number of CTs</legend>
+      <p className="draft-note">Count phase CTs per phase and neutral CTs per winding neutral. Sides A and B are the two sides of each breaker. Collector settings apply to all {study.bays.length} collector breaker positions. Use 0 for none or leave blank for unknown. Confirm boundary suitability and primary and backup assignments separately.</p>
       <div className="field-row">
         {ctInventoryFields.map(([key, label]) => (
           <label className="field" key={key}>
@@ -404,7 +410,13 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
         mv_kv: result.mv_kv ?? 0,
         hv_ct: result.hv_ct,
         lv_ct: result.lv_ct,
-        bays: result.bays.length ? result.bays.map(bay => ({ ...bay, branches: bay.branches.length ? bay.branches : [''] })) : emptyConcept.bays.map(bay => ({ ...bay, id: '', branches: [''] })),
+        bays: result.bays.length
+          ? result.bays.map(({ id, ct, branches }) => ({
+            id,
+            ct,
+            branches: branches.length ? branches : [''],
+          }))
+          : emptyConcept.bays.map(bay => ({ ...bay, id: '', branches: [''] })),
       })
       setEntry(true)
     } catch (error) {

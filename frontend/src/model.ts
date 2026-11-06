@@ -8,10 +8,10 @@ export interface Bay {
 }
 
 export const ctInventoryFields = [
-  ['lv_breaker_135', 'Collector breaker · terminals 1/3/5', 2],
-  ['lv_breaker_246', 'Collector breaker · terminals 2/4/6', 2],
-  ['hv_breaker_135', 'HV breaker · terminals 1/3/5', 2],
-  ['hv_breaker_246', 'HV breaker · terminals 2/4/6', 2],
+  ['lv_breaker_135', 'Collector breaker · side A', 2],
+  ['lv_breaker_246', 'Collector breaker · side B', 2],
+  ['hv_breaker_135', 'HV breaker · side A', 2],
+  ['hv_breaker_246', 'HV breaker · side B', 2],
   ['transformer_hv_phase', 'Transformer HV phase', 3],
   ['transformer_lv_phase', 'Transformer LV phase', 3],
   ['transformer_hv_neutral', 'Transformer HV neutral', 2],
