@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
 import { auxiliaryLabels, ctLabels } from './model'
-import type { Analysis, Candidate, Snapshot, Study } from './model'
+import type { Analysis, Candidate, DrawingDraft, Snapshot, Study } from './model'
 import './styles.css'
 
 const icons = {
@@ -22,7 +22,10 @@ function Icon({ name, size = 20 }: { name: keyof typeof icons; size?: number }) 
 
 async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
-  if (!response.ok) throw new Error(`The study service returned HTTP ${response.status}.`)
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new Error(typeof body?.detail === 'string' ? body.detail : `The study service returned HTTP ${response.status}.`)
+  }
   return response.json() as Promise<T>
 }
 
@@ -99,7 +102,7 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error, con
   return (
     <section className="panel editor" id="scenario-editor">
       <PanelHeader title={concept ? "Concept inputs" : "Scenario inputs"} description={concept ? "Enter the station layout and leave unconfirmed measurements unknown." : "Edit the case, then run the engineering checks."} />
-      <form onSubmit={onSubmit}>
+      <form noValidate onSubmit={onSubmit}>
         <fieldset disabled={busy}>
           <div className="editor-fields">
             <label className="field"><span>{concept ? "Study name" : "Scenario name"}</span><input value={draft.title} onChange={event => update({ ...draft, title: event.target.value })} maxLength={100} required /></label>
@@ -249,6 +252,12 @@ function validateStudy(study: Study) {
   const breakerTags = study.bays.map(bay => bay.id.toLowerCase())
   const branches = study.bays.flatMap(bay => bay.branches.map(branch => branch.toLowerCase()))
   if (!study.title) return 'Enter a study name.'
+  if (![study.hv_kv, study.mv_kv].every(kv => Number.isFinite(kv) && kv >= 0.1)) {
+    return 'Enter HV and collector voltages of at least 0.1 kV.'
+  }
+  if ([study.title, ...breakerTags, ...branches].some(label => label.length > 100)) {
+    return 'Keep study, breaker, and branch names to 100 characters or fewer.'
+  }
   if (breakerTags.includes('') || new Set(breakerTags).size !== breakerTags.length) return 'Enter a distinct tag for every breaker.'
   if (branches.includes('') || new Set(branches).size !== branches.length) return 'Enter a distinct name for every branch.'
   return null
@@ -272,8 +281,89 @@ function Topology({ study, tag }: { study: Study; tag: string }) {
   )
 }
 
-function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: (snapshot: Snapshot) => void }) {
+function DrawingSource({ file, notes }: { file: File; notes: string[] }) {
+  const [url, setUrl] = useState('')
+  useEffect(() => {
+    const source = URL.createObjectURL(file)
+    setUrl(source)
+    return () => URL.revokeObjectURL(source)
+  }, [file])
+
+  return (
+    <section className="panel drawing-source">
+      <PanelHeader title="Source drawing" description={file.name} />
+      <div className="drawing-source-body">
+        {url && file.type.startsWith('image/') && <img src={url} alt="Uploaded single-line drawing" />}
+        {url && <a href={url} target="_blank" rel="noreferrer">Open original drawing</a>}
+        {!!notes.length && <div>
+          <h3>Extraction notes to verify</h3>
+          <ul>{notes.map((note, index) => <li key={index}>{note}</li>)}</ul>
+        </div>}
+      </div>
+    </section>
+  )
+}
+
+function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: (snapshot: Snapshot, source: 'concept' | 'drawing') => void }) {
   const [draft, setDraft] = useState(emptyConcept)
+  const [source, setSource] = useState<'concept' | 'drawing'>('concept')
+  const [file, setFile] = useState<File | null>(null)
+  const [configured, setConfigured] = useState<boolean | null>(null)
+  const [entry, setEntry] = useState(false)
+  const [notes, setNotes] = useState<string[]>([])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    getJson<{ configured: boolean }>('/api/drawing/status', { signal: controller.signal })
+      .then(status => setConfigured(status.configured)).catch(() => {})
+    return () => controller.abort()
+  }, [])
+
+  function selectSource(next: 'concept' | 'drawing') {
+    setSource(next)
+    setEntry(false)
+    setError(null)
+  }
+
+  async function extract() {
+    if (!file) return
+    setBusy(true)
+    setError(null)
+    setNotes([])
+    try {
+      const result = await getJson<DrawingDraft>('/api/drawing/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
+      setNotes(result.notes)
+      if (result.scope === 'unsupported') {
+        setError('The drawing appears outside the supported layout. This study requires one utility-side breaker, one MPT, one unsectioned collector bus, and no LV main breaker.')
+        return
+      }
+      if (result.bays.length > 40 || result.bays.some(bay => bay.branches.length > 30)) {
+        setError('The extracted layout exceeds the editable bay or branch limits.')
+        return
+      }
+      if (result.scope === 'uncertain') {
+        setNotes(['The drawing scope could not be established. Check the supported layout before continuing.', ...result.notes])
+      }
+      setDraft({
+        ...emptyConcept,
+        title: (result.title.trim() || file.name).slice(0, 100),
+        hv_kv: result.hv_kv ?? 0,
+        mv_kv: result.mv_kv ?? 0,
+        hv_ct: result.hv_ct,
+        lv_ct: result.lv_ct,
+        bays: result.bays.length ? result.bays.map(bay => ({ ...bay, branches: bay.branches.length ? bay.branches : [''] })) : emptyConcept.bays.map(bay => ({ ...bay, id: '', branches: [''] })),
+      })
+      setEntry(true)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to extract the drawing.')
+    } finally {
+      setBusy(false)
+    }
+  }
   const [review, setReview] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -293,7 +383,7 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
     setError(null)
     try {
       const analysis = await analyzeStudy(draft)
-      onCreate({ study: draft, analysis })
+      onCreate({ study: draft, analysis }, source)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unable to analyze this study.')
     } finally {
@@ -305,17 +395,24 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
     <>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">{review ? 'STEP 2 OF 2 · TOPOLOGY REVIEW' : 'STEP 1 OF 2 · CONCEPT ENTRY'}</p>
+          <p className="eyebrow">{review ? 'TOPOLOGY REVIEW' : source === 'drawing' ? 'DRAWING INTAKE' : 'CONCEPT ENTRY'}</p>
           <h1>{review ? 'Review topology' : 'New protection study'}</h1>
           <p>{review ? draft.title : 'Start with one transformer and a single collector bus.'}</p>
         </div>
         <button className="button secondary" type="button" onClick={onCancel} disabled={busy}>Cancel new study</button>
       </div>
+      {!review && !entry && <div className="source-actions" aria-label="Study starting point">
+        <button className={source === 'concept' ? 'button primary' : 'button secondary'} type="button" aria-pressed={source === 'concept'} disabled={busy} onClick={() => selectSource('concept')}>Start with a concept</button>
+        <button className={source === 'drawing' ? 'button primary' : 'button secondary'} type="button" aria-pressed={source === 'drawing'} disabled={busy} onClick={() => selectSource('drawing')}>Upload a drawing</button>
+      </div>}
       {review ? (
         <div className="workspace-grid">
-          <Topology study={draft} tag="CONCEPT DRAFT" />
+          <div className="workspace-main">
+            <Topology study={draft} tag={source === 'drawing' ? "DRAWING DRAFT" : "CONCEPT DRAFT"} />
+            {source === 'drawing' && file && <DrawingSource file={file} notes={notes} />}
+          </div>
           <section className="panel overview">
-            <PanelHeader title="Confirm the modeled layout" description="Check the breaker and branch grouping before analysis. Unknown measurements will carry forward as open questions. Confirming makes this the active baseline and clears its prior scenario." />
+            <PanelHeader title="Confirm the modeled layout" description="Confirm one HV breaker, one MPT, one unsectioned collector bus, and no LV main breaker. Check which branches each breaker serves. Unknown measurements carry forward as open questions. Confirming makes this the active baseline and clears its prior scenario." />
             <dl>
               <div><dt>Collector breakers</dt><dd>{draft.bays.length}</dd></div>
               <div><dt>Outgoing branches</dt><dd>{draft.bays.reduce((count, bay) => count + bay.branches.length, 0)}</dd></div>
@@ -324,18 +421,44 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
               <div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[draft.auxiliary]}</dd></div>
             </dl>
             <div className="editor-actions">
-              <button className="button secondary" type="button" disabled={busy} onClick={() => { setReview(false); setError(null) }}>Edit concept</button>
+              <button className="button secondary" type="button" disabled={busy} onClick={() => { setReview(false); setError(null) }}>Edit inputs</button>
               <button className="button primary" type="button" disabled={busy} onClick={confirmTopology}>{busy ? 'Analyzing…' : 'Confirm and analyze'}</button>
             </div>
             {error && <p className="error form-error" role="alert">{error}</p>}
           </section>
         </div>
+      ) : source === 'drawing' && !entry ? (
+        <div className="workspace-grid">
+          <section className="panel">
+            <PanelHeader title="Select a single-line drawing" description="Use a PDF, PNG, or JPEG up to 8 MiB. Extraction sends the selected drawing to OpenAI. Use a synthetic drawing or one approved for that processing." />
+            <div className="editor-fields">
+              <label className="field"><span>Drawing file</span><input type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" disabled={busy} onChange={event => {
+                const selected = event.target.files?.[0]
+                const allowed = selected && ['application/pdf', 'image/png', 'image/jpeg'].includes(selected.type) && selected.size > 0 && selected.size <= 8 * 1024 * 1024
+                setFile(allowed ? selected : null)
+                setNotes([])
+                setError(selected && !allowed ? 'Choose a nonempty PDF, PNG, or JPEG no larger than 8 MiB.' : null)
+              }} /></label>
+              {configured === false && <p className="draft-note">Live extraction is unconfigured. You can still enter the layout while viewing the drawing.</p>}
+            </div>
+            <div className="editor-actions">
+              <button className="button secondary" type="button" disabled={!file || busy} onClick={() => {
+                setDraft({ ...emptyConcept, title: file?.name.slice(0, 100) ?? '' })
+                setError(null)
+                setEntry(true)
+              }}>Enter manually</button>
+              <button className="button primary" type="button" disabled={!file || busy || configured === false} onClick={extract}>{busy ? 'Extracting…' : 'Extract topology'}</button>
+            </div>
+            {error && <p className="error form-error" role="alert">{error}</p>}
+          </section>
+          {file && <DrawingSource file={file} notes={notes} />}
+        </div>
       ) : (
         <div className="workspace-grid">
           <StudyEditor concept draft={draft} update={setDraft} onSubmit={reviewTopology} onReset={() => { setDraft(emptyConcept); setError(null) }} busy={false} dirty={draft !== emptyConcept} error={error} />
-          <section className="panel">
+          {source === 'drawing' && file ? <DrawingSource file={file} notes={notes} /> : <section className="panel">
             <PanelHeader title="Build the collector layout" description="Add one bay for each breaker position. Expand a bay to assign all outgoing branches served by that breaker and enter its CT status." />
-          </section>
+          </section>}
         </div>
       )}
     </>
@@ -353,6 +476,7 @@ function App() {
   const [attempt, setAttempt] = useState(0)
   const [creating, setCreating] = useState(false)
   const [conceptBaseline, setConceptBaseline] = useState<Snapshot | null>(null)
+  const [baselineSource, setBaselineSource] = useState<'concept' | 'drawing'>('concept')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -416,10 +540,11 @@ function App() {
         <div className="sidebar-footer"><i /> Preliminary engineering</div>
       </aside>
       <main className="main">
-        <header className="topbar"><span>Protection studies <b>/</b> Collector substation</span><span className="tag">{creating || conceptBaseline ? 'CONCEPT STUDY' : 'SYNTHETIC STUDY'}</span></header>
+        <header className="topbar"><span>Protection studies <b>/</b> Collector substation</span><span className="tag">{creating ? 'NEW STUDY' : conceptBaseline ? (baselineSource === 'drawing' ? 'DRAWING STUDY' : 'CONCEPT STUDY') : 'SYNTHETIC STUDY'}</span></header>
         <div className="content">
-          {creating && <ConceptStudy onCancel={() => setCreating(false)} onCreate={snapshot => {
+          {creating && <ConceptStudy onCancel={() => setCreating(false)} onCreate={(snapshot, source) => {
             setConceptBaseline(snapshot)
+            setBaselineSource(source)
             setDraft(null)
             setScenario(null)
             setFormError(null)

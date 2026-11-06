@@ -1,11 +1,14 @@
 import json
+import os
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from starlette.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
+from .drawing import FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, extract_drawing
 from .engine import analyze
 
 Measurement = Literal["unknown", "present", "absent"]
@@ -61,6 +64,34 @@ def reference_study():
 @app.post("/api/analyze")
 def analyze_study(study: Study):
     return analyze(study.model_dump())
+
+
+@app.get("/api/drawing/status")
+def drawing_status():
+    return {"configured": bool(os.getenv("OPENAI_API_KEY", "").strip())}
+
+
+@app.post("/api/drawing/extract")
+async def extract_single_line(request: Request):
+    content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    signature = FILE_TYPES.get(content_type)
+    if signature is None:
+        raise HTTPException(415, "Choose a PDF, PNG, or JPEG drawing.")
+
+    data = bytearray()
+    async for chunk in request.stream():
+        if len(data) + len(chunk) > MAX_DRAWING_BYTES:
+            raise HTTPException(413, "Choose a drawing no larger than 8 MiB.")
+        data.extend(chunk)
+    if not data.startswith(signature):
+        raise HTTPException(422, "The drawing bytes do not match the selected file type.")
+    if not drawing_status()["configured"]:
+        raise HTTPException(503, "Drawing extraction is unconfigured. Set OPENAI_API_KEY on the server or enter the topology manually.")
+
+    try:
+        return await run_in_threadpool(extract_drawing, bytes(data), content_type)
+    except ExtractionError as error:
+        raise HTTPException(502, str(error)) from error
 
 
 if FRONTEND.is_dir():

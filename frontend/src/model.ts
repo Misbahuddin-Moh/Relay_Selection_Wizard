@@ -54,3 +54,14 @@ export const auxiliaryLabels: Record<Auxiliary, string> = {
   included: 'Measured boundary',
   excluded: 'Excluded in model',
 }
+
+export interface DrawingDraft {
+  scope: 'supported' | 'uncertain' | 'unsupported'
+  title: string
+  hv_kv: number | null
+  mv_kv: number | null
+  hv_ct: Ct
+  lv_ct: Ct
+  bays: Bay[]
+  notes: string[]
+}

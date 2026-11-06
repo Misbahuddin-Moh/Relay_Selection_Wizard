@@ -167,3 +167,10 @@ tbody tr:last-child > * { border-bottom: 0; }
 @media (max-width: 1050px) {
   .study-actions { flex-shrink: 1; }
 }
+.source-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.drawing-source { overflow-wrap: anywhere; }
+.drawing-source-body { display: grid; gap: 12px; padding: 0 15px 15px; font-size: 13px; }
+.drawing-source-body img { display: block; max-width: 100%; max-height: 420px; object-fit: contain; margin: auto; }
+.drawing-source-body a { color: var(--accent); text-decoration: underline; }
+.drawing-source-body ul { padding-left: 19px; margin: 6px 0 0; }
+.drawing-source-body li + li { margin-top: 5px; }
