@@ -4,22 +4,33 @@ A preliminary protection study workspace for a synthetic single-transformer, sin
 
 ## Run locally
 
-Use Python 3.12+ and Node.js 22.12+.
+Use Python 3.12+ and Node.js 22.12+. On macOS or Linux, check with `python3 --version` and `node --version`.
+
+Clone the repository and enter its directory. If you already cloned it, `cd` into your existing checkout instead.
 
 ```sh
-python -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-npm --prefix frontend ci
-npm --prefix frontend run build
-.venv/bin/python -m uvicorn backend.main:app --port 8000
+git clone https://github.com/Misbahuddin-Moh/Relay_Selection_Wizard.git
+cd Relay_Selection_Wizard
 ```
 
-Open http://localhost:8000. On Windows, use `.venv\Scripts\python.exe` in place of `.venv/bin/python`.
+From the repository root on macOS or Linux, run:
+
+```sh
+python3 -m venv .venv &&
+  .venv/bin/python -m pip install -r requirements.txt &&
+  npm --prefix frontend ci &&
+  npm --prefix frontend run build &&
+  .venv/bin/python -m uvicorn backend.main:app --port 8000
+```
+
+On Windows, create the environment with `py -3 -m venv .venv` and run the subsequent commands from the repository root using `.venv\Scripts\python.exe` as the environment’s Python executable.
+
+Once Uvicorn starts, leave that terminal open and visit http://localhost:8000.
 
 For frontend development, run `npm --prefix frontend run dev` with the API still running on port 8000 and open the address Vite prints.
 
 ```sh
-python -m unittest discover -s tests -v
+.venv/bin/python -m unittest discover -s tests -v
 npm --prefix frontend run build
 ```
 
