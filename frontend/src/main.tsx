@@ -111,7 +111,7 @@ function CtInventoryEditor({ study, update, disabled = false }: {
   return (
     <fieldset className="editor-fields ct-inventory" disabled={disabled}>
       <legend>Number of CTs</legend>
-      <p className="draft-note">Count phase CTs per phase and neutral CTs per winding neutral. Sides A and B are the two sides of each breaker. Collector settings apply to all {study.bays.length} collector breaker positions. Use 0 for none or leave blank for unknown. Confirm boundary suitability and primary and backup assignments separately.</p>
+      <p className="draft-note">Count phase CTs per phase and neutral CTs per winding neutral. Sides A and B are the two sides of each breaker. Collector settings apply to all {study.bays.length} collector breaker positions. Use 0 for none or leave blank for unknown. These quantities start with standard defaults. Use the boundary CT fields to confirm which locations have a suitable measurement.</p>
       <div className="field-row">
         {ctInventoryFields.map(([key, label]) => (
           <label className="field" key={key}>
@@ -159,8 +159,8 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error, con
               <label className="field"><span>Collector (kV)</span><input type="number" min="0.1" step="any" value={draft.mv_kv || ''} onChange={event => update({ ...draft, mv_kv: Number(event.target.value) })} required /></label>
             </div>
             <div className="field-row">
-              <Select label="Transformer HV CT" options={ctLabels} value={draft.hv_ct} change={hv_ct => update({ ...draft, hv_ct })} />
-              <Select label="Transformer LV CT" options={ctLabels} value={draft.lv_ct} change={lv_ct => update({ ...draft, lv_ct })} />
+              <Select label="Transformer HV boundary CT" options={ctLabels} value={draft.hv_ct} change={hv_ct => update({ ...draft, hv_ct })} />
+              <Select label="Transformer LV boundary CT" options={ctLabels} value={draft.lv_ct} change={lv_ct => update({ ...draft, lv_ct })} />
             </div>
             <Select label="Auxiliary branch treatment" options={auxiliaryLabels} value={draft.auxiliary} change={auxiliary => update({ ...draft, auxiliary })} />
           </div>
@@ -245,8 +245,8 @@ function Comparison({ baseline, scenario, onCreate }: { baseline: Snapshot; scen
           <table>
             <thead><tr><th scope="col">Study inputs and counts</th><th scope="col">Baseline</th><th scope="col">{scenario.study.title}</th></tr></thead>
             <tbody>
-              <tr><th scope="row">Transformer LV CT</th><td>{ctLabels[baseline.study.lv_ct]}</td><td>{ctLabels[scenario.study.lv_ct]}</td></tr>
-              <tr><th scope="row">Transformer HV CT</th><td>{ctLabels[baseline.study.hv_ct]}</td><td>{ctLabels[scenario.study.hv_ct]}</td></tr>
+              <tr><th scope="row">Transformer LV boundary CT</th><td>{ctLabels[baseline.study.lv_ct]}</td><td>{ctLabels[scenario.study.lv_ct]}</td></tr>
+              <tr><th scope="row">Transformer HV boundary CT</th><td>{ctLabels[baseline.study.hv_ct]}</td><td>{ctLabels[scenario.study.hv_ct]}</td></tr>
               {ctInventoryFields.map(([key, label]) => <tr key={key}><th scope="row">{label} CT count</th><td>{ctInventoryValue(baseline.study, key)}</td><td>{ctInventoryValue(scenario.study, key)}</td></tr>)}
               <tr><th scope="row">Auxiliary branch treatment</th><td>{auxiliaryLabels[baseline.study.auxiliary]}</td><td>{auxiliaryLabels[scenario.study.auxiliary]}</td></tr>
               {counts.map(([label, key]) => {
@@ -330,7 +330,7 @@ function Topology({ study, tag }: { study: Study; tag: string }) {
     <section className="panel topology">
       <PanelHeader title="Single-line topology" description="One MPT with a single collector bus." action={<span className="tag diagram-tag">{tag}</span>} />
       <OneLine study={study} />
-      <div className="legend"><span><i className="legend-present">•</i> CT present</span><span><i className="legend-unknown">?</i> CT unknown</span><span><i className="legend-absent">×</i> CT absent</span></div>
+      <div className="legend"><span><i className="legend-present">•</i> Boundary CT present</span><span><i className="legend-unknown">?</i> Boundary CT unknown</span><span><i className="legend-absent">×</i> Boundary CT absent</span></div>
     </section>
   )
 }
@@ -479,10 +479,22 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
             <dl>
               <div><dt>Collector breakers</dt><dd>{draft.bays.length}</dd></div>
               <div><dt>Outgoing branches</dt><dd>{draft.bays.reduce((count, bay) => count + bay.branches.length, 0)}</dd></div>
-              <div><dt>Transformer HV CT</dt><dd>{ctLabels[draft.hv_ct]}</dd></div>
-              <div><dt>Transformer LV CT</dt><dd>{ctLabels[draft.lv_ct]}</dd></div>
               <div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[draft.auxiliary]}</dd></div>
             </dl>
+            <fieldset className="editor-fields ct-inventory" disabled={busy}>
+              <legend>Confirm boundary CTs</legend>
+              <p className="draft-note">Set each boundary to Present when the drawing or design confirms a usable phase CT bank at that location. Leave unresolved boundaries Unknown.</p>
+              <div className="field-row">
+                <Select label="Transformer HV boundary CT" options={ctLabels} value={draft.hv_ct} change={hv_ct => setDraft({ ...draft, hv_ct })} />
+                <Select label="Transformer LV boundary CT" options={ctLabels} value={draft.lv_ct} change={lv_ct => setDraft({ ...draft, lv_ct })} />
+                {draft.bays.map((bay, index) => (
+                  <Select key={bay.id} label={`${bay.id} boundary CT`} options={ctLabels} value={bay.ct} change={ct => setDraft({
+                    ...draft,
+                    bays: draft.bays.map((item, position) => position === index ? { ...item, ct } : item),
+                  })} />
+                ))}
+              </div>
+            </fieldset>
             <CtInventoryEditor study={draft} update={setDraft} disabled={busy} />
             <div className="editor-actions">
               <button className="button secondary" type="button" disabled={busy} onClick={() => { setReview(false); setError(null) }}>Edit inputs</button>
@@ -647,8 +659,8 @@ function App() {
                         setFormError(null)
                       }} busy={busy} dirty={dirty} error={formError} /> : (
                         <section className="panel overview">
-                          <PanelHeader title="Study inputs" description="Start a scenario to change these inputs." />
-                          <dl><div><dt>Transformer HV CT</dt><dd>{ctLabels[baseline.study.hv_ct]}</dd></div><div><dt>Transformer LV CT</dt><dd>{ctLabels[baseline.study.lv_ct]}</dd></div><div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[baseline.study.auxiliary]}</dd></div><div><dt>Owner criteria</dt><dd><Status value="Pending" /></dd></div>{ctInventoryFields.map(([key, label]) => <div key={key}><dt>{label} CT count</dt><dd>{ctInventoryValue(baseline.study, key)}</dd></div>)}</dl>
+                          <PanelHeader title="Study inputs" description="Boundary CT status drives the one-line. CT counts are inventory entries, prefilled with standard defaults in new studies. Start a scenario to change these inputs." />
+                          <dl><div><dt>Transformer HV boundary CT</dt><dd>{ctLabels[baseline.study.hv_ct]}</dd></div><div><dt>Transformer LV boundary CT</dt><dd>{ctLabels[baseline.study.lv_ct]}</dd></div><div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[baseline.study.auxiliary]}</dd></div><div><dt>Owner criteria</dt><dd><Status value="Pending" /></dd></div>{ctInventoryFields.map(([key, label]) => <div key={key}><dt>{label} CT count</dt><dd>{ctInventoryValue(baseline.study, key)}</dd></div>)}</dl>
                         </section>
                       )}
                       <Questions questions={activeAnalysis.questions} />
