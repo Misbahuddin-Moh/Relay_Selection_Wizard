@@ -1,0 +1,56 @@
+export type Ct = 'unknown' | 'present' | 'absent'
+export type Auxiliary = 'unknown' | 'included' | 'excluded'
+
+export interface Bay {
+  id: string
+  branches: string[]
+  ct: Ct
+}
+
+export interface Study {
+  title: string
+  hv_kv: number
+  mv_kv: number
+  lv_ct: Ct
+  hv_ct: Ct
+  bays: Bay[]
+  auxiliary: Auxiliary
+}
+
+export interface Candidate {
+  id: string
+  title: string
+  status: string
+  reason: string
+  trip_targets: string[]
+}
+
+export interface Analysis {
+  counts: {
+    breakers: number
+    branches: number
+    confirmed_bay_cts: number
+    combined_required_banks: number | null
+    combined_phase_channels: number | null
+  }
+  trip_basis: string
+  candidates: Candidate[]
+  questions: { field: string; prompt: string; why: string }[]
+}
+
+export interface Snapshot {
+  study: Study
+  analysis: Analysis
+}
+
+export const ctLabels: Record<Ct, string> = {
+  unknown: 'Unknown',
+  present: 'Present',
+  absent: 'Absent',
+}
+
+export const auxiliaryLabels: Record<Auxiliary, string> = {
+  unknown: 'Unknown',
+  included: 'Measured boundary',
+  excluded: 'Excluded in model',
+}

@@ -1,0 +1,13 @@
+{
+  "title": "Synthetic 345/34.5 kV collector station",
+  "hv_kv": 345,
+  "mv_kv": 34.5,
+  "lv_ct": "unknown",
+  "hv_ct": "present",
+  "bays": [
+    {"id": "CB-01", "branches": ["F-01A", "F-01B"], "ct": "unknown"},
+    {"id": "CB-02", "branches": ["F-02A", "F-02B"], "ct": "unknown"},
+    {"id": "CB-03", "branches": ["F-03A"], "ct": "unknown"}
+  ],
+  "auxiliary": "unknown"
+}
