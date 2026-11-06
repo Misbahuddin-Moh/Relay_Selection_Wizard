@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
-import { applyBushingCtBoundaries, auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory } from './model'
+import { auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, withInventoryBoundaries } from './model'
 import type { Analysis, Candidate, CtInventory, DrawingDraft, Snapshot, Study } from './model'
 import './styles.css'
 
@@ -111,7 +111,7 @@ function CtInventoryEditor({ study, update, disabled = false }: {
   return (
     <fieldset className="editor-fields ct-inventory" disabled={disabled}>
       <legend>Number of CTs</legend>
-      <p className="draft-note">Count phase CTs per phase and neutral CTs per winding neutral. Sides A and B are the two sides of each breaker. Collector settings apply to all {study.bays.length} collector breaker positions. Use 0 for none or leave blank for unknown. New studies start with standard defaults. Verify the phase counts before using them to set protection boundaries.</p>
+      <p className="draft-note">Count phase CTs per phase and neutral CTs per winding neutral. Collector settings apply to all {study.bays.length} collector breaker positions. Use 0 for none or leave blank for unknown. New studies start with standard defaults. Boundary status follows the HV breaker POI-side count, the collector breaker PV circuit-side count, and the transformer LV phase count.</p>
       <div className="field-row">
         {ctInventoryFields.map(([key, label]) => (
           <label className="field" key={key}>
@@ -149,7 +149,7 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error, con
   const branches = draft.bays.flatMap(bay => bay.branches)
   return (
     <section className="panel editor" id="scenario-editor">
-      <PanelHeader title={concept ? "Concept inputs" : "Scenario inputs"} description={concept ? "Enter the station layout and leave unconfirmed measurements unknown." : "Edit the case, then run the engineering checks."} />
+      <PanelHeader title={concept ? "Concept inputs" : "Scenario inputs"} description={concept ? "Enter the station layout. Review CT counts in the next step." : "Edit the case, then run the engineering checks."} />
       <form noValidate onSubmit={onSubmit}>
         <fieldset disabled={busy}>
           <div className="editor-fields">
@@ -158,20 +158,15 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error, con
               <label className="field"><span>HV (kV)</span><input type="number" min="0.1" step="any" value={draft.hv_kv || ''} onChange={event => update({ ...draft, hv_kv: Number(event.target.value) })} required /></label>
               <label className="field"><span>Collector (kV)</span><input type="number" min="0.1" step="any" value={draft.mv_kv || ''} onChange={event => update({ ...draft, mv_kv: Number(event.target.value) })} required /></label>
             </div>
-            <div className="field-row">
-              <Select label="Transformer HV boundary CT" options={ctLabels} value={draft.hv_ct} change={hv_ct => update({ ...draft, hv_ct })} />
-              <Select label="Transformer LV boundary CT" options={ctLabels} value={draft.lv_ct} change={lv_ct => update({ ...draft, lv_ct })} />
-            </div>
             <Select label="Auxiliary branch treatment" options={auxiliaryLabels} value={draft.auxiliary} change={auxiliary => update({ ...draft, auxiliary })} />
           </div>
           <div className="bay-list">
             <div className="bay-list-header"><h3>Collector breaker bays</h3><button type="button" className="text-button" disabled={draft.bays.length >= 40} onClick={() => update({ ...draft, bays: [...draft.bays, { id: nextLabel('52-F', draft.bays.map(bay => bay.id)), ct: 'unknown', branches: [nextLabel('Feeder', branches)] }] })}><Icon name="plus" size={15} /> Add bay</button></div>
             {draft.bays.map((bay, index) => (
               <details className="bay" key={concept ? index : bay.id}>
-                <summary><strong>{bay.id}</strong><span>{bay.branches.length} {bay.branches.length === 1 ? 'branch' : 'branches'} · CT {ctLabels[bay.ct].toLowerCase()}</span></summary>
+                <summary><strong>{bay.id}</strong><span>{bay.branches.length} {bay.branches.length === 1 ? 'branch' : 'branches'}</span></summary>
                 <div className="bay-fields">
                   {concept && <label className="field"><span>Breaker tag</span><input value={bay.id} maxLength={100} required onChange={event => changeBay(index, { ...bay, id: event.target.value })} /></label>}
-                  <Select label={`${bay.id} boundary CT`} options={ctLabels} value={bay.ct} change={ct => changeBay(index, { ...bay, ct })} />
                   {bay.branches.map((branch, branchIndex) => (
                     <div className="branch-row" key={branchIndex}>
                       <label className="field"><span>Branch {branchIndex + 1}</span><input value={branch} maxLength={100} required onChange={event => changeBay(index, { ...bay, branches: bay.branches.map((name, i) => i === branchIndex ? event.target.value : name) })} /></label>
@@ -246,7 +241,7 @@ function Comparison({ baseline, scenario, onCreate }: { baseline: Snapshot; scen
             <thead><tr><th scope="col">Study inputs and counts</th><th scope="col">Baseline</th><th scope="col">{scenario.study.title}</th></tr></thead>
             <tbody>
               <tr><th scope="row">Transformer LV boundary CT</th><td>{ctLabels[baseline.study.lv_ct]}</td><td>{ctLabels[scenario.study.lv_ct]}</td></tr>
-              <tr><th scope="row">Transformer HV boundary CT</th><td>{ctLabels[baseline.study.hv_ct]}</td><td>{ctLabels[scenario.study.hv_ct]}</td></tr>
+              <tr><th scope="row">HV breaker POI-side boundary CT</th><td>{ctLabels[baseline.study.hv_ct]}</td><td>{ctLabels[scenario.study.hv_ct]}</td></tr>
               {ctInventoryFields.map(([key, label]) => <tr key={key}><th scope="row">{label} CT count</th><td>{ctInventoryValue(baseline.study, key)}</td><td>{ctInventoryValue(scenario.study, key)}</td></tr>)}
               <tr><th scope="row">Auxiliary branch treatment</th><td>{auxiliaryLabels[baseline.study.auxiliary]}</td><td>{auxiliaryLabels[scenario.study.auxiliary]}</td></tr>
               {counts.map(([label, key]) => {
@@ -431,7 +426,7 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
 
   function reviewTopology(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const study = normalizeStudy(draft)
+    const study = withInventoryBoundaries(normalizeStudy(draft))
     const problem = validateStudy(study)
     setError(problem)
     if (problem) return
@@ -445,8 +440,9 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
     if (problem) return
     setBusy(true)
     try {
-      const analysis = await analyzeStudy(draft)
-      onCreate({ study: draft, analysis }, source)
+      const study = withInventoryBoundaries(draft)
+      const analysis = await analyzeStudy(study)
+      onCreate({ study, analysis }, source)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unable to analyze this study.')
     } finally {
@@ -481,21 +477,6 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
               <div><dt>Outgoing branches</dt><dd>{draft.bays.reduce((count, bay) => count + bay.branches.length, 0)}</dd></div>
               <div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[draft.auxiliary]}</dd></div>
             </dl>
-            <fieldset className="editor-fields ct-inventory" disabled={busy}>
-              <legend>Confirm boundary CTs</legend>
-              <p className="draft-note">For the standard bushing CT arrangement, apply the inventory counts below to set the transformer and collector boundaries. This replaces the current selections. Review and adjust any exceptions, including collector breakers where only one side has CTs.</p>
-              <button type="button" className="text-button" onClick={() => setDraft(applyBushingCtBoundaries(draft))}>Use bushing CT counts for boundaries</button>
-              <div className="field-row">
-                <Select label="Transformer HV boundary CT" options={ctLabels} value={draft.hv_ct} change={hv_ct => setDraft({ ...draft, hv_ct })} />
-                <Select label="Transformer LV boundary CT" options={ctLabels} value={draft.lv_ct} change={lv_ct => setDraft({ ...draft, lv_ct })} />
-                {draft.bays.map((bay, index) => (
-                  <Select key={bay.id} label={`${bay.id} boundary CT`} options={ctLabels} value={bay.ct} change={ct => setDraft({
-                    ...draft,
-                    bays: draft.bays.map((item, position) => position === index ? { ...item, ct } : item),
-                  })} />
-                ))}
-              </div>
-            </fieldset>
             <CtInventoryEditor study={draft} update={setDraft} disabled={busy} />
             <div className="editor-actions">
               <button className="button secondary" type="button" disabled={busy} onClick={() => { setReview(false); setError(null) }}>Edit inputs</button>
@@ -534,7 +515,7 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
         <div className="workspace-grid">
           <StudyEditor concept draft={draft} update={setDraft} onSubmit={reviewTopology} onReset={() => { setDraft(emptyConcept); setError(null) }} busy={false} dirty={draft !== emptyConcept} error={error} />
           {source === 'drawing' && file ? <DrawingSource file={file} notes={notes} /> : <section className="panel">
-            <PanelHeader title="Build the collector layout" description="Add one bay for each breaker position. Expand a bay to assign all outgoing branches served by that breaker and enter its CT status." />
+            <PanelHeader title="Build the collector layout" description="Add one bay for each breaker position. Expand a bay to assign all outgoing branches served by that breaker then review the breaker CT counts." />
           </section>}
         </div>
       )}
@@ -575,7 +556,7 @@ function App() {
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!draft) return
-    const study = normalizeStudy(draft)
+    const study = withInventoryBoundaries(normalizeStudy(draft))
     const problem = validateStudy(study)
     if (problem) {
       setFormError(problem)
@@ -661,7 +642,7 @@ function App() {
                       }} busy={busy} dirty={dirty} error={formError} /> : (
                         <section className="panel overview">
                           <PanelHeader title="Study inputs" description="Boundary CT status drives the one-line. CT counts are inventory entries, prefilled with standard defaults in new studies. Start a scenario to change these inputs." />
-                          <dl><div><dt>Transformer HV boundary CT</dt><dd>{ctLabels[baseline.study.hv_ct]}</dd></div><div><dt>Transformer LV boundary CT</dt><dd>{ctLabels[baseline.study.lv_ct]}</dd></div><div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[baseline.study.auxiliary]}</dd></div><div><dt>Owner criteria</dt><dd><Status value="Pending" /></dd></div>{ctInventoryFields.map(([key, label]) => <div key={key}><dt>{label} CT count</dt><dd>{ctInventoryValue(baseline.study, key)}</dd></div>)}</dl>
+                          <dl><div><dt>HV breaker POI-side boundary CT</dt><dd>{ctLabels[baseline.study.hv_ct]}</dd></div><div><dt>Transformer LV boundary CT</dt><dd>{ctLabels[baseline.study.lv_ct]}</dd></div><div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[baseline.study.auxiliary]}</dd></div><div><dt>Owner criteria</dt><dd><Status value="Pending" /></dd></div>{ctInventoryFields.map(([key, label]) => <div key={key}><dt>{label} CT count</dt><dd>{ctInventoryValue(baseline.study, key)}</dd></div>)}</dl>
                         </section>
                       )}
                       <Questions questions={activeAnalysis.questions} />

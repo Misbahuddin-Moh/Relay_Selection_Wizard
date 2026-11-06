@@ -1,3 +1,4 @@
+import { withInventoryBoundaries } from './model'
 import type { Ct, Study } from './model'
 
 function CtSymbol({ x, y, state, label }: { x: number; y: number; state: Ct; label: string }) {
@@ -16,7 +17,8 @@ function branchLabel(name: string) {
   return name.length > 11 ? `${name.slice(0, 10)}…` : name
 }
 
-export function OneLine({ study }: { study: Study }) {
+export function OneLine({ study: input }: { study: Study }) {
+  const study = withInventoryBoundaries(input)
   const spans = study.bays.map(bay => Math.max(130, bay.branches.length * 80))
   const span = spans.reduce((total, width) => total + width, 0)
   const width = Math.max(640, span + 70)
@@ -40,12 +42,12 @@ export function OneLine({ study }: { study: Study }) {
           <circle cx={center} cy="151" r="11" className="device" />
           <circle cx={center} cy="167" r="11" className="transformer-winding" />
         </g>
-        <CtSymbol x={center} y={111} state={study.hv_ct} label="Transformer HV CT" />
+        <CtSymbol x={center} y={56} state={study.hv_ct} label="HV breaker POI-side CT" />
         <CtSymbol x={center} y={207} state={study.lv_ct} label="Transformer LV CT" />
         <g className="svg-label">
           <text x={center} y="27" textAnchor="middle" className="source-label">UTILITY SOURCE</text>
           <text x={center + 22} y="86">HV breaker</text>
-          <text x={center - 18} y="115" textAnchor="end">HV CT</text>
+          <text x={center - 18} y="60" textAnchor="end">POI-side CT</text>
           <text x={center + 22} y="156">MPT</text>
           <text x={center + 22} y="172" className="muted-svg">{study.hv_kv} / {study.mv_kv} kV</text>
           <text x={center - 18} y="211" textAnchor="end">LV CT</text>

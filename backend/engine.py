@@ -3,11 +3,24 @@
 from typing import Any, Optional
 
 
+def phase_ct_status(count: Optional[int]) -> str:
+    if count is None:
+        return "unknown"
+    return "present" if count > 0 else "absent"
+
+
 def analyze(study: dict[str, Any]) -> dict[str, Any]:
     """Screen the modeled measurement boundaries and list provisional trip targets."""
     bays = study["bays"]
     hv_ct = study.get("hv_ct", "unknown")
     lv_ct = study.get("lv_ct", "unknown")
+    inventory = study.get("ct_inventory")
+    if inventory is not None:
+        hv_ct = phase_ct_status(inventory["hv_breaker_135"])
+        lv_ct = phase_ct_status(inventory["transformer_lv_phase"])
+        collector_ct = phase_ct_status(inventory["lv_breaker_246"])
+        bays = [{**bay, "ct": collector_ct} for bay in bays]
+
     auxiliary = study.get("auxiliary", "unknown")
     auxiliary_banks = int(auxiliary == "included")
     combined_banks = 1 + len(bays) + auxiliary_banks
@@ -21,7 +34,7 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
         "auxiliary isolation, and breaker-failure actions."
     )
 
-    combined_boundaries = {"HV phase CT bank": hv_ct}
+    combined_boundaries = {"HV breaker POI-side phase CT bank": hv_ct}
     combined_boundaries.update(
         {f'{bay["id"]} phase CT bank': bay.get("ct", "unknown") for bay in bays}
     )
@@ -81,7 +94,7 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
         questions.append(
             {
                 "field": "hv_ct",
-                "prompt": "Where is the HV phase CT bank relative to the HV breaker?",
+                "prompt": "How many phase CTs are on the POI side of the HV breaker?",
                 "why": "It establishes the modeled HV measurement boundary and affects coverage around the breaker.",
             }
         )
@@ -98,7 +111,7 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
             questions.append(
                 {
                     "field": f'bays.{bay["id"]}.ct',
-                    "prompt": f'Where is the phase CT bank for {bay["id"]} relative to the breaker and branch split?',
+                    "prompt": f'How many phase CTs are on the PV circuit side of {bay["id"]}?',
                     "why": "Shared breakers and split branches can have different measurement boundaries.",
                 }
             )
@@ -110,7 +123,6 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
                 "why": "A separately measured auxiliary boundary adds a phase CT bank to the input budget.",
             }
         )
-    inventory = study.get("ct_inventory")
     if inventory is not None:
         questions.append(
             {

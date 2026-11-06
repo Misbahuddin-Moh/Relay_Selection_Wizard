@@ -36,7 +36,7 @@ npm --prefix frontend run build
 
 ## Start a concept study
 
-Choose **New protection study** from the workspace. Enter a study name and the voltage levels, then add one collector bay per breaker position. Expand each bay to edit its breaker tag, assign the branches it serves, and record CT availability. Leave unconfirmed measurements as **Unknown**.
+Choose **New protection study** from the workspace. Enter a study name and the voltage levels, then add one collector bay per breaker position. Expand each bay to edit its breaker tag, assign the branches it serves, and review CT counts in the next step.
 
 Select **Review topology** to check the one-line and review the CT inventory, then **Confirm and analyze** to make it the active baseline. Create a **New scenario** to test a change against that baseline. Concept studies and scenarios reset when you reload the page.
 
@@ -58,9 +58,9 @@ Compare the proposed fields and extraction notes with the source, correct the dr
 
 ## Review the CT inventory
 
-Both entry paths show editable CT counts after the topology review. Breaker counts default to two CTs per phase on each breaker side (A and B). The collector counts apply uniformly to each physical collector breaker. Transformer phase counts default to three per phase on each side, with two separate neutral CTs per side. Enter zero where none exist or clear a count to leave it unknown.
+Both entry paths show editable CT counts after the topology review. Breaker counts default to two CTs per phase on each breaker side. The collector counts apply uniformly to each physical collector breaker. Transformer phase counts default to three per phase on each side, with two separate neutral CTs per side. Enter zero where none exist or clear a count to leave it unknown.
 
-In topology review, **Use bushing CT counts for boundaries** sets the transformer HV and LV boundaries from their phase bushing CT counts. It sets collector boundaries to Present when both breaker sides have CTs, Absent when both sides have zero, and Unknown when the inventory cannot establish availability at the feeder-side boundary. Review exceptions using the individual boundary fields. Reapply the counts if you edit the inventory and want to update the boundary selections.
+The wizard derives the HV boundary from the HV breaker POI-side count and each collector boundary from the collector breaker PV circuit-side count. The transformer LV phase count supplies the incomer boundary for the separate-zone comparison. Zero means Absent, a positive count means Present, and a blank count means Unknown.
 
 The inventory records quantities for the study and its what-if scenarios. Review boundary location, CT suitability, and assignment to primary and backup protection separately. Check winding grounding and the intended ground differential or restricted earth fault application before assigning neutral CTs. Phase-bank requirements are calculated from modeled measurement boundaries.
 

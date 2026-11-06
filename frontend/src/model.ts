@@ -8,10 +8,10 @@ export interface Bay {
 }
 
 export const ctInventoryFields = [
-  ['lv_breaker_135', 'Collector breaker · side A', 2],
-  ['lv_breaker_246', 'Collector breaker · side B', 2],
-  ['hv_breaker_135', 'HV breaker · side A', 2],
-  ['hv_breaker_246', 'HV breaker · side B', 2],
+  ['lv_breaker_135', 'Collector breaker · bus side', 2],
+  ['lv_breaker_246', 'Collector breaker · PV circuit side', 2],
+  ['hv_breaker_135', 'HV breaker · POI side', 2],
+  ['hv_breaker_246', 'HV breaker · transformer side', 2],
   ['transformer_hv_phase', 'Transformer HV phase', 3],
   ['transformer_lv_phase', 'Transformer LV phase', 3],
   ['transformer_hv_neutral', 'Transformer HV neutral', 2],
@@ -35,23 +35,18 @@ export interface Study {
   ct_inventory?: CtInventory | null
 }
 
-export function applyBushingCtBoundaries(study: Study): Study {
+export function withInventoryBoundaries(study: Study): Study {
   const inventory = study.ct_inventory
   if (!inventory) return study
 
   const phaseStatus = (count: number | null): Ct =>
     count === null ? 'unknown' : count === 0 ? 'absent' : 'present'
 
-  const sideA = phaseStatus(inventory.lv_breaker_135)
-  const sideB = phaseStatus(inventory.lv_breaker_246)
-  // The inventory does not identify which side faces the feeder.
-  const collectorStatus: Ct = sideA === sideB ? sideA : 'unknown'
-
   return {
     ...study,
-    hv_ct: phaseStatus(inventory.transformer_hv_phase),
+    hv_ct: phaseStatus(inventory.hv_breaker_135),
     lv_ct: phaseStatus(inventory.transformer_lv_phase),
-    bays: study.bays.map(bay => ({ ...bay, ct: collectorStatus })),
+    bays: study.bays.map(bay => ({ ...bay, ct: phaseStatus(inventory.lv_breaker_246) })),
   }
 }
 

@@ -72,25 +72,38 @@ class StudyBenchmarkTests(unittest.TestCase):
         self.assertEqual(included["breakers"], excluded["breakers"])
         self.assertEqual(included["branches"], excluded["branches"])
 
-    def test_inventory_does_not_establish_boundaries_or_add_neutral_cts_to_phase_budget(self):
-        original = analyze(self.study)
+    def test_boundary_status_uses_only_the_modeled_side_counts(self):
+        self.study["auxiliary"] = "excluded"
         self.study["ct_inventory"] = {
             "lv_breaker_135": 2,
-            "lv_breaker_246": 2,
-            "hv_breaker_135": 2,
+            "lv_breaker_246": 0,
+            "hv_breaker_135": 0,
             "hv_breaker_246": 2,
             "transformer_hv_phase": 3,
             "transformer_lv_phase": 3,
             "transformer_hv_neutral": 2,
             "transformer_lv_neutral": 0,
         }
-
+        inventory = self.study["ct_inventory"]
         result = analyze(self.study)
-        self.assertEqual(result["counts"], original["counts"])
-        self.assertEqual(result["candidates"], original["candidates"])
-        questions = {question["field"] for question in result["questions"]}
-        self.assertIn("ct_inventory.neutral", questions)
-        self.assertIn("ct_inventory.boundaries", questions)
+        self.assertEqual(result["counts"]["confirmed_bay_cts"], 0)
+        combined = self._candidate(result, "combined")
+        self.assertEqual(combined["status"], "Missing measurement")
+        self.assertIn("HV breaker POI-side", combined["reason"])
+        self.assertIn("CB-01", combined["reason"])
+
+        inventory["hv_breaker_135"] = 1
+        inventory["lv_breaker_246"] = 1
+        inventory["lv_breaker_135"] = 0
+        result = analyze(self.study)
+        self.assertEqual(result["counts"]["confirmed_bay_cts"], 3)
+        self.assertEqual(self._candidate(result, "dedicated")["status"], "Baseline candidate")
+
+        inventory["lv_breaker_246"] = None
+        result = analyze(self.study)
+        self.assertEqual(self._candidate(result, "dedicated")["status"], "Conditional")
+        self.assertEqual(result["counts"]["combined_phase_channels"], 12)
+        self.assertIn("ct_inventory.neutral", {question["field"] for question in result["questions"]})
 
     @staticmethod
     def _candidate(result, candidate_id):
