@@ -118,7 +118,7 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error, con
             <Select label="Auxiliary branch treatment" options={auxiliaryLabels} value={draft.auxiliary} change={auxiliary => update({ ...draft, auxiliary })} />
           </div>
           <div className="bay-list">
-            <div className="bay-list-header"><h3>Collector bays</h3><button type="button" className="text-button" disabled={draft.bays.length >= 40} onClick={() => update({ ...draft, bays: [...draft.bays, { id: nextLabel('52-F', draft.bays.map(bay => bay.id)), ct: 'unknown', branches: [nextLabel('Feeder', branches)] }] })}><Icon name="plus" size={15} /> Add bay</button></div>
+            <div className="bay-list-header"><h3>Collector breaker bays</h3><button type="button" className="text-button" disabled={draft.bays.length >= 40} onClick={() => update({ ...draft, bays: [...draft.bays, { id: nextLabel('52-F', draft.bays.map(bay => bay.id)), ct: 'unknown', branches: [nextLabel('Feeder', branches)] }] })}><Icon name="plus" size={15} /> Add bay</button></div>
             {draft.bays.map((bay, index) => (
               <details className="bay" key={concept ? index : bay.id}>
                 <summary><strong>{bay.id}</strong><span>{bay.branches.length} {bay.branches.length === 1 ? 'branch' : 'branches'} · CT {ctLabels[bay.ct].toLowerCase()}</span></summary>
@@ -414,7 +414,7 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
             {source === 'drawing' && file && <DrawingSource file={file} notes={notes} />}
           </div>
           <section className="panel overview">
-            <PanelHeader title="Confirm the modeled layout" description="Confirm one HV breaker, one MPT, one unsectioned collector bus, and no LV main breaker. Check which branches each breaker serves. Unknown measurements carry forward as open questions. Confirming makes this the active baseline and clears its prior scenario." />
+            <PanelHeader title="Confirm the modeled layout" description="Confirm one HV breaker, one MPT, one unsectioned collector bus, and no LV main breaker. Check which branches share each breaker. Keep auxiliary taps separate. Unknown measurements carry forward as open questions. Confirming makes this the active baseline and clears its prior scenario." />
             <dl>
               <div><dt>Collector breakers</dt><dd>{draft.bays.length}</dd></div>
               <div><dt>Outgoing branches</dt><dd>{draft.bays.reduce((count, bay) => count + bay.branches.length, 0)}</dd></div>
