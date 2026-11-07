@@ -145,6 +145,13 @@ export interface GeneratedOptions {
       }
       bus: { function: string; status: string }
     }
+    device_requirements: {
+      role: string
+      functions: string
+      phase_banks: number
+      alternate_phase_banks: number | null
+      note: string
+    }[]
     backup: string
     open_item: string
     check: Candidate

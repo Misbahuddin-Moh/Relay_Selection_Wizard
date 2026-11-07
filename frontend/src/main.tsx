@@ -282,6 +282,31 @@ function ProtectionZoneReview({ study, analysis }: Snapshot) {
   )
 }
 
+function DeviceRequirements({ rows, auxiliary }: {
+  rows: GeneratedOptions['options'][number]['device_requirements']
+  auxiliary: Study['auxiliary']
+}) {
+  return (
+    <details>
+      <summary>Per-device requirements</summary>
+      <p>Counts show required hardwired phase-current inputs. Check neutral CTs, VT inputs, contacts, and communication separately.</p>
+      {auxiliary === 'unknown' && <p>If the auxiliary tap needs separate measurement, add one bank to the IED carrying bus differential.</p>}
+      <div className="table-scroll">
+        <table>
+          <thead><tr><th scope="col">Device role</th><th scope="col">Functions</th><th scope="col">Phase CT banks / inputs</th><th scope="col">Check</th></tr></thead>
+          <tbody>{rows.map(row => (
+            <tr key={row.role}>
+              <th scope="row">{row.role}</th><td>{row.functions}</td>
+              <td>{row.phase_banks}{row.alternate_phase_banks && `–${row.alternate_phase_banks}`} / {row.phase_banks * 3}{row.alternate_phase_banks && `–${row.alternate_phase_banks * 3}`}</td>
+              <td>{row.note}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </details>
+  )
+}
+
 function AIProtectionOptions({ study }: { study: Study }) {
   const [result, setResult] = useState<GeneratedOptions | null>(null)
   const [busy, setBusy] = useState(false)
@@ -342,6 +367,7 @@ function AIProtectionOptions({ study }: { study: Study }) {
                 <p><strong>Main B CT locations to evaluate</strong> · {option.main_coverage.transformer_b.alternatives.map(location => hvBoundaryLabels[location]).join(' · ')}</p>
               )}
               <p>Transformer A/B independence remains unverified. Confirm CT cores, DC supplies, and trip paths.</p>
+              <DeviceRequirements rows={option.device_requirements} auxiliary={study.auxiliary} />
               <p><strong>Time-delayed backup</strong> · {option.backup}</p>
               <p><strong>Open item</strong> · {option.open_item}</p>
               <p><strong>Local boundary check</strong> · {option.check.reason} {option.boundary.coverage}</p>

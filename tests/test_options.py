@@ -4,7 +4,8 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from backend.main import reference_study
-from backend.options import OptionsError, generate_options, request_options
+from backend.engine import analyze
+from backend.options import OptionsError, device_requirements, generate_options, request_options
 
 
 class OptionsTests(TestCase):
@@ -69,3 +70,17 @@ class OptionsTests(TestCase):
             with self.assertRaisesRegex(OptionsError, "ran out of response space"):
                 generate_options(reference_study()["study"])
         self.assertEqual(call.call_count, 1)
+
+
+    def test_shared_ied_budget_and_independent_feeder_paths(self):
+        study = reference_study()["study"]
+        study.update(auxiliary="included", include_poi_line=True)
+        analysis = analyze(study)
+        shared = device_requirements(study, "shared", analysis)
+        combined = device_requirements(study, "combined", analysis)
+        self.assertEqual((shared[0]["phase_banks"], shared[0]["alternate_phase_banks"]), (6, 7))
+        self.assertEqual(shared[0]["functions"], "87T + 87B simultaneously")
+        self.assertEqual(combined[0]["phase_banks"], 5)
+        self.assertEqual(combined[1]["phase_banks"], 2)
+        self.assertEqual(sum(row["functions"].startswith("51P") for row in shared), 3)
+        self.assertTrue(any(row["role"].startswith("Revenue") for row in shared))
