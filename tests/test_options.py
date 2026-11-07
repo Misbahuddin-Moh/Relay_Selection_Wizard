@@ -4,7 +4,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from backend.main import reference_study
-from backend.options import generate_options, request_options
+from backend.options import OptionsError, generate_options, request_options
 
 
 class OptionsTests(TestCase):
@@ -18,7 +18,7 @@ class OptionsTests(TestCase):
             "lv_breaker_135": 2, "lv_breaker_246": 2,
         })
         options = [
-            dict(scheme="combined", hv_boundary=boundary, rationale="Compare the station span.",
+            dict(scheme="combined", hv_boundary=boundary, rationale="Compare the station span. " * 12,
                  redundancy="Verify independent CT and trip circuits.", backup="Review graded overcurrent.",
                  open_item="Confirm remote clearing.", evidence=["TB_COMBINED", "L_87L"])
             for boundary in ("poi", "breaker_transformer", "bushing")
@@ -35,8 +35,20 @@ class OptionsTests(TestCase):
         sent = call.call_args.args[0].data.decode()
         self.assertNotIn(study["title"], sent)
         self.assertNotIn(study["bays"][0]["id"], sent)
-        self.assertEqual(json.loads(sent)["max_tokens"], 1400)
+        self.assertEqual(json.loads(sent)["max_tokens"], 4096)
+        self.assertIn("300–600 output tokens", json.loads(sent)["system"])
         first, second, third = result["options"]
         self.assertEqual(first["check"]["status"], "Missing measurement")
         self.assertEqual(second["boundary"]["state"], "present")
         self.assertIn("coverage gap", third["poi_line"]["coverage"])
+
+
+    def test_truncation_is_reported_before_parsing_partial_json(self):
+        self.addCleanup(request_options.cache_clear)
+        response = {"stop_reason": "max_tokens", "content": [{"type": "text", "text": '{"options": ['}]}
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}), patch(
+            "backend.options.urlopen", return_value=io.BytesIO(json.dumps(response).encode())
+        ) as call:
+            with self.assertRaisesRegex(OptionsError, "ran out of response space"):
+                generate_options(reference_study()["study"])
+        self.assertEqual(call.call_count, 1)

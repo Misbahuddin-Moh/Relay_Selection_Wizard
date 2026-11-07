@@ -72,7 +72,7 @@ In the CT inventory, choose the station differential HV boundary and optionally 
 
 From an analyzed study, select **Generate protection options**. This uses the server's `ANTHROPIC_API_KEY` and defaults to `claude-sonnet-4-6`. Set `RELAY_OPTIONS_MODEL` to select another Claude model that supports the structured response. The request sends grouped station facts and curated evidence. Drawing bytes, study titles, and equipment tags stay local.
 
-Generation is on demand, with up to three proposals and a 1,400 output-token limit. Successful results are cached in memory for up to 32 distinct request summaries per server process. The UI shows token usage reported for the original generation. The wizard checks each proposed boundary locally and displays preliminary trip targets. Verify CT assignments, relay capability, owner requirements, and clearing paths before advancing a design.
+Generation is on demand, with up to three proposals. The prompt aims for 300–600 output tokens and encourages shorter responses when enough. The API has a separate 4,096-token safety ceiling. Successful results are cached in memory for up to 32 distinct request summaries per server process. The UI shows token usage reported for the original generation. The wizard checks each proposed boundary locally and displays preliminary trip targets. Verify CT assignments, relay capability, owner requirements, and clearing paths before advancing a design.
 
 ## Study scope
 

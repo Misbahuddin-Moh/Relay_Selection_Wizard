@@ -14,19 +14,23 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from .engine import analyze
 
 EVIDENCE = json.loads(Path(__file__).with_name("option_evidence.json").read_text(encoding="utf-8"))
-OUTPUT_TOKENS = 1400
+API_OUTPUT_CEILING = 4096
 PROMPT = (
     "Propose up to three distinct preliminary protection options using the provided evidence. "
     "Compare separate 87T/87B, separate zones in shared hardware, and combined differential where relevant. "
     "If the POI-side CT is absent and alternatives exist, compare transformer-side breaker and bushing locations, "
     "including breaker/lead coverage and any change to the illustrative 87L overlap. "
     "For each option choose one HV boundary and cite only supplied evidence IDs. "
-    "Keep all prose fields to one short sentence each. Distinguish Main A/Main B from delayed backup. "
+    "Aim for 300–600 output tokens total. Use fewer when sufficient and exceed the target to finish valid JSON. "
+    "Use short phrases, ideally 5–12 words per text field, and cite one evidence ID unless another is needed. "
+    "Only include options with a material tradeoff. Skip introductions, repeated facts, CT status, trip lists and "
+    "coverage details that the app calculates. In rationale, state the decisive tradeoff. In open_item, "
+    "give the single most important unresolved question. Distinguish Main A/Main B from delayed backup. "
     "Treat relay feasibility, owner approval, CT core assignments, trip paths and remote 87L data as unresolved. "
     "Do not give settings, invent equipment or claim approved coverage."
 )
 
-ShortText = Annotated[str, Field(min_length=1, max_length=240)]
+ShortText = Annotated[str, Field(min_length=1)]
 
 
 class Option(BaseModel):
@@ -85,7 +89,7 @@ def request_options(summary: str, model: str):
     payload = {
         "model": model,
         "system": PROMPT,
-        "max_tokens": OUTPUT_TOKENS,
+        "max_tokens": API_OUTPUT_CEILING,
         "messages": [{"role": "user", "content": json.dumps({
             "station": station,
             "evidence": {key: value["note"] for key, value in evidence.items()},
@@ -100,17 +104,24 @@ def request_options(summary: str, model: str):
     try:
         with urlopen(request, timeout=60) as response:
             result = json.load(response)
+        stop_reason = result.get("stop_reason")
+        if stop_reason in ("max_tokens", "model_context_window_exceeded"):
+            raise OptionsError("Claude ran out of response space before finishing the comparison.")
+        if stop_reason == "refusal":
+            raise OptionsError("Claude declined to generate protection options for this study.")
+        if stop_reason != "end_turn":
+            raise OptionsError("Claude stopped before completing the comparison.")
         text = next(part["text"] for part in result["content"] if part["type"] == "text")
         proposal = Proposal.model_validate_json(text)
-        if result.get("stop_reason") != "end_turn" or any(
-            set(option.evidence) - evidence.keys() for option in proposal.options
-        ):
-            raise OptionsError("Claude returned incomplete options or unsupported evidence references.")
+        if any(set(option.evidence) - evidence.keys() for option in proposal.options):
+            raise OptionsError("Claude cited evidence outside the supplied research excerpts.")
         return proposal, result.get("usage", {})
     except (URLError, TimeoutError):
         raise OptionsError("Claude could not generate options. Check the API key, model access, and connection.") from None
-    except (ValidationError, ValueError, KeyError, StopIteration):
-        raise OptionsError("Claude returned an incomplete or invalid option comparison.") from None
+    except ValidationError:
+        raise OptionsError("Claude completed the response, but it did not match the protection option format.") from None
+    except (ValueError, KeyError, StopIteration):
+        raise OptionsError("Claude did not return a readable comparison.") from None
 
 
 def generate_options(study):
