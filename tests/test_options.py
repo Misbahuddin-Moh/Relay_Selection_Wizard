@@ -19,7 +19,7 @@ class OptionsTests(TestCase):
         })
         options = [
             dict(scheme="combined", hv_boundary=boundary, rationale="Compare the station span. " * 12,
-                 redundancy="Verify independent CT and trip circuits.", backup="Review graded overcurrent.",
+                 transformer_main_b_hv="bushing", backup="Review graded overcurrent.",
                  open_item="Confirm remote clearing.", evidence=["TB_COMBINED", "L_87L"])
             for boundary in ("poi", "breaker_transformer", "bushing")
         ]
@@ -41,6 +41,21 @@ class OptionsTests(TestCase):
         self.assertEqual(first["check"]["status"], "Missing measurement")
         self.assertEqual(second["boundary"]["state"], "present")
         self.assertIn("coverage gap", third["poi_line"]["coverage"])
+        self.assertEqual(second["main_coverage"]["transformer_a"]["function"], "87TB")
+        self.assertEqual(second["main_coverage"]["bus"]["function"], "87TB (shared with transformer Main A)")
+        self.assertEqual(second["main_coverage"]["transformer_b"]["status"], "Boundaries present")
+
+        study["ct_inventory"]["transformer_lv_phase"] = 0
+        options[2]["transformer_main_b_hv"] = "unresolved"
+        reply["content"][0]["text"] = json.dumps({"options": options})
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}), patch(
+            "backend.options.urlopen", return_value=io.BytesIO(json.dumps(reply).encode())
+        ):
+            changed, unresolved = generate_options(study)["options"][1:]
+        self.assertEqual(unresolved["main_coverage"]["transformer_b"]["status"], "Missing measurement")
+        self.assertEqual(unresolved["main_coverage"]["transformer_b"]["boundaries"][0]["state"], "absent")
+        self.assertEqual(changed["main_coverage"]["transformer_b"]["status"], "Missing measurement")
+        self.assertNotEqual(changed["main_coverage"]["bus"]["status"], "Missing measurement")
 
 
     def test_truncation_is_reported_before_parsing_partial_json(self):

@@ -133,7 +133,11 @@ export interface GeneratedOptions {
     scheme: string
     hv_boundary: HvBoundary
     rationale: string
-    redundancy: string
+    main_coverage: {
+      transformer_a: { function: string; status: string }
+      transformer_b: { function: string; hv_boundary: HvBoundary | 'unresolved'; status: string; boundaries: ProtectionZone['boundaries'] }
+      bus: { function: string; status: string }
+    }
     backup: string
     open_item: string
     check: Candidate

@@ -25,7 +25,9 @@ PROMPT = (
     "Use short phrases, ideally 5–12 words per text field, and cite one evidence ID unless another is needed. "
     "Only include options with a material tradeoff. Skip introductions, repeated facts, CT status, trip lists and "
     "coverage details that the app calculates. In rationale, state the decisive tradeoff. In open_item, "
-    "give the single most important unresolved question. Distinguish Main A/Main B from delayed backup. "
+    "give the single most important unresolved question. Main A covers the transformer with 87T or combined 87TB. "
+    "Propose a transformer-only 87T Main B HV boundary when both its HV and LV CT banks are available, "
+    "otherwise return unresolved. The bus has one differential path. Keep delayed backup separate. "
     "Treat relay feasibility, owner approval, CT core assignments, trip paths and remote 87L data as unresolved. "
     "Do not give settings, invent equipment or claim approved coverage."
 )
@@ -38,7 +40,7 @@ class Option(BaseModel):
     scheme: Literal["dedicated", "shared", "combined"]
     hv_boundary: Literal["poi", "breaker_transformer", "bushing"]
     rationale: ShortText
-    redundancy: ShortText
+    transformer_main_b_hv: Literal["poi", "breaker_transformer", "bushing", "unresolved"]
     backup: ShortText
     open_item: ShortText
     evidence: Annotated[list[str], Field(min_length=1, max_length=3)]
@@ -124,6 +126,32 @@ def request_options(summary: str, model: str):
         raise OptionsError("Claude did not return a readable comparison.") from None
 
 
+def main_coverage(study, option, main_a_analysis):
+    zones = {zone["id"]: zone for zone in main_a_analysis["zones"]}
+    combined = option.scheme == "combined"
+    transformer_a = zones["combined" if combined else "transformer"]
+    bus = zones["combined" if combined else "bus"]
+    main_b_hv = option.transformer_main_b_hv
+    transformer_b = None
+    lv_boundary = zones["transformer"]["boundaries"][1]
+    if main_b_hv != "unresolved":
+        main_b_analysis = analyze({**study, "hv_boundary": main_b_hv})
+        transformer_b = next(zone for zone in main_b_analysis["zones"] if zone["id"] == "transformer")
+
+    return {
+        "transformer_a": {"function": "87TB" if combined else "87T", "status": transformer_a["status"]},
+        "transformer_b": {
+            "function": "87T",
+            "hv_boundary": main_b_hv,
+            "status": transformer_b["status"] if transformer_b else (
+                "Missing measurement" if lv_boundary["state"] == "absent" else "Unresolved"
+            ),
+            "boundaries": transformer_b["boundaries"] if transformer_b else [lv_boundary],
+        },
+        "bus": {"function": "87TB (shared with transformer Main A)" if combined else "87B", "status": bus["status"]},
+    }
+
+
 def generate_options(study):
     if not os.getenv("ANTHROPIC_API_KEY", "").strip():
         raise OptionsError("Set ANTHROPIC_API_KEY on the server to generate AI protection options.")
@@ -138,6 +166,7 @@ def generate_options(study):
         options.append({
             **option.model_dump(),
             "check": candidate,
+            "main_coverage": main_coverage(study, option, checked),
             "boundary": boundary,
             "poi_line": checked["poi_line"],
             "sources": [ref for key in option.evidence for ref in EVIDENCE[key]["sources"]],

@@ -320,7 +320,23 @@ function AIProtectionOptions({ study }: { study: Study }) {
               <div className="candidate-heading"><h3>{option.check.title}</h3><Status value={option.check.status} /></div>
               <p><strong>{hvBoundaryLabels[option.hv_boundary]}</strong> · {ctLabels[option.boundary.state]}</p>
               <p>{option.rationale}</p>
-              <p><strong>Main A/Main B</strong> · {option.redundancy}</p>
+              <div className="table-scroll">
+                <table>
+                  <thead><tr><th scope="col">Protection path</th><th scope="col">Function</th><th scope="col">Boundary check</th></tr></thead>
+                  <tbody>
+                    <tr><th scope="row">Transformer Main A</th><td>{option.main_coverage.transformer_a.function}</td><td>{option.main_coverage.transformer_a.status}</td></tr>
+                    <tr>
+                      <th scope="row">Transformer Main B</th>
+                      <td>{option.main_coverage.transformer_b.function} · {option.main_coverage.transformer_b.hv_boundary === 'unresolved' ? 'HV boundary unresolved' : hvBoundaryLabels[option.main_coverage.transformer_b.hv_boundary]}</td>
+                      <td>{option.main_coverage.transformer_b.status}{option.main_coverage.transformer_b.boundaries.filter(boundary => boundary.state !== 'present').map(boundary => (
+                        <div key={boundary.label}>{boundary.label} · {ctLabels[boundary.state]}</div>
+                      ))}</td>
+                    </tr>
+                    <tr><th scope="row">Collector bus · single path</th><td>{option.main_coverage.bus.function}</td><td>{option.main_coverage.bus.status}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p>Transformer A/B independence remains unverified. Confirm CT cores, DC supplies, and trip paths.</p>
               <p><strong>Time-delayed backup</strong> · {option.backup}</p>
               <p><strong>Open item</strong> · {option.open_item}</p>
               <p><strong>Local boundary check</strong> · {option.check.reason} {option.boundary.coverage}</p>
