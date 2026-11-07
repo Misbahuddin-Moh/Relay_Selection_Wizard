@@ -197,3 +197,5 @@ tbody tr:last-child > * { border-bottom: 0; }
 .boundary-state.unknown { color: #80560e; }
 .zone-basis { margin: 12px 15px; }
 @media (max-width: 850px) { .zone-options { grid-template-columns: minmax(0, 1fr); } }
+
+.feeder-area-overlay { fill: #f6e9c9; fill-opacity: .55; stroke: #94703b; stroke-dasharray: 3 3; }

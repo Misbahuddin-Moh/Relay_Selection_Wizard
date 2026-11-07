@@ -28,10 +28,11 @@ export function OneLine({ study: input, zones = [] }: {
   const center = width / 2
   const start = (width - span) / 2
 
+  const hvY = { poi: 56, breaker_transformer: 108, bushing: 132 }[study.hv_boundary ?? 'poi']
   const highlights = {
-    transformer: { x: center - 25, y: 56, width: 50, height: 151 },
+    transformer: { x: center - 25, y: hvY, width: 50, height: 207 - hvY },
     bus: { x: start - 12, y: 207, width: span + 24, height: 102 },
-    combined: { x: start - 12, y: 56, width: span + 24, height: 253 },
+    combined: { x: start - 12, y: hvY, width: span + 24, height: 309 - hvY },
   }
 
   return (
@@ -54,12 +55,12 @@ export function OneLine({ study: input, zones = [] }: {
           <circle cx={center} cy="151" r="11" className="device" />
           <circle cx={center} cy="167" r="11" className="transformer-winding" />
         </g>
-        <CtSymbol x={center} y={56} state={study.hv_ct} label="HV breaker POI-side CT" />
+        <CtSymbol x={center} y={hvY} state={study.hv_ct} label="Selected HV boundary CT" />
         {!zones.includes('combined') && <CtSymbol x={center} y={207} state={study.lv_ct} label="Transformer LV CT" />}
         <g className="svg-label">
           <text x={center} y="27" textAnchor="middle" className="source-label">UTILITY SOURCE</text>
           <text x={center + 22} y="86">HV breaker</text>
-          <text x={center - 18} y="60" textAnchor="end">POI-side CT</text>
+          <text x={center - 18} y={hvY + 4} textAnchor="end">HV boundary CT</text>
           <text x={center + 22} y="156">MPT</text>
           <text x={center + 22} y="172" className="muted-svg">{study.hv_kv} / {study.mv_kv} kV</text>
           {!zones.includes('combined') && <text x={center - 18} y="211" textAnchor="end">LV CT</text>}
@@ -75,6 +76,10 @@ export function OneLine({ study: input, zones = [] }: {
           const ends = bay.branches.map((_, branchIndex) => x + (branchIndex - (bay.branches.length - 1) / 2) * 74)
           return (
             <g key={bay.id}>
+              {zones.length > 0 && (
+                <rect x={ends[0] - 13} y="291" width={ends[ends.length - 1] - ends[0] + 26} height="73"
+                  rx="6" className="feeder-area-overlay" />
+              )}
               <g className="primary-wire">
                 <path d={`M ${x} 246 V 327`} />
                 <rect x={x - 8} y="272" width="16" height="16" rx="2" className="device" />

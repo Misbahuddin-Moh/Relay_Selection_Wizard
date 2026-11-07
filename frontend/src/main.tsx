@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
-import { auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, withInventoryBoundaries } from './model'
+import { auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, hvBoundaryLabels, withInventoryBoundaries } from './model'
 import type { Analysis, Candidate, CtInventory, DrawingDraft, Snapshot, Study } from './model'
 import './styles.css'
 
@@ -111,7 +111,7 @@ function CtInventoryEditor({ study, update, disabled = false }: {
   return (
     <fieldset className="editor-fields ct-inventory" disabled={disabled}>
       <legend>Number of CTs</legend>
-      <p className="draft-note">Count phase CTs per phase and neutral CTs per winding neutral. Collector settings apply to all {study.bays.length} collector breaker positions. Use 0 for none or leave blank for unknown. New studies start with standard defaults. Boundary status follows the HV breaker POI-side count, the collector breaker PV circuit-side count, and the transformer LV phase count.</p>
+      <p className="draft-note">Count phase CTs per phase and neutral CTs per winding neutral. Collector settings apply to all {study.bays.length} collector breaker positions. Use 0 for none or leave blank for unknown. New studies start with standard defaults. Boundary status follows the selected HV CT location, the collector breaker PV circuit-side count, and the transformer LV phase count.</p>
       <div className="field-row">
         {ctInventoryFields.map(([key, label]) => (
           <label className="field" key={key}>
@@ -123,6 +123,8 @@ function CtInventoryEditor({ study, update, disabled = false }: {
           </label>
         ))}
       </div>
+      <Select label="Station differential HV boundary" options={hvBoundaryLabels} value={study.hv_boundary ?? 'poi'} change={hv_boundary => update({ ...study, hv_boundary })} />
+      <label><input type="checkbox" checked={study.include_poi_line ?? false} onChange={event => update({ ...study, include_poi_line: event.target.checked })} /> Include POI line protection area</label>
       <button type="button" className="text-button" onClick={() => update({ ...study, ct_inventory: defaultCtInventory() })}>Use standard defaults</button>
     </fieldset>
   )
@@ -218,6 +220,7 @@ function ProtectionZoneReview({ study, analysis }: Snapshot) {
           return (
             <article key={option.id} className="zone-option" aria-label={option.title}>
               <div className="candidate-heading"><h3>{option.title}</h3>{candidate && <Status value={candidate.status} />}</div>
+              <p><strong>{option.zones.length + analysis.feeder_areas.length + Number(!!analysis.poi_line)} protection areas</strong> in this layout</p>
               <OneLine study={study} zones={option.zones.map(zone => zone.id)} />
               {option.zones.map(zone => (
                 <div className="zone-details" key={zone.id}>
@@ -238,6 +241,37 @@ function ProtectionZoneReview({ study, analysis }: Snapshot) {
           )
         })}
       </div>
+      <div className="zone-basis">
+        <h3>HV boundary locations</h3>
+        <ul className="zone-boundaries">
+          {analysis.hv_boundaries.map(boundary => (
+            <li key={boundary.id}>
+              <span>{boundary.label}{boundary.id === (study.hv_boundary ?? 'poi') && <strong> · Selected</strong>}<br />{boundary.coverage}</span>
+              <span className={`boundary-state ${boundary.state}`}>{ctLabels[boundary.state]}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="zone-basis">
+        <h3>Collector feeder protection areas</h3>
+        <p>The amber outlines show one local area per collector breaker. Circuits behind a shared breaker have a common local trip point.</p>
+        <div className="table-scroll">
+          <table>
+            <thead><tr><th>Local trip breaker</th><th>Circuits served</th><th>PV circuit-side CT</th><th>Bus-side CT</th></tr></thead>
+            <tbody>{analysis.feeder_areas.map(area => (
+              <tr key={area.breaker}>
+                <th scope="row">{area.breaker}</th><td>{area.circuits.join(', ')}</td>
+                {area.measurements.map(measurement => <td key={measurement.label}>{ctLabels[measurement.state]}</td>)}
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </div>
+      {analysis.poi_line && <div className="zone-basis">
+        <h3>POI line protection area · 87L example</h3>
+        <p>Remote line CT to the transformer-side CT of the HV breaker. Local CT {ctLabels[analysis.poi_line.local_ct].toLowerCase()}. Confirm the remote endpoint, CT assignments, communications, and local and remote trip paths.</p>
+        <p>{analysis.poi_line.coverage}</p>
+      </div>}
       <p className="zone-basis"><strong>Auxiliary tap</strong> {study.auxiliary === 'included'
         ? 'Modeled as a separately measured boundary for the bus and combined zones.'
         : study.auxiliary === 'excluded'
@@ -286,7 +320,7 @@ function Comparison({ baseline, scenario, onCreate }: { baseline: Snapshot; scen
             <thead><tr><th scope="col">Study inputs and counts</th><th scope="col">Baseline</th><th scope="col">{scenario.study.title}</th></tr></thead>
             <tbody>
               <tr><th scope="row">Transformer LV boundary CT</th><td>{ctLabels[baseline.study.lv_ct]}</td><td>{ctLabels[scenario.study.lv_ct]}</td></tr>
-              <tr><th scope="row">HV breaker POI-side boundary CT</th><td>{ctLabels[baseline.study.hv_ct]}</td><td>{ctLabels[scenario.study.hv_ct]}</td></tr>
+              <tr><th scope="row">Station differential HV boundary</th><td>{hvBoundaryLabels[baseline.study.hv_boundary ?? 'poi']} · {ctLabels[baseline.study.hv_ct]}</td><td>{hvBoundaryLabels[scenario.study.hv_boundary ?? 'poi']} · {ctLabels[scenario.study.hv_ct]}</td></tr>
               {ctInventoryFields.map(([key, label]) => <tr key={key}><th scope="row">{label} CT count</th><td>{ctInventoryValue(baseline.study, key)}</td><td>{ctInventoryValue(scenario.study, key)}</td></tr>)}
               <tr><th scope="row">Auxiliary branch treatment</th><td>{auxiliaryLabels[baseline.study.auxiliary]}</td><td>{auxiliaryLabels[scenario.study.auxiliary]}</td></tr>
               {counts.map(([label, key]) => {
@@ -689,7 +723,7 @@ function App() {
                       }} busy={busy} dirty={dirty} error={formError} /> : (
                         <section className="panel overview">
                           <PanelHeader title="Study inputs" description="Boundary CT status drives the one-line. CT counts are inventory entries, prefilled with standard defaults in new studies. Start a scenario to change these inputs." />
-                          <dl><div><dt>HV breaker POI-side boundary CT</dt><dd>{ctLabels[baseline.study.hv_ct]}</dd></div><div><dt>Transformer LV boundary CT</dt><dd>{ctLabels[baseline.study.lv_ct]}</dd></div><div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[baseline.study.auxiliary]}</dd></div><div><dt>Owner criteria</dt><dd><Status value="Pending" /></dd></div>{ctInventoryFields.map(([key, label]) => <div key={key}><dt>{label} CT count</dt><dd>{ctInventoryValue(baseline.study, key)}</dd></div>)}</dl>
+                          <dl><div><dt>{hvBoundaryLabels[baseline.study.hv_boundary ?? 'poi']} CT</dt><dd>{ctLabels[baseline.study.hv_ct]}</dd></div><div><dt>Transformer LV boundary CT</dt><dd>{ctLabels[baseline.study.lv_ct]}</dd></div><div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[baseline.study.auxiliary]}</dd></div><div><dt>Owner criteria</dt><dd><Status value="Pending" /></dd></div>{ctInventoryFields.map(([key, label]) => <div key={key}><dt>{label} CT count</dt><dd>{ctInventoryValue(baseline.study, key)}</dd></div>)}</dl>
                         </section>
                       )}
                       <Questions questions={activeAnalysis.questions} />

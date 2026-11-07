@@ -127,6 +127,32 @@ class StudyBenchmarkTests(unittest.TestCase):
         self.assertEqual(combined["status"], "Missing measurement")
         self.assertIn({"label": "HV breaker POI-side phase CT bank", "state": "absent"}, combined["boundaries"])
 
+    def test_selecting_alternate_hv_ct_preserves_location_specific_coverage(self):
+        self.study["ct_inventory"] = {
+            "hv_breaker_135": 0,
+            "hv_breaker_246": 2,
+            "transformer_hv_phase": 3,
+            "transformer_lv_phase": 3,
+            "lv_breaker_135": 2,
+            "lv_breaker_246": 2,
+        }
+        self.study["include_poi_line"] = True
+        self.study["auxiliary"] = "excluded"
+        original = analyze(self.study)
+        self.assertEqual(self._candidate(original, "combined")["status"], "Missing measurement")
+        self.assertEqual([option["state"] for option in original["hv_boundaries"]], ["absent", "present", "present"])
+        self.assertEqual(len(original["feeder_areas"]), 3)
+        self.assertEqual(sum(len(area["circuits"]) for area in original["feeder_areas"]), 5)
+
+        self.study["hv_boundary"] = "breaker_transformer"
+        alternate = analyze(self.study)
+        self.assertEqual(self._candidate(alternate, "combined")["status"], "Further study")
+        self.assertEqual(alternate["zones"][0]["boundaries"][0]["state"], "present")
+        self.assertIn("meet", alternate["poi_line"]["coverage"])
+
+        self.study["hv_boundary"] = "bushing"
+        self.assertIn("coverage gap", analyze(self.study)["poi_line"]["coverage"])
+
     @staticmethod
     def _candidate(result, candidate_id):
         return next(candidate for candidate in result["candidates"] if candidate["id"] == candidate_id)

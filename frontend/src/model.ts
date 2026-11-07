@@ -24,6 +24,20 @@ export function defaultCtInventory(): CtInventory {
   return Object.fromEntries(ctInventoryFields.map(([key, , count]) => [key, count])) as CtInventory
 }
 
+export const hvBoundaryLabels = {
+  poi: 'HV breaker · POI side',
+  breaker_transformer: 'HV breaker · transformer side',
+  bushing: 'Transformer HV bushing',
+}
+
+export type HvBoundary = keyof typeof hvBoundaryLabels
+
+const hvBoundaryInventory: Record<HvBoundary, keyof CtInventory> = {
+  poi: 'hv_breaker_135',
+  breaker_transformer: 'hv_breaker_246',
+  bushing: 'transformer_hv_phase',
+}
+
 export interface Study {
   title: string
   hv_kv: number
@@ -33,18 +47,20 @@ export interface Study {
   bays: Bay[]
   auxiliary: Auxiliary
   ct_inventory?: CtInventory | null
+  hv_boundary?: HvBoundary
+  include_poi_line?: boolean
 }
 
 export function withInventoryBoundaries(study: Study): Study {
   const inventory = study.ct_inventory
-  if (!inventory) return study
+  if (!inventory) return study.hv_boundary && study.hv_boundary !== 'poi' ? { ...study, hv_ct: 'unknown' } : study
 
   const phaseStatus = (count: number | null): Ct =>
     count === null ? 'unknown' : count === 0 ? 'absent' : 'present'
 
   return {
     ...study,
-    hv_ct: phaseStatus(inventory.hv_breaker_135),
+    hv_ct: phaseStatus(inventory[hvBoundaryInventory[study.hv_boundary ?? 'poi']]),
     lv_ct: phaseStatus(inventory.transformer_lv_phase),
     bays: study.bays.map(bay => ({ ...bay, ct: phaseStatus(inventory.lv_breaker_246) })),
   }
@@ -76,6 +92,9 @@ export interface Analysis {
   }
   trip_basis: string
   zones: ProtectionZone[]
+  hv_boundaries: { id: HvBoundary; label: string; state: Ct; coverage: string }[]
+  feeder_areas: { breaker: string; circuits: string[]; measurements: { label: string; state: Ct }[] }[]
+  poi_line: { local_ct: Ct; coverage: string } | null
   candidates: Candidate[]
   questions: { field: string; prompt: string; why: string }[]
 }

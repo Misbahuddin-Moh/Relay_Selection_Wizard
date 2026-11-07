@@ -15,8 +15,22 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
     hv_ct = study.get("hv_ct", "unknown")
     lv_ct = study.get("lv_ct", "unknown")
     inventory = study.get("ct_inventory")
+    hv_locations = {
+        "poi": ("HV breaker POI-side phase CT bank", "hv_breaker_135",
+                "The station differential span includes the HV breaker and transformer lead."),
+        "breaker_transformer": ("HV breaker transformer-side phase CT bank", "hv_breaker_246",
+                                "The station differential span excludes the HV breaker. Verify adjacent protection and end-fault clearing."),
+        "bushing": ("Transformer HV bushing phase CT bank", "transformer_hv_phase",
+                    "The station differential span excludes the HV breaker and its lead to the transformer. Verify coverage and clearing for both."),
+    }
+    hv_options = [
+        {"id": location, "label": label, "state": phase_ct_status(inventory[key]) if inventory is not None
+         else hv_ct if location == "poi" else "unknown", "coverage": coverage}
+        for location, (label, key, coverage) in hv_locations.items()
+    ]
+    selected_hv = next(option for option in hv_options if option["id"] == study.get("hv_boundary", "poi"))
+    hv_ct = selected_hv["state"]
     if inventory is not None:
-        hv_ct = phase_ct_status(inventory["hv_breaker_135"])
         lv_ct = phase_ct_status(inventory["transformer_lv_phase"])
         collector_ct = phase_ct_status(inventory["lv_breaker_246"])
         bays = [{**bay, "ct": collector_ct} for bay in bays]
@@ -34,7 +48,7 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
         "auxiliary isolation, and breaker-failure actions."
     )
 
-    hv_boundary = {"HV breaker POI-side phase CT bank": hv_ct}
+    hv_boundary = {selected_hv["label"]: hv_ct}
     lv_boundary = {"Transformer LV phase CT bank": lv_ct}
     collector_boundaries = {
         f'{bay["id"]} PV circuit-side phase CT bank': bay.get("ct", "unknown")
@@ -96,7 +110,7 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
         questions.append(
             {
                 "field": "hv_ct",
-                "prompt": "How many phase CTs are on the POI side of the HV breaker?",
+                "prompt": f'Confirm the phase CT count for the selected boundary: {selected_hv["label"]}.',
                 "why": "It establishes the modeled HV measurement boundary and affects coverage around the breaker.",
             }
         )
@@ -165,6 +179,30 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
             "trip_targets": trip_targets,
         })
 
+    feeder_areas = []
+    bus_side = phase_ct_status(inventory["lv_breaker_135"]) if inventory is not None else "unknown"
+    for bay in bays:
+        circuit_side = bay.get("ct", "unknown")
+        feeder_areas.append({
+            "breaker": bay["id"],
+            "circuits": bay["branches"],
+            "measurements": [
+                {"label": "PV circuit-side phase CT bank", "state": circuit_side},
+                {"label": "Bus-side phase CT bank", "state": bus_side},
+            ],
+        })
+
+    poi_line = None
+    if study.get("include_poi_line"):
+        poi_line = {
+            "local_ct": hv_options[1]["state"],
+            "coverage": {
+                "poi": "This example overlaps the station differential span at the HV breaker.",
+                "breaker_transformer": "The proposed line and station spans meet at the transformer-side breaker CT.",
+                "bushing": "The proposed line span ends at the breaker CT. Review the lead between that CT and the transformer bushing for a coverage gap.",
+            }[selected_hv["id"]],
+        }
+
     return {
         "counts": {
             "breakers": len(bays),
@@ -201,4 +239,7 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
         "questions": questions,
         "trip_basis": trip_basis,
         "zones": zones,
+        "hv_boundaries": hv_options,
+        "feeder_areas": feeder_areas,
+        "poi_line": poi_line,
     }

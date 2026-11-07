@@ -49,6 +49,8 @@ class Study(BaseModel):
     bays: Annotated[list[Bay], Field(min_length=1, max_length=40)]
     auxiliary: Literal["unknown", "included", "excluded"]
     ct_inventory: Optional[CtInventory] = None
+    hv_boundary: Literal["poi", "breaker_transformer", "bushing"] = "poi"
+    include_poi_line: bool = False
 
     @model_validator(mode="after")
     def validate_equipment_ids(self):
