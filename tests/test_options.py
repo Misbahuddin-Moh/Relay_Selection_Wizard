@@ -93,8 +93,18 @@ class OptionsTests(TestCase):
         ge, sel = shared[0]["candidates"]
         self.assertEqual(ge["status"], "Unverified application")
         self.assertEqual(sel["status"], "Conditional configuration")
-        self.assertIn("Some allocations exceed", sel["capacity"])
+        self.assertEqual(sel["capacity"], "See dual-card terminal allocation")
+        self.assertEqual(
+            [(row["phase_banks"], row["neutral_inputs"], row["vt_banks"]) for row in sel["allocations"]],
+            [(5, 3, 2), (6, 3, 1), (6, 0, 2), (7, 0, 1)],
+        )
+        self.assertEqual(sel["allocations"][0]["fit"], "Insufficient phase banks")
+        self.assertEqual(sel["allocations"][1]["fit"], "Lower phase demand only")
+        self.assertEqual(sel["allocations"][3]["fit"], "All listed phase cases")
 
         study["bays"].append({**study["bays"][0], "id": "CB-04"})
         sel = device_requirements(study, "shared", analyze(study))[0]["candidates"][1]
-        self.assertTrue(sel["capacity"].startswith("Exceeds"))
+        self.assertEqual(
+            [row["fit"] for row in sel["allocations"]],
+            ["Insufficient phase banks"] * 3 + ["Lower phase demand only"],
+        )

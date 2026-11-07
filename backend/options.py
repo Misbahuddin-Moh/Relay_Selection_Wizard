@@ -30,7 +30,7 @@ PROMPT = (
     "Propose a transformer-only 87T Main B HV boundary when both its HV and LV CT banks are available, "
     "otherwise return unresolved. A combined Main A still permits 87T Main B when its own CT banks are available. "
     "For shared hardware, consolidate Main A and 87B only; Main B has a separate IED. "
-    "Keep delayed backup separate and avoid naming a function without relevant application evidence. "
+    "Keep REF out of delayed backup; it is evaluated separately. Cite evidence for any named backup function. "
     "Treat relay feasibility, owner approval, CT core assignments, trip paths and remote 87L data as unresolved. "
     "Do not give settings, invent equipment or claim approved coverage."
 )

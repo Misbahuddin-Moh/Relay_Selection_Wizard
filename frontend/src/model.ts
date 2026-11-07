@@ -158,6 +158,7 @@ export interface GeneratedOptions {
         capacity: string
         note: string
         source: string
+        allocations: { y: string; z: string; phase_banks: number; neutral_inputs: number; vt_banks: number; fit: string }[]
       }[]
     }[]
     backup: string
@@ -167,6 +168,6 @@ export interface GeneratedOptions {
     poi_line: Analysis['poi_line']
     sources: { id: string; locator: string; url: string }[]
   }[]
-  high_impedance_bus: { manufacturer: 'GE' | 'SEL'; model: string; source: string }[]
+  high_impedance_bus: { manufacturer: 'GE' | 'SEL'; model: string; source: string; legacy?: boolean }[]
   usage: { input_tokens: number | null; output_tokens: number | null }
 }

@@ -20,11 +20,11 @@ CATALOG = {
     ],
     "shared": [
         ("GE", "Multilin T60 v8.60", "Unverified application", None, "The optional second element is documented as 87T. Simultaneous 87T + 87B remains unverified.", "https://www.gevernova.com/grid-solutions/sites/default/files/2025-05/GER-4977B_2.pdf"),
-        ("SEL", "SEL-487E-4 with optional 87B", "Conditional configuration", 18, "Verify optional 87B, LV input reuse, and neutral/VT terminal allocation.", SEL_487E),
+        ("SEL", "SEL-487E-4 with optional 87B", "Conditional configuration", None, "Verify optional 87B, LV input reuse, and neutral/VT terminal allocation.", SEL_487E),
     ],
     "combined": [
         ("GE", "Multilin T60", "Unverified application", None, "Verify the order code and source grouping for this extended zone.", "https://www.gevernova.com/electrification/node/49435"),
-        ("SEL", "SEL-487E-4", "Unverified application", 18, "Verify compensation, source grouping and security for this extended zone.", SEL_487E),
+        ("SEL", "SEL-487E-4", "Unverified application", None, "Verify compensation, source grouping and security for this extended zone.", SEL_487E),
     ],
     "feeder": [
         ("GE", "Multilin F60", "Documented function", None, "Verify phase, ground and directional sensing options.", GE + "feeder-protection/multilin-f60"),
@@ -44,10 +44,29 @@ CATALOG = {
 }
 
 HIGH_IMPEDANCE = [
-    {"manufacturer": "SEL", "model": "SEL-587Z", "source": "https://selinc.com/api/download/2841"},
+    {"manufacturer": "SEL", "model": "SEL-587Z", "legacy": True, "source": "https://selinc.com/products/587z/"},
     {"manufacturer": "SEL", "model": "SEL-787Z + SEL-HZM", "source": "https://selinc.com/products/comparisons/587z-787z-comparison/"},
     {"manufacturer": "GE", "model": "Multilin MIB", "source": "https://www.gevernova.com/electrification/automation/protection-control-metering/bus-protection/typical-applications"},
 ]
+
+
+def sel_487e_allocations(minimum, maximum):
+    # Dual AC cards. S/T/U/W/X provide five phase banks; V is a VT bank.
+    # SEL-487E-3/-4 data sheet, Models and Options / Current Channel Options.
+    return [
+        {
+            "y": "Phase bank (matching ratings)" if y_phase else "Neutral channels",
+            "z": "Phase bank" if z_phase else "VT bank",
+            "phase_banks": banks,
+            "neutral_inputs": 0 if y_phase else 3,
+            "vt_banks": 1 if z_phase else 2,
+            "fit": "All listed phase cases" if banks >= maximum else (
+                "Lower phase demand only" if banks >= minimum else "Insufficient phase banks"
+            ),
+        }
+        for y_phase, z_phase in ((False, False), (False, True), (True, False), (True, True))
+        for banks in (5 + int(y_phase) + int(z_phase),)
+    ]
 
 
 def screen_devices(row, auxiliary):
@@ -58,7 +77,10 @@ def screen_devices(row, auxiliary):
 
     results = []
     for manufacturer, model, status, ceiling, note, source in CATALOG[row["kind"]]:
-        if ceiling is None:
+        allocations = sel_487e_allocations(minimum // 3, maximum // 3) if source == SEL_487E else []
+        if allocations:
+            capacity = "See dual-card terminal allocation"
+        elif ceiling is None:
             capacity = "Exact phase-input allocation pending"
         elif minimum > ceiling:
             capacity = f"Exceeds published {ceiling}-input ceiling"
@@ -68,6 +90,6 @@ def screen_devices(row, auxiliary):
             capacity = f"Within published {ceiling}-input ceiling; verify allocation"
         results.append({
             "manufacturer": manufacturer, "model": model, "status": status,
-            "capacity": capacity, "note": note, "source": source,
+            "capacity": capacity, "note": note, "source": source, "allocations": allocations,
         })
     return results

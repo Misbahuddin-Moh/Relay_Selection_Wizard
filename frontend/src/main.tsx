@@ -307,7 +307,10 @@ function DeviceRequirements({ rows, auxiliary }: {
   )
 }
 
-function RelayShortlist({ rows }: { rows: GeneratedOptions['options'][number]['device_requirements'] }) {
+function RelayShortlist({ rows, mainBStatus }: {
+  rows: GeneratedOptions['options'][number]['device_requirements']
+  mainBStatus: string
+}) {
   return (
     <details>
       <summary>GE / SEL device shortlist</summary>
@@ -315,6 +318,9 @@ function RelayShortlist({ rows }: { rows: GeneratedOptions['options'][number]['d
       {rows.map((row, index) => (
         <details key={index}>
           <summary>{row.role}</summary>
+          {row.role === 'Transformer Main B' && mainBStatus !== 'Boundaries present' && (
+            <p><strong>Main B boundary check</strong> · {mainBStatus}. Models below are function candidates.</p>
+          )}
           <div className="table-scroll">
             <table>
               <thead><tr><th scope="col">Model</th><th scope="col">Function evidence</th><th scope="col">Phase-input screen</th><th scope="col">Configuration check</th></tr></thead>
@@ -326,6 +332,23 @@ function RelayShortlist({ rows }: { rows: GeneratedOptions['options'][number]['d
               ))}</tbody>
             </table>
           </div>
+          {row.candidates.filter(candidate => candidate.allocations.length > 0).map(candidate => (
+            <details key={candidate.model}>
+              <summary>{candidate.model} dual AC card terminal allocation</summary>
+              <p>Phase counts assume the required CT measurements are routed to the elements. Verify the ordered cards, CT ratings, LV input reuse, and REF/VT needs.</p>
+              <div className="table-scroll">
+                <table>
+                  <thead><tr><th>Y</th><th>Z</th><th>Phase CT banks</th><th>Neutral inputs</th><th>VT banks</th><th>Phase demand</th></tr></thead>
+                  <tbody>{candidate.allocations.map(allocation => (
+                    <tr key={`${allocation.y}/${allocation.z}`}>
+                      <td>{allocation.y}</td><td>{allocation.z}</td><td>{allocation.phase_banks}</td>
+                      <td>{allocation.neutral_inputs}</td><td>{allocation.vt_banks}</td><td>{allocation.fit}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            </details>
+          ))}
         </details>
       ))}
     </details>
@@ -393,8 +416,9 @@ function AIProtectionOptions({ study }: { study: Study }) {
               )}
               <p>Transformer A/B independence remains unverified. Confirm CT cores, DC supplies, and trip paths.</p>
               <DeviceRequirements rows={option.device_requirements} auxiliary={study.auxiliary} />
-              <RelayShortlist rows={option.device_requirements} />
+              <RelayShortlist rows={option.device_requirements} mainBStatus={option.main_coverage.transformer_b.status} />
               <p><strong>Time-delayed backup</strong> · {option.backup}</p>
+              <p><strong>Supplemental transformer protection</strong> · Evaluate REF separately using winding grounding and the phase and neutral CT assignments.</p>
               <p><strong>Open item</strong> · {option.open_item}</p>
               <p><strong>Local boundary check</strong> · {option.check.reason} {option.boundary.coverage}</p>
               {option.poi_line && <p><strong>Illustrative 87L</strong> · Local CT {ctLabels[option.poi_line.local_ct].toLowerCase()}. {option.poi_line.coverage}</p>}
@@ -406,7 +430,7 @@ function AIProtectionOptions({ study }: { study: Study }) {
             <summary>High-impedance bus alternatives</summary>
             <p>Evaluate the CT secondary circuit, including matching CTs, burden, and stabilization. These candidates use a separate screen from the low-impedance phase-input budget.</p>
             <ul>{result.high_impedance_bus.map(candidate => (
-              <li key={candidate.model}><a href={candidate.source} target="_blank" rel="noreferrer">{candidate.manufacturer} · {candidate.model}</a></li>
+              <li key={candidate.model}><a href={candidate.source} target="_blank" rel="noreferrer">{candidate.manufacturer} · {candidate.model}</a>{candidate.legacy && ' · Legacy, existing equipment only'}</li>
             ))}</ul>
           </details>
         </div>
