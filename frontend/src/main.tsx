@@ -307,6 +307,31 @@ function DeviceRequirements({ rows, auxiliary }: {
   )
 }
 
+function RelayShortlist({ rows }: { rows: GeneratedOptions['options'][number]['device_requirements'] }) {
+  return (
+    <details>
+      <summary>GE / SEL device shortlist</summary>
+      <p>Function evidence and the phase-input screen are preliminary. Confirm order code, CT/VT allocation, and application before selection.</p>
+      {rows.map((row, index) => (
+        <details key={index}>
+          <summary>{row.role}</summary>
+          <div className="table-scroll">
+            <table>
+              <thead><tr><th scope="col">Model</th><th scope="col">Function evidence</th><th scope="col">Phase-input screen</th><th scope="col">Configuration check</th></tr></thead>
+              <tbody>{row.candidates.map(candidate => (
+                <tr key={candidate.model}>
+                  <th scope="row"><a href={candidate.source} target="_blank" rel="noreferrer">{candidate.manufacturer} · {candidate.model}</a></th>
+                  <td>{candidate.status}</td><td>{candidate.capacity}</td><td>{candidate.note}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </details>
+      ))}
+    </details>
+  )
+}
+
 function AIProtectionOptions({ study }: { study: Study }) {
   const [result, setResult] = useState<GeneratedOptions | null>(null)
   const [busy, setBusy] = useState(false)
@@ -368,6 +393,7 @@ function AIProtectionOptions({ study }: { study: Study }) {
               )}
               <p>Transformer A/B independence remains unverified. Confirm CT cores, DC supplies, and trip paths.</p>
               <DeviceRequirements rows={option.device_requirements} auxiliary={study.auxiliary} />
+              <RelayShortlist rows={option.device_requirements} />
               <p><strong>Time-delayed backup</strong> · {option.backup}</p>
               <p><strong>Open item</strong> · {option.open_item}</p>
               <p><strong>Local boundary check</strong> · {option.check.reason} {option.boundary.coverage}</p>
@@ -376,6 +402,13 @@ function AIProtectionOptions({ study }: { study: Study }) {
               <ul>{option.sources.map((source, sourceIndex) => <li key={sourceIndex}><a href={source.url} target="_blank" rel="noreferrer">{source.id} · {source.locator}</a></li>)}</ul>
             </article>
           ))}
+          <details>
+            <summary>High-impedance bus alternatives</summary>
+            <p>Evaluate the CT secondary circuit, including matching CTs, burden, and stabilization. These candidates use a separate screen from the low-impedance phase-input budget.</p>
+            <ul>{result.high_impedance_bus.map(candidate => (
+              <li key={candidate.model}><a href={candidate.source} target="_blank" rel="noreferrer">{candidate.manufacturer} · {candidate.model}</a></li>
+            ))}</ul>
+          </details>
         </div>
       )}
     </section>

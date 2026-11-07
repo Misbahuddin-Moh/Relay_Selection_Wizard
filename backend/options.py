@@ -12,6 +12,7 @@ from urllib.request import Request, urlopen
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .engine import analyze
+from .relay_catalog import HIGH_IMPEDANCE, screen_devices
 
 EVIDENCE = json.loads(Path(__file__).with_name("option_evidence.json").read_text(encoding="utf-8"))
 API_OUTPUT_CEILING = 4096
@@ -165,34 +166,36 @@ def device_requirements(study, scheme, analysis):
     """Count phase channels for the proposed hardwired layout before model screening."""
     rows = []
 
-    def add(role, functions, banks, note, alternate_banks=None):
-        rows.append({
+    def add(kind, role, functions, banks, note, alternate_banks=None):
+        row = {
+            "kind": kind,
             "role": role,
             "functions": functions,
             "phase_banks": banks,
             "alternate_phase_banks": alternate_banks,
             "note": note,
-        })
+        }
+        rows.append({**row, "candidates": screen_devices(row, study["auxiliary"])})
 
     bus_banks = analysis["counts"]["combined_required_banks"]
     if scheme == "shared":
-        add("Transformer Main A + collector bus", "87T + 87B simultaneously", bus_banks + 1,
+        add("shared", "Transformer Main A + collector bus", "87T + 87B simultaneously", bus_banks + 1,
             "Lower count assumes both elements can use the same LV incomer input. Higher count uses separate inputs.",
             alternate_banks=bus_banks + 2)
     elif scheme == "combined":
-        add("Transformer Main A + collector bus", "One extended 87TB element", bus_banks,
+        add("combined", "Transformer Main A + collector bus", "One extended 87TB element", bus_banks,
             "Verify compensation and source mapping for the extended zone.")
     else:
-        add("Transformer Main A", "87T", 2, "Selected HV CT and transformer LV CT.")
-        add("Collector bus · single path", "87B", bus_banks, "LV incomer, collector boundaries and measured tap if applicable.")
+        add("transformer", "Transformer Main A", "87T", 2, "Selected HV CT and transformer LV CT.")
+        add("bus", "Collector bus · single path", "87B", bus_banks, "LV incomer, collector boundaries and measured tap if applicable.")
 
-    add("Transformer Main B", "87T", 2, "Separate IED. Verify its own HV/LV CT assignments and trip path.")
+    add("transformer", "Transformer Main B", "87T", 2, "Separate IED. Verify its own HV/LV CT assignments and trip path.")
     for area in analysis["feeder_areas"]:
-        add(area["breaker"], "51P; evaluate 51G/51N and directionality", 1,
+        add("feeder", area["breaker"], "51P; evaluate 51G/51N and directionality", 1,
             f'Serves {", ".join(area["circuits"])}. Verify sensing and trip assignment for this breaker.')
     if study["include_poi_line"]:
-        add("POI line · local terminal", "87L", 1, "Verify the remote terminal, channel and clearing path separately.")
-    add("Revenue / power-quality meter · proposed POI", "Import/export energy and power quality", 1,
+        add("line", "POI line · local terminal", "87L", 1, "Verify the remote terminal, channel and clearing path separately.")
+    add("meter", "Revenue / power-quality meter · proposed POI", "Import/export energy and power quality", 1,
         "Metering CTs and a three-phase VT/CCVT source at the utility-designated metering point.")
     return rows
 
@@ -217,4 +220,4 @@ def generate_options(study):
             "poi_line": checked["poi_line"],
             "sources": [ref for key in option.evidence for ref in EVIDENCE[key]["sources"]],
         })
-    return {"options": options, "usage": {key: usage.get(key) for key in ("input_tokens", "output_tokens")}}
+    return {"options": options, "high_impedance_bus": HIGH_IMPEDANCE, "usage": {key: usage.get(key) for key in ("input_tokens", "output_tokens")}}

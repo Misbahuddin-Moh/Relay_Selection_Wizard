@@ -151,6 +151,14 @@ export interface GeneratedOptions {
       phase_banks: number
       alternate_phase_banks: number | null
       note: string
+      candidates: {
+        manufacturer: 'GE' | 'SEL'
+        model: string
+        status: string
+        capacity: string
+        note: string
+        source: string
+      }[]
     }[]
     backup: string
     open_item: string
@@ -159,5 +167,6 @@ export interface GeneratedOptions {
     poi_line: Analysis['poi_line']
     sources: { id: string; locator: string; url: string }[]
   }[]
+  high_impedance_bus: { manufacturer: 'GE' | 'SEL'; model: string; source: string }[]
   usage: { input_tokens: number | null; output_tokens: number | null }
 }

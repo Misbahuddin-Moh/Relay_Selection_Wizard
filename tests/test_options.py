@@ -84,3 +84,17 @@ class OptionsTests(TestCase):
         self.assertEqual(combined[1]["phase_banks"], 2)
         self.assertEqual(sum(row["functions"].startswith("51P") for row in shared), 3)
         self.assertTrue(any(row["role"].startswith("Revenue") for row in shared))
+
+
+    def test_catalog_separates_function_evidence_from_input_capacity(self):
+        study = reference_study()["study"]
+        study["auxiliary"] = "included"
+        shared = device_requirements(study, "shared", analyze(study))
+        ge, sel = shared[0]["candidates"]
+        self.assertEqual(ge["status"], "Unverified application")
+        self.assertEqual(sel["status"], "Conditional configuration")
+        self.assertIn("Some allocations exceed", sel["capacity"])
+
+        study["bays"].append({**study["bays"][0], "id": "CB-04"})
+        sel = device_requirements(study, "shared", analyze(study))[0]["candidates"][1]
+        self.assertTrue(sel["capacity"].startswith("Exceeds"))
