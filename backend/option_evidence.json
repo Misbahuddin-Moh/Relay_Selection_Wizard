@@ -1,0 +1,127 @@
+{
+  "T_SEPARATE": {
+    "note": "Separate 87T uses selected HV breaker-side or bushing CT and a usable LV terminal CT. Different HV cuts change breaker and lead coverage.",
+    "sources": [
+      {
+        "id": "PV24",
+        "locator": "§III.B Fig. 3 and §IV",
+        "url": "https://selinc.com/api/download/140376/"
+      },
+      {
+        "id": "ENT25",
+        "locator": "§10.11.5",
+        "url": "https://rfp.entergy.com/ENTRFP/SEND/2025ELLBESSRFP/Documents/Appendix-B-2-BESS_BOT_Scope_Book_25-2.pdf"
+      },
+      {
+        "id": "IEEE-T",
+        "locator": "scope",
+        "url": "https://standards.ieee.org/ieee/C37.91/5904/"
+      }
+    ]
+  },
+  "B_FULL": {
+    "note": "Separate 87B uses the transformer LV incomer, collector boundaries and measured auxiliary tap if applicable. An unmeasured tap needs engineering review.",
+    "sources": [
+      {
+        "id": "PV24",
+        "locator": "§III.A Fig. 5 and §IV.B.1",
+        "url": "https://selinc.com/api/download/140376/"
+      },
+      {
+        "id": "BUS15",
+        "locator": "Fig. 1 and differential discussion",
+        "url": "https://selinc.com/api/download/102548/"
+      },
+      {
+        "id": "END20",
+        "locator": "§6.6",
+        "url": "https://cache.industry.siemens.com/dl/files/351/109742351/att_1010616/v1/SIP5_7SS85_V08.01_Manual_C019-9_en.pdf"
+      },
+      {
+        "id": "ENT25",
+        "locator": "§10.11.4",
+        "url": "https://rfp.entergy.com/ENTRFP/SEND/2025ELLBESSRFP/Documents/Appendix-B-2-BESS_BOT_Scope_Book_25-2.pdf"
+      }
+    ]
+  },
+  "TB_COMBINED": {
+    "note": "Combined compensated differential uses selected HV CT plus collector boundaries and any required tap measurement. LV incomer CT is outside this input set. Verify grouping, inrush and sensitivity.",
+    "sources": [
+      {
+        "id": "IEEE-BUS",
+        "locator": "§8.2 Fig. 42",
+        "url": "https://standards.ieee.org/ieee/C37.234/7037/"
+      },
+      {
+        "id": "PSRC09",
+        "locator": "§VII",
+        "url": "https://www.pes-psrc.org/kb/report/120.pdf"
+      },
+      {
+        "id": "PV24",
+        "locator": "§III.B",
+        "url": "https://selinc.com/api/download/140376/"
+      }
+    ]
+  },
+  "L_87L": {
+    "note": "Illustrative 87L uses remote CT and local transformer-side breaker CT. With a station POI-side CT, proposed spans overlap at the HV breaker. Check remote clearing and communications.",
+    "sources": [
+      {
+        "id": "LINE87",
+        "locator": "Line-Charging Current Compensation and Time-Overcurrent Differential Protection",
+        "url": "https://selinc.com/api/download/10519/?lang=en"
+      },
+      {
+        "id": "END20",
+        "locator": "§6.6",
+        "url": "https://cache.industry.siemens.com/dl/files/351/109742351/att_1010616/v1/SIP5_7SS85_V08.01_Manual_C019-9_en.pdf"
+      }
+    ]
+  },
+  "T_REF_BACKUP": {
+    "note": "REF depends on grounding and winding phase and neutral CTs. Evaluate time-graded backup separately from Main A/B redundancy.",
+    "sources": [
+      {
+        "id": "PV24",
+        "locator": "§III.B and §IV",
+        "url": "https://selinc.com/api/download/140376/"
+      },
+      {
+        "id": "ENT25",
+        "locator": "§10.11.5",
+        "url": "https://rfp.entergy.com/ENTRFP/SEND/2025ELLBESSRFP/Documents/Appendix-B-2-BESS_BOT_Scope_Book_25-2.pdf"
+      }
+    ]
+  },
+  "BF_LOCAL_REMOTE": {
+    "note": "Breaker failure requires verified alternate isolation of all remaining sources. CT-defined boundaries and trip paths are separate.",
+    "sources": [
+      {
+        "id": "PV24",
+        "locator": "§III.A.3 Fig. 7",
+        "url": "https://selinc.com/api/download/140376/"
+      },
+      {
+        "id": "END20",
+        "locator": "§6.6",
+        "url": "https://cache.industry.siemens.com/dl/files/351/109742351/att_1010616/v1/SIP5_7SS85_V08.01_Manual_C019-9_en.pdf"
+      },
+      {
+        "id": "U-DOM",
+        "locator": "Attachment 3 §3 and Fig. 4",
+        "url": "https://www.pjm.com/-/media/DotCom/planning/plan-standards/private-dominion/facility-connection-requirements1.pdf"
+      }
+    ]
+  },
+  "SHARED_IED": {
+    "note": "Shared hardware keeps separate 87T and 87B zones. Verify exact SKU simultaneous element support, CT input allocation and A/B independence.",
+    "sources": [
+      {
+        "id": "SEL-CPC",
+        "locator": "Additional Protection",
+        "url": "https://selinc.com/products/487e/"
+      }
+    ]
+  }
+}

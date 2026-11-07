@@ -68,6 +68,12 @@ The inventory records quantities for the study and its what-if scenarios. Review
 
 In the CT inventory, choose the station differential HV boundary and optionally include the POI line in the study. The zone review counts one local feeder area per collector breaker and shows the circuits served by that breaker. It also shows how selecting a different HV CT moves the station differential span. The optional POI line area is a preliminary 87L example with remote information left open. Coverage and trip targets remain subject to engineering review.
 
+## Generate AI protection options
+
+From an analyzed study, select **Generate protection options**. This uses the server's `ANTHROPIC_API_KEY` and defaults to `claude-sonnet-4-6`. Set `RELAY_OPTIONS_MODEL` to select another Claude model that supports the structured response. The request sends grouped station facts and curated evidence. Drawing bytes, study titles, and equipment tags stay local.
+
+Generation is on demand, with up to three proposals and a 1,400 output-token limit. Successful results are cached in memory for up to 32 distinct request summaries per server process. The UI shows token usage reported for the original generation. The wizard checks each proposed boundary locally and displays preliminary trip targets. Verify CT assignments, relay capability, owner requirements, and clearing paths before advancing a design.
+
 ## Study scope
 
 The example baseline is synthetic. Scenario edits stay in the current page and reset when it reloads. A missing CT blocks the corresponding modeled differential boundary, while an unknown CT prompts confirmation. The input budget assumes one phase CT bank per collector breaker position and counts the auxiliary boundary separately when selected. Trip targets are preliminary and assume potential collector backfeed and no LV main breaker. Confirm actual CT locations and performance, auxiliary and remote trip paths, fault contributions, breaker failure, and owner requirements independently.

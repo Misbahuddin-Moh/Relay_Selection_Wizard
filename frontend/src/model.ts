@@ -126,3 +126,20 @@ export interface DrawingDraft {
   bays: Bay[]
   notes: string[]
 }
+
+
+export interface GeneratedOptions {
+  options: {
+    scheme: string
+    hv_boundary: HvBoundary
+    rationale: string
+    redundancy: string
+    backup: string
+    open_item: string
+    check: Candidate
+    boundary: Analysis['hv_boundaries'][number]
+    poi_line: Analysis['poi_line']
+    sources: { id: string; locator: string; url: string }[]
+  }[]
+  usage: { input_tokens: number | null; output_tokens: number | null }
+}

@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
 import { auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, hvBoundaryLabels, withInventoryBoundaries } from './model'
-import type { Analysis, Candidate, CtInventory, DrawingDraft, Snapshot, Study } from './model'
+import type { Analysis, Candidate, CtInventory, DrawingDraft, GeneratedOptions, Snapshot, Study } from './model'
 import './styles.css'
 
 const icons = {
@@ -282,6 +282,59 @@ function ProtectionZoneReview({ study, analysis }: Snapshot) {
   )
 }
 
+function AIProtectionOptions({ study }: { study: Study }) {
+  const [result, setResult] = useState<GeneratedOptions | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function generate() {
+    setBusy(true)
+    setError(null)
+    try {
+      setResult(await getJson<GeneratedOptions>('/api/protection-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(study),
+      }))
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to generate protection options.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="panel">
+      <PanelHeader title="AI protection options" description="Claude receives a compact station summary and selected evidence. Review its proposals alongside the wizard’s boundary checks." />
+      <div className="editor-actions">
+        <button type="button" className="button primary" disabled={busy || !!result} onClick={generate}>{busy ? 'Generating…' : 'Generate protection options'}</button>
+      </div>
+      {error && <p className="error form-error" role="alert">{error}</p>}
+      {result && (
+        <div className="zone-basis">
+          {result.usage.input_tokens !== null && result.usage.output_tokens !== null && (
+            <p>Generation usage · {result.usage.input_tokens} input tokens · {result.usage.output_tokens} output tokens</p>
+          )}
+          {result.options.map((option, index) => (
+            <article className="candidate" key={index}>
+              <div className="candidate-heading"><h3>{option.check.title}</h3><Status value={option.check.status} /></div>
+              <p><strong>{hvBoundaryLabels[option.hv_boundary]}</strong> · {ctLabels[option.boundary.state]}</p>
+              <p>{option.rationale}</p>
+              <p><strong>Main A/Main B</strong> · {option.redundancy}</p>
+              <p><strong>Time-delayed backup</strong> · {option.backup}</p>
+              <p><strong>Open item</strong> · {option.open_item}</p>
+              <p><strong>Local boundary check</strong> · {option.check.reason} {option.boundary.coverage}</p>
+              {option.poi_line && <p><strong>Illustrative 87L</strong> · Local CT {ctLabels[option.poi_line.local_ct].toLowerCase()}. {option.poi_line.coverage}</p>}
+              <p><strong>Preliminary trip targets</strong> · {option.check.trip_targets.join(' · ')}. Verify source paths and breaker-failure clearing.</p>
+              <ul>{option.sources.map((source, sourceIndex) => <li key={sourceIndex}><a href={source.url} target="_blank" rel="noreferrer">{source.id} · {source.locator}</a></li>)}</ul>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 function Questions({ questions }: { questions: Analysis['questions'] }) {
   return (
     <section className="panel questions">
@@ -350,6 +403,7 @@ function Comparison({ baseline, scenario, onCreate }: { baseline: Snapshot; scen
         })}
       </section>
       <ProtectionZoneReview {...scenario} />
+      <AIProtectionOptions key={JSON.stringify(scenario.study)} study={scenario.study} />
       <Questions questions={scenario.analysis.questions} />
     </div>
   )
@@ -710,6 +764,7 @@ function App() {
                     <div className="workspace-main">
                       <Topology study={visibleStudy} tag={draft ? (isDraft ? 'DRAFT' : 'SCENARIO') : 'BASELINE'} />
                       <ProtectionZoneReview {...analyzedCase} />
+                      <AIProtectionOptions key={JSON.stringify(analyzedCase.study)} study={analyzedCase.study} />
                       <section className="panel">
                         <PanelHeader title="Protection philosophies" description={scenario ? 'Most recent analyzed scenario.' : 'Preliminary results for the baseline.'} />
                         {activeAnalysis.candidates.map(candidate => <CandidateCard key={candidate.id} candidate={candidate} tripBasis={activeAnalysis.trip_basis} />)}

@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 
 from .drawing import CLAUDE_IMAGE_BYTES, FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, drawing_provider, extract_drawing
 from .engine import analyze
+from .options import OptionsError, generate_options
 
 Measurement = Literal["unknown", "present", "absent"]
 Label = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
@@ -82,6 +83,14 @@ def reference_study():
 @app.post("/api/analyze")
 def analyze_study(study: Study):
     return analyze(study.model_dump())
+
+
+@app.post("/api/protection-options")
+def protection_options(study: Study):
+    try:
+        return generate_options(study.model_dump())
+    except OptionsError as error:
+        raise HTTPException(502, str(error)) from error
 
 
 @app.get("/api/drawing/status")
