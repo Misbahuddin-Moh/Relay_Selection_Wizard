@@ -336,6 +336,11 @@ function AIProtectionOptions({ study }: { study: Study }) {
                   </tbody>
                 </table>
               </div>
+              {option.scheme === 'shared' && <p><strong>Proposed hardware</strong> · One IED for transformer Main A and 87B. A separate IED for transformer Main B.</p>}
+              {option.main_coverage.transformer_b.coverage && <p><strong>Main B span</strong> · {option.main_coverage.transformer_b.coverage}</p>}
+              {option.main_coverage.transformer_b.alternatives.length > 0 && (
+                <p><strong>Main B CT locations to evaluate</strong> · {option.main_coverage.transformer_b.alternatives.map(location => hvBoundaryLabels[location]).join(' · ')}</p>
+              )}
               <p>Transformer A/B independence remains unverified. Confirm CT cores, DC supplies, and trip paths.</p>
               <p><strong>Time-delayed backup</strong> · {option.backup}</p>
               <p><strong>Open item</strong> · {option.open_item}</p>

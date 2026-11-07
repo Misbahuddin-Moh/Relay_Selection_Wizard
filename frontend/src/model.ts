@@ -135,7 +135,14 @@ export interface GeneratedOptions {
     rationale: string
     main_coverage: {
       transformer_a: { function: string; status: string }
-      transformer_b: { function: string; hv_boundary: HvBoundary | 'unresolved'; status: string; boundaries: ProtectionZone['boundaries'] }
+      transformer_b: {
+        function: string
+        hv_boundary: HvBoundary | 'unresolved'
+        status: string
+        boundaries: ProtectionZone['boundaries']
+        coverage: string | null
+        alternatives: HvBoundary[]
+      }
       bus: { function: string; status: string }
     }
     backup: string

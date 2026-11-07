@@ -27,7 +27,9 @@ PROMPT = (
     "coverage details that the app calculates. In rationale, state the decisive tradeoff. In open_item, "
     "give the single most important unresolved question. Main A covers the transformer with 87T or combined 87TB. "
     "Propose a transformer-only 87T Main B HV boundary when both its HV and LV CT banks are available, "
-    "otherwise return unresolved. The bus has one differential path. Keep delayed backup separate. "
+    "otherwise return unresolved. A combined Main A still permits 87T Main B when its own CT banks are available. "
+    "For shared hardware, consolidate Main A and 87B only; Main B has a separate IED. "
+    "Keep delayed backup separate and avoid naming a function without relevant application evidence. "
     "Treat relay feasibility, owner approval, CT core assignments, trip paths and remote 87L data as unresolved. "
     "Do not give settings, invent equipment or claim approved coverage."
 )
@@ -132,6 +134,9 @@ def main_coverage(study, option, main_a_analysis):
     transformer_a = zones["combined" if combined else "transformer"]
     bus = zones["combined" if combined else "bus"]
     main_b_hv = option.transformer_main_b_hv
+    main_b_location = next(
+        (boundary for boundary in main_a_analysis["hv_boundaries"] if boundary["id"] == main_b_hv), None
+    )
     transformer_b = None
     lv_boundary = zones["transformer"]["boundaries"][1]
     if main_b_hv != "unresolved":
@@ -147,6 +152,10 @@ def main_coverage(study, option, main_a_analysis):
                 "Missing measurement" if lv_boundary["state"] == "absent" else "Unresolved"
             ),
             "boundaries": transformer_b["boundaries"] if transformer_b else [lv_boundary],
+            "coverage": main_b_location["coverage"] if main_b_location else None,
+            "alternatives": [
+                boundary["id"] for boundary in main_a_analysis["hv_boundaries"] if boundary["state"] == "present"
+            ] if main_b_hv == "unresolved" and lv_boundary["state"] == "present" else [],
         },
         "bus": {"function": "87TB (shared with transformer Main A)" if combined else "87B", "status": bus["status"]},
     }
