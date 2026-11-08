@@ -20,7 +20,7 @@ class OptionsTests(TestCase):
         })
         options = [
             dict(scheme="combined", hv_boundary=boundary, rationale="Compare the station span. " * 12,
-                 transformer_main_b_hv="bushing", backup="Review graded overcurrent.",
+                 transformer_main_b_hv="bushing",
                  open_item="Confirm remote clearing.", evidence=["TB_COMBINED", "L_87L"])
             for boundary in ("poi", "breaker_transformer", "bushing")
         ]
@@ -40,6 +40,8 @@ class OptionsTests(TestCase):
         self.assertEqual(json.loads(sent)["max_tokens"], 4096)
         self.assertIn("300–600 output tokens", json.loads(sent)["system"])
         first, second, third = result["options"]
+        self.assertIn("for coordination study", first["backup"])
+        self.assertNotIn("backup", json.loads(sent)["output_config"]["format"]["schema"]["$defs"]["Option"]["properties"])
         self.assertEqual(first["check"]["status"], "Missing measurement")
         self.assertEqual(second["boundary"]["state"], "present")
         self.assertIn("coverage gap", third["poi_line"]["coverage"])

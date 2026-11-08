@@ -30,7 +30,6 @@ PROMPT = (
     "Propose a transformer-only 87T Main B HV boundary when both its HV and LV CT banks are available, "
     "otherwise return unresolved. A combined Main A still permits 87T Main B when its own CT banks are available. "
     "For shared hardware, consolidate Main A and 87B only; Main B has a separate IED. "
-    "Keep REF out of delayed backup; it is evaluated separately. Cite evidence for any named backup function. "
     "Treat relay feasibility, owner approval, CT core assignments, trip paths and remote 87L data as unresolved. "
     "Do not give settings, invent equipment or claim approved coverage."
 )
@@ -44,7 +43,6 @@ class Option(BaseModel):
     hv_boundary: Literal["poi", "breaker_transformer", "bushing"]
     rationale: ShortText
     transformer_main_b_hv: Literal["poi", "breaker_transformer", "bushing", "unresolved"]
-    backup: ShortText
     open_item: ShortText
     evidence: Annotated[list[str], Field(min_length=1, max_length=3)]
 
@@ -213,6 +211,7 @@ def generate_options(study):
         boundary = next(item for item in checked["hv_boundaries"] if item["id"] == option.hv_boundary)
         options.append({
             **option.model_dump(),
+            "backup": "Time-graded overcurrent for coordination study. Project applicability remains open.",
             "check": candidate,
             "main_coverage": main_coverage(study, option, checked),
             "device_requirements": device_requirements(study, option.scheme, checked),

@@ -307,6 +307,58 @@ function DeviceRequirements({ rows, auxiliary }: {
   )
 }
 
+function TerminalAllocation({ candidate }: {
+  candidate: GeneratedOptions['options'][number]['device_requirements'][number]['candidates'][number]
+}) {
+  const [neutral, setNeutral] = useState('')
+  const [vt, setVt] = useState('')
+  const complete = neutral !== '' && vt !== ''
+  const layouts = candidate.allocations.filter(layout =>
+    layout.fit !== 'Insufficient phase banks' &&
+    (neutral === '' || layout.neutral_inputs >= Number(neutral)) &&
+    (vt === '' || layout.vt_banks >= Number(vt)),
+  )
+
+  return (
+    <details>
+      <summary>{candidate.model} dual AC card terminal allocation</summary>
+      <p>Enter the inputs required on this IED. Verify the ordered cards, CT ratings, and LV input reuse before selecting a configuration.</p>
+      <div className="field-row">
+        <label className="field">Required neutral CT inputs
+          <select value={neutral} onChange={event => setNeutral(event.target.value)}>
+            <option value="">Unknown</option>
+            <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+            <option value="3">3</option><option value="4">4 or more</option>
+          </select>
+        </label>
+        <label className="field">Required three-phase VT banks
+          <select value={vt} onChange={event => setVt(event.target.value)}>
+            <option value="">Unknown</option>
+            <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+            <option value="3">3 or more</option>
+          </select>
+        </label>
+      </div>
+      <p role="status">{layouts.length === 0
+        ? 'No modeled layout meets the entered requirements.'
+        : complete ? 'Candidate layouts for the entered inputs.' : 'Enter both requirements to complete the input screen.'}</p>
+      {layouts.length > 0 && (
+        <div className="table-scroll">
+          <table>
+            <thead><tr><th>Y</th><th>Z</th><th>Phase CT banks</th><th>Neutral inputs</th><th>VT banks</th><th>Phase demand</th></tr></thead>
+            <tbody>{layouts.map(layout => (
+              <tr key={`${layout.y}/${layout.z}`}>
+                <td>{layout.y}</td><td>{layout.z}</td><td>{layout.phase_banks}</td>
+                <td>{layout.neutral_inputs}</td><td>{layout.vt_banks}</td><td>{layout.fit}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+    </details>
+  )
+}
+
 function RelayShortlist({ rows, mainBStatus }: {
   rows: GeneratedOptions['options'][number]['device_requirements']
   mainBStatus: string
@@ -333,21 +385,7 @@ function RelayShortlist({ rows, mainBStatus }: {
             </table>
           </div>
           {row.candidates.filter(candidate => candidate.allocations.length > 0).map(candidate => (
-            <details key={candidate.model}>
-              <summary>{candidate.model} dual AC card terminal allocation</summary>
-              <p>Phase counts assume the required CT measurements are routed to the elements. Verify the ordered cards, CT ratings, LV input reuse, and REF/VT needs.</p>
-              <div className="table-scroll">
-                <table>
-                  <thead><tr><th>Y</th><th>Z</th><th>Phase CT banks</th><th>Neutral inputs</th><th>VT banks</th><th>Phase demand</th></tr></thead>
-                  <tbody>{candidate.allocations.map(allocation => (
-                    <tr key={`${allocation.y}/${allocation.z}`}>
-                      <td>{allocation.y}</td><td>{allocation.z}</td><td>{allocation.phase_banks}</td>
-                      <td>{allocation.neutral_inputs}</td><td>{allocation.vt_banks}</td><td>{allocation.fit}</td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
-            </details>
+            <TerminalAllocation key={candidate.model} candidate={candidate} />
           ))}
         </details>
       ))}
