@@ -319,3 +319,8 @@ details.detail-block { margin-top: 12px; }
 @media (max-width: 750px) {
   .study-steps li button { flex-direction: column; align-items: flex-start; }
 }
+
+.digital-io { border-block-start: 1px solid #d8e3e6; }
+.digital-io .field-row, .digital-io details, .digital-io fieldset { margin-block: 8px; }
+.digital-io summary { color: #124e52; }
+.digital-io-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 8px; }

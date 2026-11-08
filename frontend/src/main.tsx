@@ -1,3 +1,5 @@
+import { budgetText, defaultDigitalSettings, DigitalIO, digitalBudget, digitalCase } from './DigitalIO'
+import type { DigitalSettings } from './DigitalIO'
 import { T60InputFit } from './T60InputFit'
 import { modeledMinimum, ProjectRequirements } from './ProjectRequirements'
 import type { AppliedRequirement } from './ProjectRequirements'
@@ -405,6 +407,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
   const [selection, setSelection] = useState('')
   const [role, setRole] = useState(0)
   const [requirements, setRequirements] = useState<Record<string, Requirements>>({})
+  const [digitalSettings, setDigitalSettings] = useState<Record<string, DigitalSettings>>({})
   const [applied, setApplied] = useState<Record<string, AppliedRequirement[]>>({})
   const options = [
     ...(preview?.options.map((option, index) => ({ option, id: `local-${index}`, source: 'Station checks' })) ?? []),
@@ -418,6 +421,13 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
     const key = `${selection}/${index}`
     setRequirements(current => ({ ...current, [key]: { ...(current[key] ?? unknownRequirements), [field]: value } }))
   }
+  const dio = digitalSettings[selection] ?? defaultDigitalSettings
+  const referenceIO = study.bays.length === 3 && option ? digitalCase(option.scheme, study.include_poi_line ?? false, dio.variant) : undefined
+  const ioDevice = row?.kind === 'feeder' ? `FP-F${study.bays.findIndex(bay => bay.id === row.role) + 1}`
+    : row?.kind === 'line' ? 'LINE-H' : row?.kind === 'bus' ? 'BUS'
+    : row?.role === 'Transformer Secondary' ? 'T-S' : row?.kind === 'meter' ? '' : 'T-P'
+  const shortlistIO = referenceIO && referenceIO.devices.includes(ioDevice)
+    ? digitalBudget(dio.edits[dio.variant] ?? referenceIO.signals, ioDevice, dio.spare) : null
   const projectFindings = applied[selection] ?? []
   const effectiveValues = (index: number) => {
     const result = { ...values(index) }
@@ -494,13 +504,15 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
           </div>
           <ProjectRequirements key={selection} roles={option.device_requirements.map(device => device.role)}
             applied={projectFindings} onChange={findings => setApplied({ ...applied, [selection]: findings })} />
+          {referenceIO ? <DigitalIO key={selection} scheme={option.scheme} bays={study.bays.map(bay => bay.id)}
+            line={study.include_poi_line ?? false} settings={dio} change={next => setDigitalSettings(current => ({ ...current, [selection]: next }))} />
+            : <div className="detail-block"><p>The worked digital I/O templates cover the three-breaker reference station.</p></div>}
           <div className="requirement-grid">{option.device_requirements.map((device, index) => (
             <article className="requirement-card" key={index}>
               <h3>{device.role}</h3><p>{device.functions} · {phaseDemand(device)}</p>
               <details><summary>Measurement sources</summary><ul>
                 {device.measurement_sources.map(source => <li key={source.label}>{source.label} · {ctLabels[source.state]}</li>)}
               </ul></details>
-              <p className="draft-note">Digital I/O and contact duty remain open until the signal destinations and wiring method are confirmed.</p>
               <RelayInputSelection values={values(index)} change={(field, value) => changeInput(index, field, value)} />
               <p>{device.note}</p>
             </article>
@@ -522,6 +534,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
             {projectFindings.filter(finding => finding.device === role).map(finding =>
               <p key={finding.id}><strong>{modeledMinimum(finding) ? 'Confirmed minimum' : 'Open ordering review'}</strong> · {finding.requirement} · {finding.source}, page {finding.page}</p>
             )}
+            {shortlistIO && <p><strong>Illustrative digital I/O · </strong>{budgetText(shortlistIO)}</p>}
             <p>Terminal fit is shown where modeled. Verify the exact order code and application before selection.</p>
           </div>
           <div className="relay-grid">
