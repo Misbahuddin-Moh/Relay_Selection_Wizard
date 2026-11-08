@@ -7,7 +7,7 @@ from typing import Literal
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError
 from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
@@ -26,6 +26,10 @@ Keep conflicting clauses separate. Use other for unfamiliar ordering impacts.
 Only set minimum when a required clause explicitly gives a per-relay minimum number of
 neutral CT inputs or three-phase VT banks. Do not convert VT channels to banks or infer
 a count from spares, CT inventory, or general protection language. Use null otherwise.
+For each finding, return affected_device_indices from the supplied relay role list.
+Include every clearly affected role. Use an empty list if scope is ambiguous or outside
+the supplied roles. A shared transformer and bus relay can match either function if the
+clause applies to that function. Never guess a relay based on list order or invent indices.
 Return [] for findings when nothing applies. Never generate an order code."""
 
 
@@ -45,6 +49,7 @@ class Finding(BaseModel):
     status: Literal["required", "tentative", "unclear"]
     timing: Literal["purchase", "commissioning", "future", "unspecified"]
     minimum: int | None
+    affected_device_indices: list[StrictInt] = Field(default_factory=list)
 
 
 class Extraction(BaseModel):
@@ -75,13 +80,15 @@ def source_pages(data: bytes, content_type: str):
     return pages
 
 
-def request_findings(pages):
+def request_findings(pages, roles=()):
+    schema = Extraction.model_json_schema()
+    schema["$defs"]["Finding"]["required"].append("affected_device_indices")
     payload = {
         "model": os.getenv("RELAY_REQUIREMENTS_MODEL") or os.getenv("RELAY_OPTIONS_MODEL") or "claude-sonnet-4-6",
         "system": PROMPT,
         "max_tokens": 4096,
-        "messages": [{"role": "user", "content": json.dumps(pages, ensure_ascii=False)}],
-        "output_config": {"format": {"type": "json_schema", "schema": Extraction.model_json_schema()}},
+        "messages": [{"role": "user", "content": json.dumps({"pages": pages, "relay_roles": dict(enumerate(roles))}, ensure_ascii=False)}],
+        "output_config": {"format": {"type": "json_schema", "schema": schema}},
     }
     request = Request("https://api.anthropic.com/v1/messages", data=json.dumps(payload).encode(), headers={
         "Content-Type": "application/json",
@@ -99,7 +106,7 @@ def request_findings(pages):
         raise RequirementError("Requirements extraction failed. Retry or use a shorter excerpt.") from error
 
 
-def extract_requirements(pages):
+def extract_requirements(pages, roles=()):
     findings, unreadable, seen = [], [], set()
     rejected = 0
     for number, page in pages.items():
@@ -112,11 +119,11 @@ def extract_requirements(pages):
     batch = []
     for part in parts:
         if batch and sum(len(text) for _, text in batch) + len(part[1]) > BATCH_CHARS:
-            rejected += check_batch(batch, findings, seen)
+            rejected += check_batch(batch, findings, seen, roles)
             batch = []
         batch.append(part)
     if batch:
-        rejected += check_batch(batch, findings, seen)
+        rejected += check_batch(batch, findings, seen, roles)
     return {
         "findings": findings,
         "pages_processed": len(pages) - len(unreadable),
@@ -125,15 +132,18 @@ def extract_requirements(pages):
     }
 
 
-def check_batch(batch, findings, seen):
+def check_batch(batch, findings, seen, roles):
     normalized = [(number, " ".join(text.split())) for number, text in batch]
     rejected = 0
-    for finding in request_findings([{"page": number, "text": text} for number, text in batch]):
+    pages = [{"page": number, "text": text} for number, text in batch]
+    for finding in request_findings(pages, roles) if roles else request_findings(pages):
         quote = " ".join(finding.quote.split())
         if not quote or not any(finding.page == number and quote in text for number, text in normalized):
             rejected += 1
             continue
-        key = (finding.page, quote, finding.category, finding.scope, finding.requirement)
+        indices = sorted({index for index in finding.affected_device_indices if 0 <= index < len(roles)})
+        finding = finding.model_copy(update={"affected_device_indices": indices})
+        key = (finding.page, quote, finding.category, finding.scope, finding.requirement, tuple(indices))
         if key not in seen:
             seen.add(key)
             findings.append(finding)

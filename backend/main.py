@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 from typing import Annotated, Literal, Optional
+from urllib.parse import unquote
 
 from fastapi import FastAPI, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
@@ -147,6 +148,15 @@ async def extract_project_requirements(request: Request):
         raise HTTPException(415, "Choose a PDF or UTF-8 text excerpt.")
     if not requirements_status()["configured"]:
         raise HTTPException(503, "Set ANTHROPIC_API_KEY on the server to extract project requirements.")
+    raw_roles = request.headers.get("x-relay-roles", "[]")
+    try:
+        roles = json.loads(unquote(raw_roles))
+        if not isinstance(roles, list) or len(roles) > 50 or any(
+            not isinstance(role, str) or not role.strip() or len(role) > 200 for role in roles
+        ):
+            raise ValueError
+    except (ValueError, RecursionError) as error:
+        raise HTTPException(422, "Invalid relay roles for requirements extraction.") from error
     data = bytearray()
     async for chunk in request.stream():
         if len(data) + len(chunk) > MAX_BYTES:
@@ -159,7 +169,7 @@ async def extract_project_requirements(request: Request):
     except RequirementError as error:
         raise HTTPException(422, str(error)) from error
     try:
-        return await run_in_threadpool(extract_requirements, pages)
+        return await run_in_threadpool(extract_requirements, pages, roles)
     except RequirementError as error:
         raise HTTPException(502, str(error)) from error
 

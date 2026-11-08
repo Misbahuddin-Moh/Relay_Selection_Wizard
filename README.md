@@ -84,7 +84,7 @@ This milestone covers concept entry, topology review, and preliminary candidate 
 
 After choosing a scheme, **Review relay signals** shows the modeled CT locations and protection functions for each role. Neutral and VT inputs may be left blank. The optional **Project documents and requirements** panel sends text from an approved UTF-8 excerpt or text-readable PDF to Claude when you click **Extract ordering requirements**. Set `ANTHROPIC_API_KEY` on the server. `RELAY_REQUIREMENTS_MODEL` optionally overrides the Claude model.
 
-The first pass accepts excerpts of up to 30 PDF pages, 5 MiB and 90,000 extracted characters per request. It reports pages with little or no readable text. Scans can be transcribed and pasted. Findings retain the source excerpt and page. Confirm the affected relay before using an explicitly stated neutral CT or VT minimum to screen its inputs. Other findings stay visible as ordering decisions for review. Both transformer relay families show partial configurations pending exact vendor and project checks.
+The first pass accepts excerpts of up to 30 PDF pages, 5 MiB and 90,000 extracted characters per request. It reports pages with little or no readable text. Scans can be transcribed and pasted. Findings retain the source excerpt and page. Claude matches excerpts to the selected scheme’s relay roles. Explicit required neutral CT and VT minimums apply automatically to valid matches. Unmatched excerpts stay visible without affecting screening. Other findings stay visible as ordering decisions for review. Both transformer relay families show partial configurations pending exact vendor and project checks.
 
 ## Package for hosting
 

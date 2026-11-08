@@ -122,39 +122,49 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
           <button type="button" className="button secondary" onClick={() => add('di')}>Add DI</button>
           <button type="button" className="button secondary" onClick={() => add('do')}>Add DO</button>
         </div>
-        {related.map(signal => (
-          <fieldset className="input-fit" key={signal.id}>
+        {related.map(signal => {
+          const di = signal.destination === device ? signal.di : 0
+          const output = signal.source === device ? signal.do : 0
+          const counted = signal.included && signal.method === 'hardwired' && di + output > 0
+          return <fieldset className={`input-fit signal-row ${counted ? 'signal-counted' : ''}`} key={signal.id}>
             <legend>{label(signal.name)}</legend>
+            <div className="signal-state">
+              <label><input type="checkbox" checked={signal.included}
+                onChange={event => update(signal.id, { included: event.target.checked })} /> {signal.included ? 'Included' : 'Excluded'}</label>
+              <span>{counted ? `Counts ${[di && `${di} DI`, output && `${output} DO`].filter(Boolean).join(' + ')}`
+                : signal.included && signal.method === 'hardwired or communicated' ? 'Wiring unresolved' : '0 physical points'}</span>
+            </div>
             <p>{endpoint(signal.source)} → {endpoint(signal.destination)} · {signal.reference}</p>
             {signal.condition && <p>{signal.condition}</p>}
-            <label><input type="checkbox" checked={signal.included} onChange={event => update(signal.id, { included: event.target.checked })} /> Include signal</label>
-            <div className="field-row">
-              {(['source', 'destination'] as const).filter(field => signal[field] !== device).map(field =>
-                <label className="field" key={field}><span>{field === 'source' ? 'Source endpoint' : 'Destination endpoint'}</span>
-                  <input list={deviceList} value={signal[field]} onChange={event => update(signal.id, { [field]: event.target.value })} />
-                </label>)}
-              <label className="field"><span>Signal name</span><input value={signal.name} onChange={event => update(signal.id, { name: event.target.value })} /></label>
-              <label className="field"><span>Signal method</span><select value={signal.method} onChange={event => {
-                const method = event.target.value
-                update(signal.id, { method, ...(method === 'hardwired' && signal.di === 0 && signal.do === 0
-                  ? { di: Number(example.devices.includes(signal.destination)), do: Number(example.devices.includes(signal.source)) } : {}) })
-              }}>
-                {['hardwired', 'GOOSE', 'SCADA message', 'internal', 'teleprotection', 'hardwired or communicated'].map(method =>
-                  <option key={method} value={method}>{method === 'hardwired or communicated' ? 'Unresolved' : method}</option>)}
-              </select></label>
-              {signal.method === 'hardwired' && (['di', 'do'] as const).filter(field =>
-                example.devices.includes(field === 'di' ? signal.destination : signal.source)
-              ).map(field => <label className="field" key={field}><span>{field === 'di' ? 'Destination DI points' : 'Source DO points'}</span>
-                <input type="number" min={0} max={99} value={signal[field]} onChange={event => {
-                  const value = event.target.valueAsNumber
-                  if (Number.isInteger(value) && value >= 0 && value <= 99) update(signal.id, { [field]: value })
-                }} /></label>)}
-            </div>
-            {signal.method === 'hardwired' && signal.do > 0 && <label><input type="checkbox" checked={signal.coil}
-              onChange={event => update(signal.id, { coil: event.target.checked })} /> Coil-duty output</label>}
-            {signal.reference === 'User entry' && <button type="button" className="text-button" onClick={() => setSignals(signals.filter(item => item.id !== signal.id))}>Remove custom signal</button>}
+            <details><summary>Edit signal</summary>
+              <div className="field-row">
+                {(['source', 'destination'] as const).filter(field => signal[field] !== device).map(field =>
+                  <label className="field" key={field}><span>{field === 'source' ? 'Source endpoint' : 'Destination endpoint'}</span>
+                    <input list={deviceList} value={signal[field]} onChange={event => update(signal.id, { [field]: event.target.value })} />
+                  </label>)}
+                <label className="field"><span>Signal name</span><input value={signal.name} onChange={event => update(signal.id, { name: event.target.value })} /></label>
+                <label className="field"><span>Signal method</span><select value={signal.method} onChange={event => {
+                  const method = event.target.value
+                  update(signal.id, { method, ...(method === 'hardwired' && signal.di === 0 && signal.do === 0
+                    ? { di: Number(example.devices.includes(signal.destination)), do: Number(example.devices.includes(signal.source)) } : {}) })
+                }}>
+                  {['hardwired', 'GOOSE', 'SCADA message', 'internal', 'teleprotection', 'hardwired or communicated'].map(method =>
+                    <option key={method} value={method}>{method === 'hardwired or communicated' ? 'Unresolved' : method}</option>)}
+                </select></label>
+                {signal.method === 'hardwired' && (['di', 'do'] as const).filter(field =>
+                  example.devices.includes(field === 'di' ? signal.destination : signal.source)
+                ).map(field => <label className="field" key={field}><span>{field === 'di' ? 'Destination DI points' : 'Source DO points'}</span>
+                  <input type="number" min={0} max={99} value={signal[field]} onChange={event => {
+                    const value = event.target.valueAsNumber
+                    if (Number.isInteger(value) && value >= 0 && value <= 99) update(signal.id, { [field]: value })
+                  }} /></label>)}
+              </div>
+              {signal.method === 'hardwired' && signal.do > 0 && <label><input type="checkbox" checked={signal.coil}
+                onChange={event => update(signal.id, { coil: event.target.checked })} /> Coil-duty output</label>}
+              {signal.reference === 'User entry' && <button type="button" className="text-button" onClick={() => setSignals(signals.filter(item => item.id !== signal.id))}>Remove custom signal</button>}
+            </details>
           </fieldset>
-        ))}
+        })}
       </details>
       <details><summary>SEL and GE card capacity examples</summary>
         <p>Counts are screened against the card examples in this wiring case. Verify contact ratings, isolation, slots, analog fit, and protection support separately.</p>

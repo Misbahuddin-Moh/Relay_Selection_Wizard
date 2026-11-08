@@ -28,6 +28,21 @@ class ProjectRequirementsTests(unittest.TestCase):
         self.assertEqual(result["unreadable_pages"], [2])
         self.assertEqual(result["unverified_findings"], 2)
 
+    def test_assigns_only_known_relay_roles_and_preserves_multiple_matches(self):
+        excerpt = "Both transformer relays require two three-phase VT banks."
+        candidate = Finding(
+            page=1, quote=excerpt, scope="Both transformer relays",
+            requirement="Two three-phase VT banks", category="vt_banks",
+            status="required", timing="purchase", minimum=2,
+            affected_device_indices=[1, 0, 1, -1, 4],
+        )
+        roles = ["Transformer Primary", "Transformer Secondary"]
+        with patch("backend.project_requirements.request_findings", return_value=[candidate]) as request:
+            result = extract_requirements({1: excerpt}, roles)
+
+        request.assert_called_once_with([{"page": 1, "text": excerpt}], roles)
+        self.assertEqual(result["findings"][0].affected_device_indices, [0, 1])
+
     def test_pdf_with_no_text_is_reported_without_calling_provider(self):
         writer = PdfWriter()
         writer.add_blank_page(612, 792)

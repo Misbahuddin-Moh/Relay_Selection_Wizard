@@ -499,11 +499,11 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
       {option && <div hidden={step !== 3}>
         <section className="panel">
           <PanelHeader title="Review relay signals" description={option.check.title} />
-          <div className="detail-block"><p>The wizard derives phase CT sources and protection functions from the selected scheme. Enter neutral CT and VT needs only when known. Confirmed project minimums also feed the input fit.</p>
+          <div className="detail-block"><p>The wizard derives phase CT sources and protection functions from the selected scheme. Enter neutral CT and VT needs only when known. Extracted project minimums automatically apply to matching relays.</p>
             {study.auxiliary === 'unknown' && <p className="draft-note">A separately measured auxiliary tap may add one phase bank to bus differential.</p>}
           </div>
           <ProjectRequirements key={selection} roles={option.device_requirements.map(device => device.role)}
-            applied={projectFindings} onChange={findings => setApplied({ ...applied, [selection]: findings })} />
+            applied={projectFindings} onChange={update => setApplied(current => ({ ...current, [selection]: update(current[selection] ?? []) }))} />
           {referenceIO ? <DigitalIO key={selection} scheme={option.scheme} bays={study.bays.map(bay => bay.id)}
             line={study.include_poi_line ?? false} settings={dio} change={next => setDigitalSettings(current => ({ ...current, [selection]: next }))} />
             : <div className="detail-block"><p>The worked digital I/O templates cover the three-breaker reference station.</p></div>}
@@ -514,6 +514,8 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
                 {device.measurement_sources.map(source => <li key={source.label}>{source.label} · {ctLabels[source.state]}</li>)}
               </ul></details>
               <RelayInputSelection values={values(index)} change={(field, value) => changeInput(index, field, value)} />
+              {projectFindings.some(finding => finding.device === index && modeledMinimum(finding)) &&
+                <p><strong>Used for screening</strong> · {effectiveValues(index).neutral || 'Unknown'} neutral CT inputs · {effectiveValues(index).vt || 'Unknown'} VT banks</p>}
               <p>{device.note}</p>
             </article>
           ))}</div>
@@ -526,13 +528,13 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
             <label className="field"><span>Device role</span><select value={role} onChange={event => setRole(Number(event.target.value))}>{option.device_requirements.map((device, index) => <option key={index} value={index}>{device.role}</option>)}</select></label>
             <fieldset className="editor-fields shortlist-inputs">
               <legend>Relay input selection</legend>
-              <p>Set input needs for this device. Leave a count blank if it’s unknown. Confirmed project minimums still apply.</p>
+              <p>Set input needs for this device. Leave a count blank if it’s unknown. The shortlist uses the higher of your entry and any extracted project minimum.</p>
               <RelayInputSelection values={values(role)} change={(field, value) => changeInput(role, field, value)} />
             </fieldset>
             <p><strong>{row.functions}</strong> · {phaseDemand(row)} · {effectiveValues(role).neutral || 'Unknown'} neutral CT inputs · {effectiveValues(role).vt || 'Unknown'} VT banks</p>
             {row.role === 'Transformer Secondary' && option.main_coverage.transformer_b.status !== 'Boundaries present' && <p className="draft-note">Secondary · {option.main_coverage.transformer_b.status}. The models below are function candidates.</p>}
             {projectFindings.filter(finding => finding.device === role).map(finding =>
-              <p key={finding.id}><strong>{modeledMinimum(finding) ? 'Confirmed minimum' : 'Open ordering review'}</strong> · {finding.requirement} · {finding.source}, page {finding.page}</p>
+              <p key={finding.id}><strong>{modeledMinimum(finding) ? 'Extracted minimum' : 'Open ordering review'}</strong> · {finding.requirement} · {finding.source}, page {finding.page}</p>
             )}
             {shortlistIO && <p><strong>Illustrative digital I/O · </strong>{budgetText(shortlistIO)}</p>}
             <p>Terminal fit is shown where modeled. Verify the exact order code and application before selection.</p>
