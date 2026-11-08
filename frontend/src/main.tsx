@@ -552,7 +552,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
             applied={projectFindings} onChange={update => setApplied(current => ({ ...current, [selection]: update(current[selection] ?? []) }))} />
           {referenceIO ? <DigitalIO key={`digital-io/${selection}`} scheme={option.scheme} bays={study.bays.map(bay => bay.id)}
             line={study.include_poi_line ?? false} settings={dio} change={next => setDigitalSettings(current => ({ ...current, [selection]: next }))} />
-            : <div className="detail-block"><p>The worked digital I/O templates cover the three-breaker reference station.</p></div>}
+            : <div className="detail-block"><p>Digital I/O estimates are available for the three-breaker straight-bus example. Relay function and analog input screening are shown below.</p></div>}
           <div className="requirement-grid">{option.device_requirements.map((device, index) => (
             <article className="requirement-card" key={index}>
               <h3>{device.role}</h3><p>{device.functions} · {phaseDemand(device)}</p>
@@ -574,11 +574,11 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
           <PanelHeader title="Screen relay models" description={option.check.title} />
           <div className="detail-block">
             <label className="field"><span>Device role</span><select value={role} onChange={event => setRole(Number(event.target.value))}>{option.device_requirements.map((device, index) => <option key={index} value={index}>{device.role}</option>)}</select></label>
-            <fieldset className="editor-fields shortlist-inputs">
-              <legend>Relay input selection</legend>
+            <details className="shortlist-inputs">
+              <summary>Adjust neutral CT and VT inputs</summary>
               <p>Set input needs for this device. Leave a count blank if it’s unknown. The shortlist uses the higher of your entry and any extracted project minimum.</p>
               <RelayInputSelection values={values(role)} change={(field, value) => changeInput(role, field, value)} />
-            </fieldset>
+            </details>
             <p><strong>{row.functions}</strong> · {phaseDemand(row)} · {effectiveValues(role).neutral || 'Unknown'} neutral CT inputs · {effectiveValues(role).vt || 'Unknown'} VT banks</p>
             {row.role === 'Transformer Secondary' && option.main_coverage.transformer_b.status !== 'Boundaries present' && <p className="draft-note">Secondary · {option.main_coverage.transformer_b.status}. The models below are function candidates.</p>}
             {projectFindings.filter(finding => finding.device === role).map(finding =>
@@ -586,7 +586,6 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
             )}
             {row.kind === 'line' && <p><strong>Remote terminal</strong> · {lineChecks.remoteModel || 'Relay model unknown'} · Remote CT {ctLabels[lineChecks.remoteCt].toLowerCase()}</p>}
             {shortlistIO && <p><strong>Illustrative digital I/O · </strong>{budgetText(shortlistIO)}</p>}
-            <p>Terminal fit is shown where modeled. Verify the exact order code and application before selection.</p>
           </div>
           <div className="relay-grid">
             {(['GE', 'SEL'] as const).map(manufacturer => (
@@ -602,9 +601,8 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
                       {candidate.allocations.length === 0 && <p>{candidate.capacity}</p>}
                       <p>{candidate.note}</p>
                       {option.scheme === 'dedicated' && row.role === 'Transformer Primary' && referenceIO && shortlistIO &&
-                        <PrimaryDigitalFit example={referenceIO} variant={dio.variant} budget={shortlistIO} model={candidate.model} />}
-                      {(candidate.model.startsWith('SEL-487E') || candidate.model.startsWith('Multilin T60')) &&
-                        <p><strong>Partial configuration</strong> · Confirm ratings, output duties, power supply, communications and vendor order fields.</p>}
+                        <PrimaryDigitalFit example={referenceIO} variant={dio.variant} budget={shortlistIO} model={candidate.model}
+                          phase={row.phase_banks} neutral={neutral} vt={vt} />}
                       <a href={candidate.source} target="_blank" rel="noreferrer">Manufacturer documentation</a>
                       {candidate.model.startsWith('Multilin T60') && <T60InputFit
                         minimum={row.phase_banks} maximum={row.alternate_phase_banks ?? row.phase_banks}

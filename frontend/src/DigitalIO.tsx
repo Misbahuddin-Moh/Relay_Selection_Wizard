@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { PrimaryOrderDraft } from './PrimaryOrderDraft'
 import matrix from './digital-io-matrix.json'
 
 type Signal = {
@@ -80,18 +81,21 @@ export function budgetText(budget: ReturnType<typeof digitalBudget>) {
   return `${budget.di} DI / ${budget.coil + budget.other} DO used · ${budget.diRequired} DI / ${budget.doRequired} DO with spares (${budget.coilRequired} coil-duty DO)${budget.open ? ` · ${budget.open} unresolved interface(s)` : ''}`
 }
 
-export function PrimaryDigitalFit({ example, variant, budget, model }: {
+export function PrimaryDigitalFit({ example, variant, budget, model, phase, neutral, vt }: {
   example: NonNullable<ReturnType<typeof digitalCase>>
   variant: Variant
   budget: ReturnType<typeof digitalBudget>
   model: string
+  phase: number
+  neutral: string
+  vt: string
 }) {
   const cardModel = model === 'SEL-487E-3/-4' ? 'SEL-487E-3' : model === 'Multilin T60' ? 'GE T60' : ''
   const card = example.cards.map(index => matrix.cards[index])
     .find(row => row[0] === 'T-P' && row[1] === cardModel && row[6] === 'capacity_candidate')
   if (!card) return <p>Digital I/O fit is open. This model has no card example for the selected wiring.</p>
 
-  const [, name, hardware, di, outputs, coil, , gate, source] = card
+  const [, name, hardware, di, outputs, coil, , , source] = card
   const counts = [
     { label: 'Digital inputs', required: budget.diRequired, available: Number(di) },
     { label: 'Total digital outputs', required: budget.doRequired, available: Number(outputs) },
@@ -109,17 +113,23 @@ export function PrimaryDigitalFit({ example, variant, budget, model }: {
     <p>{variants[variant].title} · {name} · {hardware}</p>
     <p><strong>{short ? 'This card example falls short'
       : budget.open ? 'Known points fit · unresolved signals remain' : 'Meets modeled point counts'}</strong></p>
-    <div className="table-scroll">
-      <table>
-        <thead><tr><th scope="col">Point type</th><th scope="col">Needed with spares</th><th scope="col">Example capacity</th></tr></thead>
-        <tbody>{counts.map(({ label, required, available }) => <tr key={label}>
-          <th scope="row">{label}</th><td>{required}</td>
-          <td>{available}{available < required && <strong> · short {required - available}</strong>}</td>
-        </tr>)}</tbody>
-      </table>
-    </div>
-    <p>{slotNote}</p>
-    <p><strong>Order code pending.</strong> Confirm that the digital and CT/VT modules fit together, and verify output duty at the project DC voltage and load. {gate}.</p>
+    <details><summary>See point counts and hardware limits</summary>
+      <div className="table-scroll">
+        <table>
+          <thead><tr><th scope="col">Point type</th><th scope="col">Needed with spares</th><th scope="col">Example capacity</th></tr></thead>
+          <tbody>{counts.map(({ label, required, available }) => <tr key={label}>
+            <th scope="row">{label}</th><td>{required}</td>
+            <td>{available}{available < required && <strong> · short {required - available}</strong>}</td>
+          </tr>)}</tbody>
+        </table>
+      </div>
+      <p>{slotNote}</p>
+    </details>
+    <PrimaryOrderDraft key={JSON.stringify([variant, budget, hardware, phase, neutral, vt])}
+      model={cardModel === 'SEL-487E-3' ? cardModel : 'GE T60'} hardware={hardware} wiring={variants[variant].title}
+      phase={phase} neutral={neutral} vt={vt} digital={budgetText(budget)} blocked={short ? 'The modeled digital hardware falls short. Revise the configuration before ordering.'
+        : budget.open ? 'Resolve the open digital interfaces before ordering.' : null} />
+    <p>Before ordering, verify contact duty and that the CT/VT and digital modules fit together.</p>
     <p>{source.split(';').map((url, index) =>
       <a key={url} href={url.trim()} target="_blank" rel="noreferrer">Card reference {index + 1} ↗ </a>)}</p>
   </section>
@@ -162,19 +172,22 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
   return (
     <section className="detail-block digital-io" aria-label="Digital I/O budget">
       <h3>Digital I/O budget</h3>
-      <p>Each relay has its own digital inputs (DI) and outputs (DO). Select a relay to review its signals. The overview shows required physical points with spares.</p>
-      <p>Illustrative three-breaker reference wiring. Review the project trip matrix and control drawings before applying these counts. The 20% default is a worked-example assumption.</p>
-      <fieldset>
-        <legend>How are trips and breaker failure wired?</legend>
-        <p>An 86 lockout relay trips assigned breakers and keeps them locked out until reset. Breaker-failure timing starts when a trip is issued so backup clearing can operate if the breaker fails to open.</p>
-        <div className="digital-relays wiring-examples">
-          {(Object.keys(variants) as Variant[]).map(variant => <label key={variant}>
-            <input type="radio" name={`${deviceList}-wiring`} checked={settings.variant === variant}
-              onChange={() => change({ ...settings, variant })} />
-            <span><strong>{variants[variant].title}</strong><br />{variants[variant].detail}</span>
-          </label>)}
-        </div>
-      </fieldset>
+      <p><strong>Starting assumption</strong> · {variants[settings.variant].title}</p>
+      <p>Example for a straight collector bus with three feeder breakers. Use the counts for preliminary screening.</p>
+      <details>
+        <summary>Compare wiring examples</summary>
+        <p>Each example changes the trip path or which relay handles breaker failure. For a different design, start with the closest example and edit its signals below.</p>
+        <fieldset>
+          <legend>Wiring example</legend>
+          <div className="digital-relays wiring-examples">
+            {(Object.keys(variants) as Variant[]).map(variant => <label key={variant}>
+              <input type="radio" name={`${deviceList}-wiring`} checked={settings.variant === variant}
+                onChange={() => change({ ...settings, variant })} />
+              <span><strong>{variants[variant].title}</strong><br />{variants[variant].detail}</span>
+            </label>)}
+          </div>
+        </fieldset>
+      </details>
       <fieldset>
         <legend>Relay to review</legend>
         <div className="digital-relays">
@@ -188,20 +201,22 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
         </div>
       </fieldset>
       <h4>{relayName(device)} signal budget</h4>
-      <div className="field-row">
-        {(['di', 'do'] as const).map(field => <label className="field" key={field}><span>{field.toUpperCase()} spares (%)</span>
-          <input type="number" min={0} max={99} value={settings.spare[field]} onChange={event => {
-            const value = event.target.valueAsNumber
-            if (Number.isInteger(value) && value >= 0 && value <= 99) change({ ...settings, spare: { ...settings.spare, [field]: value } })
-          }} /></label>)}
-        <label className="field"><span>Spare percentage basis</span><select value={settings.spare.basis}
-          onChange={event => change({ ...settings, spare: { ...settings.spare, basis: event.target.value === 'installed' ? 'installed' : 'used' } })}>
-          <option value="used">Used points</option><option value="installed">Installed capacity</option>
-        </select></label>
-      </div>
       <p aria-live="polite"><strong>{budgetText(budget)}</strong></p>
-      <p>Only included hardwired signals count toward relay contacts. Breaker coils, lockouts, and other external endpoints have separate budgets. Output reserves round up separately for coil-duty and other contacts.</p>
+      <details><summary>Adjust spare I/O</summary>
+        <div className="field-row">
+          {(['di', 'do'] as const).map(field => <label className="field" key={field}><span>{field.toUpperCase()} spares (%)</span>
+            <input type="number" min={0} max={99} value={settings.spare[field]} onChange={event => {
+              const value = event.target.valueAsNumber
+              if (Number.isInteger(value) && value >= 0 && value <= 99) change({ ...settings, spare: { ...settings.spare, [field]: value } })
+            }} /></label>)}
+          <label className="field"><span>Spare percentage basis</span><select value={settings.spare.basis}
+            onChange={event => change({ ...settings, spare: { ...settings.spare, basis: event.target.value === 'installed' ? 'installed' : 'used' } })}>
+            <option value="used">Used points</option><option value="installed">Installed capacity</option>
+          </select></label>
+        </div>
+      </details>
       <details><summary>Review and edit {relayName(device)} signals</summary>
+        <p>Included hardwired signals count toward relay contacts. Coil-duty and other output spares round up separately.</p>
         <datalist id={deviceList}>{example.devices.map(id => <option key={id} value={id}>{relayName(id)}</option>)}</datalist>
         <div className="digital-io-actions">
           <button type="button" className="button secondary" onClick={() => add('di')}>Add DI</button>
@@ -257,7 +272,7 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
           const [, model, hardware, di, outputs, coil, status, gate, source] = card
           const within = Number(di) >= budget.diRequired && Number(outputs) >= budget.doRequired && Number(coil) >= budget.coilRequired
           return <p key={model}><strong>{model} · {hardware}</strong> · {status === 'function_unverified' ? 'Function unverified'
-            : within ? 'Within nominal point counts' : 'Exceeds this card example'} · {gate} {source.split(';').map((url, i) => <a key={url} href={url.trim()} target="_blank" rel="noreferrer">Reference {i + 1} ↗ </a>)}</p>
+            : within ? 'Within nominal point counts' : 'Exceeds this card example'} · {gate.replace('Verify winding compensation and physical source routing', 'Verify physical source routing')} {source.split(';').map((url, i) => <a key={url} href={url.trim()} target="_blank" rel="noreferrer">Reference {i + 1} ↗ </a>)}</p>
         })}
       </details>
     </section>
