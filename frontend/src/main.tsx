@@ -10,7 +10,7 @@ import { OneLine } from './OneLine'
 import { CatalogRelayDiagram } from './CatalogRelayDiagram'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
 import { auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, hvBoundaryLabels, withInventoryBoundaries } from './model'
-import type { Analysis, Candidate, CtInventory, DrawingDraft, GeneratedOptions, Snapshot, Study } from './model'
+import type { Ct, Analysis, Candidate, CtInventory, DrawingDraft, GeneratedOptions, Snapshot, Study } from './model'
 import './styles.css'
 
 const icons = {
@@ -317,7 +317,7 @@ const unknownRequirements = { neutral: '', vt: '' }
 
 function phaseDemand(device: Option['device_requirements'][number]) {
   const { phase_banks: banks, alternate_phase_banks: alternate } = device
-  return alternate == null ? `${banks} phase CT banks · ${banks * 3} phase inputs`
+  return alternate == null ? `${banks} ${device.kind === 'line' ? 'local ' : ''}phase CT ${banks === 1 ? 'bank' : 'banks'} · ${banks * 3} phase inputs`
     : `${banks}–${alternate} phase CT banks · ${banks * 3}–${alternate * 3} phase inputs`
 }
 
@@ -394,6 +394,51 @@ function RelayInputSelection({ values, change }: { values: Requirements; change:
   )
 }
 
+type LineChecks = {
+  remoteCt: Ct
+  remoteModel: string
+  compatibleModel: string
+  channel: boolean
+  dtt: 'unknown' | 'not_required' | 'pending' | 'verified'
+}
+
+function LineVerification({ checks, models, change }: {
+  checks: LineChecks; models: string[]; change: (checks: LineChecks) => void
+}) {
+  return (
+    <fieldset className="editor-fields">
+      <legend>Remote terminal and communications</legend>
+      <p>87L compares local and remote currents over the line differential channel. DTT sends a trip command and is verified separately, even when it shares the communications link.</p>
+      <Select label="Remote phase CT bank" value={checks.remoteCt} options={ctLabels}
+        change={remoteCt => change({ ...checks, remoteCt })} />
+      <label className="field"><span>Remote relay model</span><input value={checks.remoteModel}
+        onChange={event => change({ ...checks, remoteModel: event.target.value, compatibleModel: '', channel: false, dtt: checks.dtt === 'verified' ? 'pending' : checks.dtt })} /></label>
+      <label className="field"><span>Verified compatible local relay</span>
+        <select value={checks.compatibleModel} disabled={!checks.remoteModel.trim()}
+          onChange={event => change({ ...checks, compatibleModel: event.target.value, channel: false, dtt: checks.dtt === 'verified' ? 'pending' : checks.dtt })}>
+          <option value="">Compatibility unverified</option>
+          {models.map(model => <option key={model}>{model}</option>)}
+        </select>
+      </label>
+      <p>Confirm the actual relay pairing, firmware and differential interface before selecting a model.</p>
+      <label><input type="checkbox" checked={checks.channel} disabled={!checks.compatibleModel}
+        onChange={event => change({ ...checks, channel: event.target.checked })} /> 87L current channel verified for this pair</label>
+      <Select label="Direct transfer trip (DTT)" value={checks.dtt} options={{
+        unknown: 'Requirement unknown', not_required: 'Not required', pending: 'Required · path unverified', verified: 'Required · path verified for this pair',
+      }} change={dtt => change({ ...checks, dtt: dtt === 'verified' && !checks.compatibleModel ? 'pending' : dtt })} />
+    </fieldset>
+  )
+}
+
+function lineScreen(checks: LineChecks, model: string, localCt: Ct) {
+  if (localCt === 'absent' || checks.remoteCt === 'absent') return '87L blocked · A required CT bank is absent.'
+  if (checks.compatibleModel !== model) return '87L conditional · Compatibility with the remote relay is unverified.'
+  if (localCt !== 'present' || checks.remoteCt !== 'present') return '87L conditional · Confirm both CT banks.'
+  if (!checks.channel) return '87L conditional · Verify the current channel for this pair.'
+  if (checks.dtt === 'pending' || checks.dtt === 'unknown') return '87L pair and channel recorded · DTT review open.'
+  return '87L preferred candidate · Peer, CT banks, channel and DTT disposition recorded.'
+}
+
 function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStation: () => void }) {
   const [preview, setPreview] = useState<GeneratedOptions | null>(null)
   const [generated, setGenerated] = useState<GeneratedOptions | null>(null)
@@ -404,6 +449,9 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
   const [step, setStep] = useState(2)
   const [selection, setSelection] = useState('')
   const [role, setRole] = useState(0)
+  const [lineChecks, setLineChecks] = useState<LineChecks>({
+    remoteCt: 'unknown', remoteModel: '', compatibleModel: '', channel: false, dtt: 'unknown',
+  })
   const [requirements, setRequirements] = useState<Record<string, Requirements>>({})
   const [digitalSettings, setDigitalSettings] = useState<Record<string, DigitalSettings>>({})
   const [applied, setApplied] = useState<Record<string, AppliedRequirement[]>>({})
@@ -509,8 +557,10 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
             <article className="requirement-card" key={index}>
               <h3>{device.role}</h3><p>{device.functions} · {phaseDemand(device)}</p>
               <details><summary>Measurement sources</summary><ul>
-                {device.measurement_sources.map(source => <li key={source.label}>{source.label} · {ctLabels[source.state]}</li>)}
+                {device.measurement_sources.map(source => <li key={source.label}>{source.label} · {ctLabels[source.remote ? lineChecks.remoteCt : source.state]}</li>)}
               </ul></details>
+              {device.kind === 'line' && <LineVerification checks={lineChecks}
+                models={device.candidates.map(candidate => candidate.model)} change={setLineChecks} />}
               <RelayInputSelection values={values(index)} change={(field, value) => changeInput(index, field, value)} />
               {projectFindings.some(finding => finding.device === index && modeledMinimum(finding)) &&
                 <p><strong>Used for screening</strong> · {effectiveValues(index).neutral || 'Unknown'} neutral CT inputs · {effectiveValues(index).vt || 'Unknown'} VT banks</p>}
@@ -534,6 +584,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
             {projectFindings.filter(finding => finding.device === role).map(finding =>
               <p key={finding.id}><strong>{modeledMinimum(finding) ? 'Extracted minimum' : 'Open ordering review'}</strong> · {finding.requirement} · {finding.source}, page {finding.page}</p>
             )}
+            {row.kind === 'line' && <p><strong>Remote terminal</strong> · {lineChecks.remoteModel || 'Relay model unknown'} · Remote CT {ctLabels[lineChecks.remoteCt].toLowerCase()}</p>}
             {shortlistIO && <p><strong>Illustrative digital I/O · </strong>{budgetText(shortlistIO)}</p>}
             <p>Terminal fit is shown where modeled. Verify the exact order code and application before selection.</p>
           </div>
@@ -547,6 +598,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
                     <article className="requirement-card" key={candidate.model}>
                       <div className="candidate-heading"><h3>{candidate.model}</h3><span className="tag">{candidate.manufacturer}</span></div>
                       <p><strong>{candidate.status}</strong></p>
+                      {row.kind === 'line' && <p><strong>{lineScreen(lineChecks, candidate.model, option.poi_line?.local_ct ?? 'unknown')}</strong></p>}
                       {candidate.allocations.length === 0 && <p>{candidate.capacity}</p>}
                       <p>{candidate.note}</p>
                       {(candidate.model.startsWith('SEL-487E') || candidate.model.startsWith('Multilin T60')) &&

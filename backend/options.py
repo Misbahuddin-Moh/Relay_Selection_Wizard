@@ -170,14 +170,17 @@ def device_requirements(study, scheme, analysis, coverage=None):
     }
     secondary_sources = secondary["boundaries"]
     if secondary["hv_boundary"] == "unresolved":
-        secondary_sources = [{"label": "Transformer Secondary HV CT bank", "state": "unknown"}, *secondary_sources]
+        bushing = next(boundary for boundary in analysis["hv_boundaries"] if boundary["id"] == "bushing")
+        secondary_sources = [{"label": f'{bushing["label"]} (candidate)', "state": bushing["state"]}, *secondary_sources]
     signals = {
         "shared": [*transformer, *zones["bus"]["boundaries"][1:]],
         "combined": zones["combined"]["boundaries"],
         "transformer": transformer,
         "bus": zones["bus"]["boundaries"],
-        "line": [{"label": "Local line phase CT bank", "state": analysis["poi_line"]["local_ct"]}]
-                if analysis["poi_line"] else [],
+        "line": [
+            {"label": "Local line phase CT bank", "state": analysis["poi_line"]["local_ct"]},
+            {"label": "Remote line phase CT bank · received over the 87L channel", "state": "unknown", "remote": True},
+        ] if analysis["poi_line"] else [],
         "meter": [
             {"label": "Revenue metering phase CT bank", "state": "unknown"},
             {"label": "Revenue metering three-phase VT/CCVT bank", "state": "unknown"},
@@ -211,11 +214,13 @@ def device_requirements(study, scheme, analysis, coverage=None):
     add("transformer", "Transformer Secondary", "87T", 2,
         "Separate IED. Verify its own HV/LV CT assignments and trip path.", measurement_sources=secondary_sources)
     for area in analysis["feeder_areas"]:
+        _, bus_side_ct = area["measurements"]
         add("feeder", area["breaker"], "51P; evaluate 51G/51N and directionality", 1,
-            f'Serves {", ".join(area["circuits"])}. Verify sensing and trip assignment for this breaker.',
-            measurement_sources=area["measurements"])
+            f'Serves {", ".join(area["circuits"])}. Uses the bus-side phase CT bank. Verify the CT core and trip assignment.',
+            measurement_sources=[bus_side_ct])
     if study["include_poi_line"]:
-        add("line", "POI line · local terminal", "87L", 1, "Verify the remote terminal, channel and clearing path separately.")
+        add("line", "POI line · local terminal", "87L", 1,
+            "The remote CT bank terminates at the remote relay. Verify the 87L current channel and any required DTT clearing path.")
     add("meter", "Revenue / power-quality meter · proposed POI", "Import/export energy and power quality", 1,
         "Metering CTs and a three-phase VT/CCVT source at the utility-designated metering point.")
     return rows

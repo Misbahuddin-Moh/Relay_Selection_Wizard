@@ -87,7 +87,18 @@ class OptionsTests(TestCase):
         self.assertEqual(shared[0]["functions"], "87T + 87B simultaneously")
         self.assertEqual(combined[0]["phase_banks"], 5)
         self.assertEqual(combined[1]["phase_banks"], 2)
-        self.assertEqual(sum(row["functions"].startswith("51P") for row in shared), 3)
+        feeders = [row for row in shared if row["functions"].startswith("51P")]
+        self.assertEqual(len(feeders), 3)
+        for row, area in zip(feeders, analysis["feeder_areas"]):
+            self.assertEqual(row["phase_banks"], 1)
+            self.assertEqual(row["measurement_sources"], [area["measurements"][1]])
+            self.assertEqual(row["measurement_sources"][0]["label"], "Bus-side phase CT bank")
+        line = next(row for row in shared if row["kind"] == "line")
+        self.assertEqual(line["phase_banks"], 1)
+        local, remote = line["measurement_sources"]
+        self.assertEqual(local["state"], analysis["poi_line"]["local_ct"])
+        self.assertTrue(remote["remote"])
+        self.assertEqual(remote["state"], "unknown")
         self.assertTrue(any(row["role"].startswith("Revenue") for row in shared))
 
 
@@ -116,7 +127,14 @@ class OptionsTests(TestCase):
 
 
     def test_local_preview_supplies_device_requirements_without_provider(self):
-        study = Study.model_validate(reference_study()["study"])
+        data = reference_study()["study"]
+        data["ct_inventory"] = {
+            "hv_breaker_135": 2, "hv_breaker_246": 2,
+            "transformer_hv_phase": 3, "transformer_lv_phase": 3,
+            "transformer_hv_neutral": 2, "transformer_lv_neutral": 2,
+            "lv_breaker_135": 2, "lv_breaker_246": 2,
+        }
+        study = Study.model_validate(data)
         with patch("backend.options.request_options") as request:
             result = protection_preview(study)
         request.assert_not_called()
@@ -125,4 +143,9 @@ class OptionsTests(TestCase):
             self.assertTrue(option["zones"])
             self.assertTrue(option["device_requirements"][0]["candidates"])
             self.assertEqual(option["main_coverage"]["transformer_b"]["hv_boundary"], "unresolved")
+            secondary = next(row for row in option["device_requirements"] if row["role"] == "Transformer Secondary")
+            self.assertEqual(secondary["measurement_sources"][0], {
+                "label": "Transformer HV bushing phase CT bank (candidate)",
+                "state": "present",
+            })
         self.assertIsNone(result["usage"]["input_tokens"])

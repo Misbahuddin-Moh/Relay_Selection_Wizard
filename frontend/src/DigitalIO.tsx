@@ -77,8 +77,17 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
   const related = signals.filter(signal => signal.source === device || signal.destination === device)
   const budget = digitalBudget(signals, device, settings.spare)
   const label = (value: string) => value.replace(/\bF([123])\b/g, (_, number) => bays[Number(number) - 1]).replace(/\bH\b/g, 'POI breaker')
-  const relayName = (id: string) => ({ 'T-P': 'Transformer Primary', 'T-S': 'Transformer Secondary', BUS: 'Bus protection',
-    'BF-H': 'POI breaker failure', 'LINE-H': 'POI line protection', 'REMOTE-LINE': 'Remote line relay' })[id] ?? label(id)
+  const primaryName = scheme === 'shared' ? 'Transformer Primary + bus protection'
+    : scheme === 'combined' ? 'Combined transformer + bus Primary' : 'Transformer Primary'
+  const relayNames: Record<string, string> = {
+    'T-P': primaryName, 'T-S': 'Transformer Secondary', BUS: 'Collector bus protection',
+    'BF-H': 'POI breaker failure', 'LINE-H': 'POI line protection (local)',
+  }
+  bays.forEach((bay, index) => {
+    relayNames[`FP-F${index + 1}`] = `${bay} feeder protection`
+    relayNames[`BF-F${index + 1}`] = `${bay} breaker failure`
+  })
+  const relayName = (id: string) => relayNames[id] ?? label(id)
   const endpoint = (id: string) => example.devices.includes(id) ? relayName(id) : label(id)
   const setSignals = (next: Signal[]) => change({ ...settings, edits: { ...settings.edits, [settings.variant]: next } })
   const update = (id: number, patch: Partial<Signal>) => setSignals(signals.map(signal => signal.id === id ? { ...signal, ...patch } : signal))
@@ -93,16 +102,27 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
   return (
     <section className="detail-block digital-io" aria-label="Digital I/O budget">
       <h3>Digital I/O budget</h3>
+      <p>Each relay has its own digital inputs (DI) and outputs (DO). Select a relay to review its signals. The overview shows required physical points with spares.</p>
       <p>Illustrative three-breaker reference wiring. Review the project trip matrix and control drawings before applying these counts. The 20% default is a worked-example assumption.</p>
       <div className="field-row">
         <label className="field"><span>Wiring example</span><select value={settings.variant}
           onChange={event => change({ ...settings, variant: event.target.value as Variant })}>
           {Object.entries(variants).map(([key, name]) => <option key={key} value={key}>{name}</option>)}
         </select></label>
-        <label className="field"><span>Relay to review</span><select value={device} onChange={event => setPicked(event.target.value)}>
-          {example.devices.map(id => <option key={id} value={id}>{relayName(id)}</option>)}
-        </select></label>
       </div>
+      <fieldset>
+        <legend>Relay to review</legend>
+        <div className="digital-relays">
+          {example.devices.map(id => {
+            const counts = digitalBudget(signals, id, settings.spare)
+            return <label key={id}>
+              <input type="radio" name={`${deviceList}-relay`} checked={device === id} onChange={() => setPicked(id)} />
+              <span><strong>{relayName(id)}</strong><br />{counts.diRequired} DI / {counts.doRequired} DO</span>
+            </label>
+          })}
+        </div>
+      </fieldset>
+      <h4>{relayName(device)} signal budget</h4>
       <div className="field-row">
         {(['di', 'do'] as const).map(field => <label className="field" key={field}><span>{field.toUpperCase()} spares (%)</span>
           <input type="number" min={0} max={99} value={settings.spare[field]} onChange={event => {
@@ -116,7 +136,7 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
       </div>
       <p aria-live="polite"><strong>{budgetText(budget)}</strong></p>
       <p>Only included hardwired signals count toward relay contacts. Breaker coils, lockouts, and other external endpoints have separate budgets. Output reserves round up separately for coil-duty and other contacts.</p>
-      <details><summary>Edit signals and review endpoints</summary>
+      <details><summary>Review and edit {relayName(device)} signals</summary>
         <datalist id={deviceList}>{example.devices.map(id => <option key={id} value={id}>{relayName(id)}</option>)}</datalist>
         <div className="digital-io-actions">
           <button type="button" className="button secondary" onClick={() => add('di')}>Add DI</button>

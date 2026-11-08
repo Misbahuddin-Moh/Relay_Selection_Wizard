@@ -151,7 +151,7 @@ export interface GeneratedOptions {
       functions: string
       phase_banks: number
       alternate_phase_banks: number | null
-      measurement_sources: { label: string; state: Ct }[]
+      measurement_sources: { label: string; state: Ct; remote?: boolean }[]
       note: string
       candidates: {
         manufacturer: 'GE' | 'SEL'
