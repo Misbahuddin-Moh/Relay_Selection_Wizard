@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from typing import Annotated, Literal, Optional
 
@@ -10,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 from .drawing import CLAUDE_IMAGE_BYTES, FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, drawing_provider, extract_drawing
 from .engine import analyze
 from .options import OptionsError, generate_options, preview_options
+from .project_requirements import MAX_BYTES, RequirementError, extract_requirements, source_pages
 
 Measurement = Literal["unknown", "present", "absent"]
 Label = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
@@ -130,6 +132,35 @@ async def extract_single_line(request: Request):
     try:
         return await run_in_threadpool(extract_drawing, bytes(data), content_type)
     except ExtractionError as error:
+        raise HTTPException(502, str(error)) from error
+
+
+@app.get("/api/requirements/status")
+def requirements_status():
+    return {"configured": bool(os.getenv("ANTHROPIC_API_KEY", "").strip())}
+
+
+@app.post("/api/requirements/extract")
+async def extract_project_requirements(request: Request):
+    content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    if content_type not in ("application/pdf", "text/plain"):
+        raise HTTPException(415, "Choose a PDF or UTF-8 text excerpt.")
+    if not requirements_status()["configured"]:
+        raise HTTPException(503, "Set ANTHROPIC_API_KEY on the server to extract project requirements.")
+    data = bytearray()
+    async for chunk in request.stream():
+        if len(data) + len(chunk) > MAX_BYTES:
+            raise HTTPException(413, "Choose an excerpt no larger than 5 MiB.")
+        data.extend(chunk)
+    if not data:
+        raise HTTPException(422, "Choose a file or paste a requirement.")
+    try:
+        pages = await run_in_threadpool(source_pages, bytes(data), content_type)
+    except RequirementError as error:
+        raise HTTPException(422, str(error)) from error
+    try:
+        return await run_in_threadpool(extract_requirements, pages)
+    except RequirementError as error:
         raise HTTPException(502, str(error)) from error
 
 

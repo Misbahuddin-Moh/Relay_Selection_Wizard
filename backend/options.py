@@ -160,11 +160,31 @@ def main_coverage(study, option, main_a_analysis):
     }
 
 
-def device_requirements(study, scheme, analysis):
+def device_requirements(study, scheme, analysis, coverage=None):
     """Count phase channels for the proposed hardwired layout before model screening."""
     rows = []
+    zones = {zone["id"]: zone for zone in analysis["zones"]}
+    transformer = zones["transformer"]["boundaries"]
+    secondary = coverage["transformer_b"] if coverage else {
+        "boundaries": transformer[1:], "hv_boundary": "unresolved",
+    }
+    secondary_sources = secondary["boundaries"]
+    if secondary["hv_boundary"] == "unresolved":
+        secondary_sources = [{"label": "Transformer Secondary HV CT bank", "state": "unknown"}, *secondary_sources]
+    signals = {
+        "shared": [*transformer, *zones["bus"]["boundaries"][1:]],
+        "combined": zones["combined"]["boundaries"],
+        "transformer": transformer,
+        "bus": zones["bus"]["boundaries"],
+        "line": [{"label": "Local line phase CT bank", "state": analysis["poi_line"]["local_ct"]}]
+                if analysis["poi_line"] else [],
+        "meter": [
+            {"label": "Revenue metering phase CT bank", "state": "unknown"},
+            {"label": "Revenue metering three-phase VT/CCVT bank", "state": "unknown"},
+        ],
+    }
 
-    def add(kind, role, functions, banks, note, alternate_banks=None):
+    def add(kind, role, functions, banks, note, alternate_banks=None, measurement_sources=None):
         row = {
             "kind": kind,
             "role": role,
@@ -172,6 +192,7 @@ def device_requirements(study, scheme, analysis):
             "phase_banks": banks,
             "alternate_phase_banks": alternate_banks,
             "note": note,
+            "measurement_sources": measurement_sources if measurement_sources is not None else signals[kind],
         }
         rows.append({**row, "candidates": screen_devices(row, study["auxiliary"])})
 
@@ -187,10 +208,12 @@ def device_requirements(study, scheme, analysis):
         add("transformer", "Transformer Primary", "87T", 2, "Selected HV CT and transformer LV CT.")
         add("bus", "Collector bus · single path", "87B", bus_banks, "LV incomer, collector boundaries and measured tap if applicable.")
 
-    add("transformer", "Transformer Secondary", "87T", 2, "Separate IED. Verify its own HV/LV CT assignments and trip path.")
+    add("transformer", "Transformer Secondary", "87T", 2,
+        "Separate IED. Verify its own HV/LV CT assignments and trip path.", measurement_sources=secondary_sources)
     for area in analysis["feeder_areas"]:
         add("feeder", area["breaker"], "51P; evaluate 51G/51N and directionality", 1,
-            f'Serves {", ".join(area["circuits"])}. Verify sensing and trip assignment for this breaker.')
+            f'Serves {", ".join(area["circuits"])}. Verify sensing and trip assignment for this breaker.',
+            measurement_sources=area["measurements"])
     if study["include_poi_line"]:
         add("line", "POI line · local terminal", "87L", 1, "Verify the remote terminal, channel and clearing path separately.")
     add("meter", "Revenue / power-quality meter · proposed POI", "Import/export energy and power quality", 1,
@@ -227,13 +250,14 @@ def present_options(study, proposals, usage):
         checked = analyze({**study, "hv_boundary": option.hv_boundary})
         candidate = next(item for item in checked["candidates"] if item["id"] == option.scheme)
         boundary = next(item for item in checked["hv_boundaries"] if item["id"] == option.hv_boundary)
+        coverage = main_coverage(study, option, checked)
         options.append({
             **option.model_dump(),
             "backup": "Time-graded overcurrent for coordination study. Project applicability remains open.",
             "check": candidate,
             "zones": checked["zones"],
-            "main_coverage": main_coverage(study, option, checked),
-            "device_requirements": device_requirements(study, option.scheme, checked),
+            "main_coverage": coverage,
+            "device_requirements": device_requirements(study, option.scheme, checked, coverage),
             "boundary": boundary,
             "poi_line": checked["poi_line"],
             "sources": [ref for key in option.evidence for ref in EVIDENCE[key]["sources"]],

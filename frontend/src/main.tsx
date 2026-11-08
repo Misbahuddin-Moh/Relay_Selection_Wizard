@@ -1,3 +1,6 @@
+import { T60InputFit } from './T60InputFit'
+import { modeledMinimum, ProjectRequirements } from './ProjectRequirements'
+import type { AppliedRequirement } from './ProjectRequirements'
 import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -321,7 +324,7 @@ function phaseDemand(device: Option['device_requirements'][number]) {
 function StudySteps({ step }: { step: number }) {
   return (
     <ol className="study-steps" aria-label="Study progress">
-      {['Station', 'Protection scheme', 'Device requirements', 'Relay shortlist'].map((label, index) => (
+      {['Station', 'Protection scheme', 'Relay signals', 'Relay shortlist'].map((label, index) => (
         <li key={label} aria-current={step === index + 1 ? 'step' : undefined} className={step === index + 1 ? 'current' : step > index + 1 ? 'complete' : ''}>
           <span>{index + 1}</span>{label}
         </li>
@@ -388,6 +391,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
   const [selection, setSelection] = useState('')
   const [role, setRole] = useState(0)
   const [requirements, setRequirements] = useState<Record<string, Requirements>>({})
+  const [applied, setApplied] = useState<Record<string, AppliedRequirement[]>>({})
   const options = [
     ...(preview?.options.map((option, index) => ({ option, id: `local-${index}`, source: 'Station checks' })) ?? []),
     ...(generated?.options.map((option, index) => ({ option, id: `ai-${index}`, source: 'AI proposal' })) ?? []),
@@ -396,6 +400,15 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
   const option = selected?.option
   const row = option?.device_requirements[role]
   const values = (index: number) => requirements[`${selection}/${index}`] ?? unknownRequirements
+  const projectFindings = applied[selection] ?? []
+  const effectiveValues = (index: number) => {
+    const result = { ...values(index) }
+    for (const finding of projectFindings.filter(item => item.device === index && modeledMinimum(item))) {
+      const key = finding.category === 'neutral_ct' ? 'neutral' : 'vt'
+      result[key] = String(Math.max(Number(result[key]), finding.minimum ?? 0))
+    }
+    return result
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -450,15 +463,21 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
         <details className="panel detail-block"><summary>Open engineering questions</summary><Questions questions={analysis.questions} /></details>
         {generated?.usage.input_tokens != null && <p className="workflow-meta">AI usage · {generated.usage.input_tokens} input / {generated.usage.output_tokens} output tokens</p>}
       </>}
-      {step === 3 && option && (
+      {option && <div hidden={step !== 3}>
         <section className="panel">
-          <PanelHeader title="Review device requirements" description={option.check.title} />
-          <div className="detail-block"><p>Phase demand comes from the selected scheme. Set neutral CT and VT requirements for each device. A blank field means unknown.</p>
+          <PanelHeader title="Review relay signals" description={option.check.title} />
+          <div className="detail-block"><p>The wizard derives phase CT sources and protection functions from the selected scheme. Enter neutral CT and VT needs only when known. Confirmed project minimums also feed the input fit.</p>
             {study.auxiliary === 'unknown' && <p className="draft-note">A separately measured auxiliary tap may add one phase bank to bus differential.</p>}
           </div>
+          <ProjectRequirements key={selection} roles={option.device_requirements.map(device => device.role)}
+            applied={projectFindings} onChange={findings => setApplied({ ...applied, [selection]: findings })} />
           <div className="requirement-grid">{option.device_requirements.map((device, index) => (
             <article className="requirement-card" key={index}>
               <h3>{device.role}</h3><p>{device.functions} · {phaseDemand(device)}</p>
+              <details><summary>Measurement sources</summary><ul>
+                {device.measurement_sources.map(source => <li key={source.label}>{source.label} · {ctLabels[source.state]}</li>)}
+              </ul></details>
+              <p className="draft-note">Digital I/O and contact duty remain open until the signal destinations and wiring method are confirmed.</p>
               <div className="field-row">
                 <DeviceInput label="Neutral CT inputs" value={values(index).neutral} onChange={neutral => setRequirements({ ...requirements, [`${selection}/${index}`]: { ...values(index), neutral } })} />
                 <DeviceInput label="Three-phase VT banks" value={values(index).vt} onChange={vt => setRequirements({ ...requirements, [`${selection}/${index}`]: { ...values(index), vt } })} />
@@ -467,26 +486,34 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
             </article>
           ))}</div>
         </section>
-      )}
+      </div>}
       {step === 4 && option && row && (
         <section className="panel">
           <PanelHeader title="Screen relay models" description={option.check.title} />
           <div className="detail-block">
             <label className="field"><span>Device role</span><select value={role} onChange={event => setRole(Number(event.target.value))}>{option.device_requirements.map((device, index) => <option key={index} value={index}>{device.role}</option>)}</select></label>
-            <p><strong>{row.functions}</strong> · {phaseDemand(row)} · {values(role).neutral || 'Unknown'} neutral CT inputs · {values(role).vt || 'Unknown'} VT banks</p>
+            <p><strong>{row.functions}</strong> · {phaseDemand(row)} · {effectiveValues(role).neutral || 'Unknown'} neutral CT inputs · {effectiveValues(role).vt || 'Unknown'} VT banks</p>
             {row.role === 'Transformer Secondary' && option.main_coverage.transformer_b.status !== 'Boundaries present' && <p className="draft-note">Secondary · {option.main_coverage.transformer_b.status}. The models below are function candidates.</p>}
+            {projectFindings.filter(finding => finding.device === role).map(finding =>
+              <p key={finding.id}><strong>{modeledMinimum(finding) ? 'Confirmed minimum' : 'Open ordering review'}</strong> · {finding.requirement} · {finding.source}, page {finding.page}</p>
+            )}
             <p>Terminal fit is shown where modeled. Verify the exact order code and application before selection.</p>
           </div>
           <div className="relay-grid">
             {row.candidates.map(candidate => {
-              const { neutral, vt } = values(role)
+              const { neutral, vt } = effectiveValues(role)
               return (
                 <article className="requirement-card" key={candidate.model}>
                   <div className="candidate-heading"><h3>{candidate.model}</h3><span className="tag">{candidate.manufacturer}</span></div>
                   <p><strong>{candidate.status}</strong></p>
                   {candidate.allocations.length === 0 && <p>{candidate.capacity}</p>}
                   <p>{candidate.note}</p>
+                  {(candidate.model.startsWith('SEL-487E') || candidate.model.startsWith('Multilin T60')) &&
+                    <p><strong>Partial configuration</strong> · Confirm ratings, output duties, power supply, communications and vendor order fields.</p>}
                   <a href={candidate.source} target="_blank" rel="noreferrer">Manufacturer documentation</a>
+                  {candidate.model.startsWith('Multilin T60') && <T60InputFit
+                    minimum={row.phase_banks} maximum={row.alternate_phase_banks ?? row.phase_banks}
+                    vt={vt} neutral={neutral} auxiliaryUnknown={study.auxiliary === 'unknown' && (row.kind === 'combined' || row.kind === 'shared')} />}
                   {candidate.allocations.length > 0 && <TerminalAllocation candidate={candidate} device={row} neutral={neutral} vt={vt} />}
                   {candidate.allocations.length === 0 && <CatalogRelayDiagram model={candidate.model} source={candidate.source} />}
                 </article>

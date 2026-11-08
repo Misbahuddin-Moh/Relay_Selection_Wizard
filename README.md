@@ -79,3 +79,18 @@ Generation is on demand, with up to three proposals. The prompt aims for 300–6
 The example baseline is synthetic. Scenario edits stay in the current page and reset when it reloads. A missing CT blocks the corresponding modeled differential boundary, while an unknown CT prompts confirmation. The input budget assumes one phase CT bank per collector breaker position and counts the auxiliary boundary separately when selected. Trip targets are preliminary and assume potential collector backfeed and no LV main breaker. Confirm actual CT locations and performance, auxiliary and remote trip paths, fault contributions, breaker failure, and owner requirements independently.
 
 This milestone covers concept entry, topology review, and preliminary candidate comparison. Persistent study storage, manufacturer-specific relay selection, and report export are planned for later milestones.
+
+## Review relay signals and project excerpts
+
+After choosing a scheme, **Review relay signals** shows the modeled CT locations and protection functions for each role. Neutral and VT inputs may be left blank. The optional **Project documents and requirements** panel sends text from an approved UTF-8 excerpt or text-readable PDF to Claude when you click **Extract ordering requirements**. Set `ANTHROPIC_API_KEY` on the server. `RELAY_REQUIREMENTS_MODEL` optionally overrides the Claude model.
+
+The first pass accepts excerpts of up to 30 PDF pages, 5 MiB and 90,000 extracted characters per request. It reports pages with little or no readable text. Scans can be transcribed and pasted. Findings retain the source excerpt and page. Confirm the affected relay before using an explicitly stated neutral CT or VT minimum to screen its inputs. Other findings stay visible as ordering decisions for review. Both transformer relay families show partial configurations pending exact vendor and project checks.
+
+## Package for hosting
+
+The same FastAPI process serves the API and the built frontend. Deploy the container on a Python-capable host with HTTPS and private access in front of the app. Configure provider credentials as server environment variables and set the host's port through `PORT` if required. The workflow and URLs are identical to the local build. Access control for a live pilot belongs at the hosting layer. Keep provider credentials out of the image and enable uploads only for authorized users.
+
+```sh
+docker build -t relay-wizard .
+docker run --rm -p 127.0.0.1:8000:8000 relay-wizard
+```

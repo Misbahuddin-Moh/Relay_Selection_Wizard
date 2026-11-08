@@ -146,10 +146,12 @@ export interface GeneratedOptions {
       bus: { function: string; status: string }
     }
     device_requirements: {
+      kind: string
       role: string
       functions: string
       phase_banks: number
       alternate_phase_banks: number | null
+      measurement_sources: { label: string; state: Ct }[]
       note: string
       candidates: {
         manufacturer: 'GE' | 'SEL'
