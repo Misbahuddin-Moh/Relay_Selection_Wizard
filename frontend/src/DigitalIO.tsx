@@ -80,6 +80,51 @@ export function budgetText(budget: ReturnType<typeof digitalBudget>) {
   return `${budget.di} DI / ${budget.coil + budget.other} DO used · ${budget.diRequired} DI / ${budget.doRequired} DO with spares (${budget.coilRequired} coil-duty DO)${budget.open ? ` · ${budget.open} unresolved interface(s)` : ''}`
 }
 
+export function PrimaryDigitalFit({ example, variant, budget, model }: {
+  example: NonNullable<ReturnType<typeof digitalCase>>
+  variant: Variant
+  budget: ReturnType<typeof digitalBudget>
+  model: string
+}) {
+  const cardModel = model === 'SEL-487E-3/-4' ? 'SEL-487E-3' : model === 'Multilin T60' ? 'GE T60' : ''
+  const card = example.cards.map(index => matrix.cards[index])
+    .find(row => row[0] === 'T-P' && row[1] === cardModel && row[6] === 'capacity_candidate')
+  if (!card) return <p>Digital I/O fit is open. This model has no card example for the selected wiring.</p>
+
+  const [, name, hardware, di, outputs, coil, , gate, source] = card
+  const counts = [
+    { label: 'Digital inputs', required: budget.diRequired, available: Number(di) },
+    { label: 'Total digital outputs', required: budget.doRequired, available: Number(outputs) },
+    { label: 'Coil-duty outputs (included in total)', required: budget.coilRequired, available: Number(coil) },
+  ]
+  const short = counts.some(point => point.available < point.required)
+  const slotNote = cardModel === 'SEL-487E-3'
+    ? hardware.includes('INT7')
+      ? 'INT7 needs one expansion position. The smallest chassis supporting it is 4U with one AC card or 6U with two AC cards.'
+      : 'The main-board example uses no I/O expansion position. Confirm the AC card count and chassis.'
+    : `This example needs ${hardware.split(' + ').length} digital module position(s). Confirm the available positions after assigning CT/VT modules in the exact T60 chassis.`
+
+  return <section className="input-fit" aria-label="Transformer Primary digital I/O fit">
+    <h4>Digital I/O fit</h4>
+    <p>{variants[variant].title} · {name} · {hardware}</p>
+    <p><strong>{short ? 'This card example falls short'
+      : budget.open ? 'Known points fit · unresolved signals remain' : 'Meets modeled point counts'}</strong></p>
+    <div className="table-scroll">
+      <table>
+        <thead><tr><th scope="col">Point type</th><th scope="col">Needed with spares</th><th scope="col">Example capacity</th></tr></thead>
+        <tbody>{counts.map(({ label, required, available }) => <tr key={label}>
+          <th scope="row">{label}</th><td>{required}</td>
+          <td>{available}{available < required && <strong> · short {required - available}</strong>}</td>
+        </tr>)}</tbody>
+      </table>
+    </div>
+    <p>{slotNote}</p>
+    <p><strong>Order code pending.</strong> Confirm that the digital and CT/VT modules fit together, and verify output duty at the project DC voltage and load. {gate}.</p>
+    <p>{source.split(';').map((url, index) =>
+      <a key={url} href={url.trim()} target="_blank" rel="noreferrer">Card reference {index + 1} ↗ </a>)}</p>
+  </section>
+}
+
 export function DigitalIO({ scheme, bays, line, settings, change }: {
   scheme: string; bays: string[]; line: boolean; settings: DigitalSettings; change: (next: DigitalSettings) => void
 }) {

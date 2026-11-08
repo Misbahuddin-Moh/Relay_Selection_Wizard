@@ -1,4 +1,4 @@
-import { budgetText, defaultDigitalSettings, DigitalIO, digitalBudget, digitalCase } from './DigitalIO'
+import { budgetText, defaultDigitalSettings, DigitalIO, digitalBudget, digitalCase, PrimaryDigitalFit } from './DigitalIO'
 import type { DigitalSettings } from './DigitalIO'
 import { T60InputFit } from './T60InputFit'
 import { modeledMinimum, ProjectRequirements } from './ProjectRequirements'
@@ -601,6 +601,8 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
                       {row.kind === 'line' && <p><strong>{lineScreen(lineChecks, candidate.model, option.poi_line?.local_ct ?? 'unknown')}</strong></p>}
                       {candidate.allocations.length === 0 && <p>{candidate.capacity}</p>}
                       <p>{candidate.note}</p>
+                      {option.scheme === 'dedicated' && row.role === 'Transformer Primary' && referenceIO && shortlistIO &&
+                        <PrimaryDigitalFit example={referenceIO} variant={dio.variant} budget={shortlistIO} model={candidate.model} />}
                       {(candidate.model.startsWith('SEL-487E') || candidate.model.startsWith('Multilin T60')) &&
                         <p><strong>Partial configuration</strong> · Confirm ratings, output duties, power supply, communications and vendor order fields.</p>}
                       <a href={candidate.source} target="_blank" rel="noreferrer">Manufacturer documentation</a>
