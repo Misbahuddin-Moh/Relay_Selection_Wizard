@@ -502,9 +502,9 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
           <div className="detail-block"><p>The wizard derives phase CT sources and protection functions from the selected scheme. Enter neutral CT and VT needs only when known. Extracted project minimums automatically apply to matching relays.</p>
             {study.auxiliary === 'unknown' && <p className="draft-note">A separately measured auxiliary tap may add one phase bank to bus differential.</p>}
           </div>
-          <ProjectRequirements key={selection} roles={option.device_requirements.map(device => device.role)}
+          <ProjectRequirements key={`documents/${selection}`} roles={option.device_requirements.map(device => device.role)}
             applied={projectFindings} onChange={update => setApplied(current => ({ ...current, [selection]: update(current[selection] ?? []) }))} />
-          {referenceIO ? <DigitalIO key={selection} scheme={option.scheme} bays={study.bays.map(bay => bay.id)}
+          {referenceIO ? <DigitalIO key={`digital-io/${selection}`} scheme={option.scheme} bays={study.bays.map(bay => bay.id)}
             line={study.include_poi_line ?? false} settings={dio} change={next => setDigitalSettings(current => ({ ...current, [selection]: next }))} />
             : <div className="detail-block"><p>The worked digital I/O templates cover the three-breaker reference station.</p></div>}
           <div className="requirement-grid">{option.device_requirements.map((device, index) => (
