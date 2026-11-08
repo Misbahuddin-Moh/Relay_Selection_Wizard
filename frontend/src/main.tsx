@@ -63,22 +63,6 @@ function PanelHeader({ title, description, action }: { title: string; descriptio
   return <header className="panel-header"><div><h2>{title}</h2><p>{description}</p></div>{action}</header>
 }
 
-function Metrics({ analysis, auxiliary }: { analysis: Analysis; auxiliary: Study['auxiliary'] }) {
-  const { breakers, branches, confirmed_bay_cts, combined_required_banks } = analysis.counts
-  return (
-    <div className="metrics">
-      {[
-        ['Collector breakers', breakers, 'Independent trip positions'],
-        ['Outgoing branches', branches, 'Circuits downstream of the breakers'],
-        ['Confirmed bay CTs', confirmed_bay_cts, 'Per collector breaker position'],
-        ['Combined zone banks', boundaryCount(combined_required_banks, auxiliary), auxiliary === 'unknown' ? 'Minimum with auxiliary treatment open' : 'Required three-phase measurements'],
-      ].map(([label, value, detail]) => (
-        <div className="metric" key={label}><div>{label}</div><strong>{value}</strong><small>{detail}</small></div>
-      ))}
-    </div>
-  )
-}
-
 function boundaryCount(value: number | null, auxiliary: Study['auxiliary']) {
   if (value === null) return 'Open'
   return auxiliary === 'unknown' ? `≥ ${value}` : value
@@ -282,36 +266,11 @@ function ProtectionZoneReview({ study, analysis }: Snapshot) {
   )
 }
 
-function DeviceRequirements({ rows, auxiliary }: {
-  rows: GeneratedOptions['options'][number]['device_requirements']
-  auxiliary: Study['auxiliary']
-}) {
-  return (
-    <details>
-      <summary>Per-device requirements</summary>
-      <p>Counts show required hardwired phase-current inputs. Check neutral CTs, VT inputs, contacts, and communication separately.</p>
-      {auxiliary === 'unknown' && <p>If the auxiliary tap needs separate measurement, add one bank to the IED carrying bus differential.</p>}
-      <div className="table-scroll">
-        <table>
-          <thead><tr><th scope="col">Device role</th><th scope="col">Functions</th><th scope="col">Phase CT banks / inputs</th><th scope="col">Check</th></tr></thead>
-          <tbody>{rows.map(row => (
-            <tr key={row.role}>
-              <th scope="row">{row.role}</th><td>{row.functions}</td>
-              <td>{row.phase_banks}{row.alternate_phase_banks && `–${row.alternate_phase_banks}`} / {row.phase_banks * 3}{row.alternate_phase_banks && `–${row.alternate_phase_banks * 3}`}</td>
-              <td>{row.note}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
-    </details>
-  )
-}
-
-function TerminalAllocation({ candidate }: {
+function TerminalAllocation({ candidate, neutral, vt }: {
   candidate: GeneratedOptions['options'][number]['device_requirements'][number]['candidates'][number]
+  neutral: string
+  vt: string
 }) {
-  const [neutral, setNeutral] = useState('')
-  const [vt, setVt] = useState('')
   const complete = neutral !== '' && vt !== ''
   const layouts = candidate.allocations.filter(layout =>
     layout.fit !== 'Insufficient phase banks' &&
@@ -321,24 +280,8 @@ function TerminalAllocation({ candidate }: {
 
   return (
     <details>
-      <summary>{candidate.model} dual AC card terminal allocation</summary>
-      <p>Enter the inputs required on this IED. Verify the ordered cards, CT ratings, and LV input reuse before selecting a configuration.</p>
-      <div className="field-row">
-        <label className="field">Required neutral CT inputs
-          <select value={neutral} onChange={event => setNeutral(event.target.value)}>
-            <option value="">Unknown</option>
-            <option value="0">0</option><option value="1">1</option><option value="2">2</option>
-            <option value="3">3</option><option value="4">4 or more</option>
-          </select>
-        </label>
-        <label className="field">Required three-phase VT banks
-          <select value={vt} onChange={event => setVt(event.target.value)}>
-            <option value="">Unknown</option>
-            <option value="0">0</option><option value="1">1</option><option value="2">2</option>
-            <option value="3">3 or more</option>
-          </select>
-        </label>
-      </div>
+      <summary>Dual AC card terminal allocation</summary>
+      <p>Confirm ordered cards, CT ratings, and LV input reuse before selecting a configuration.</p>
       <p role="status">{layouts.length === 0
         ? 'No modeled layout meets the entered requirements.'
         : complete ? 'Candidate layouts for the entered inputs.' : 'Enter both requirements to complete the input screen.'}</p>
@@ -359,53 +302,110 @@ function TerminalAllocation({ candidate }: {
   )
 }
 
-function RelayShortlist({ rows, mainBStatus }: {
-  rows: GeneratedOptions['options'][number]['device_requirements']
-  mainBStatus: string
-}) {
+type Option = GeneratedOptions['options'][number]
+type Requirements = { neutral: string; vt: string }
+const unknownRequirements = { neutral: '', vt: '' }
+
+function phaseDemand(device: Option['device_requirements'][number]) {
+  const { phase_banks: banks, alternate_phase_banks: alternate } = device
+  return alternate == null ? `${banks} phase CT banks · ${banks * 3} phase inputs`
+    : `${banks}–${alternate} phase CT banks · ${banks * 3}–${alternate * 3} phase inputs`
+}
+
+function StudySteps({ step }: { step: number }) {
   return (
-    <details>
-      <summary>GE / SEL device shortlist</summary>
-      <p>Function evidence and the phase-input screen are preliminary. Confirm order code, CT/VT allocation, and application before selection.</p>
-      {rows.map((row, index) => (
-        <details key={index}>
-          <summary>{row.role}</summary>
-          {row.role === 'Transformer Main B' && mainBStatus !== 'Boundaries present' && (
-            <p><strong>Main B boundary check</strong> · {mainBStatus}. Models below are function candidates.</p>
-          )}
-          <div className="table-scroll">
-            <table>
-              <thead><tr><th scope="col">Model</th><th scope="col">Function evidence</th><th scope="col">Phase-input screen</th><th scope="col">Configuration check</th></tr></thead>
-              <tbody>{row.candidates.map(candidate => (
-                <tr key={candidate.model}>
-                  <th scope="row"><a href={candidate.source} target="_blank" rel="noreferrer">{candidate.manufacturer} · {candidate.model}</a></th>
-                  <td>{candidate.status}</td><td>{candidate.capacity}</td><td>{candidate.note}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-          {row.candidates.filter(candidate => candidate.allocations.length > 0).map(candidate => (
-            <TerminalAllocation key={candidate.model} candidate={candidate} />
-          ))}
-        </details>
+    <ol className="study-steps" aria-label="Study progress">
+      {['Station', 'Protection scheme', 'Device requirements', 'Relay shortlist'].map((label, index) => (
+        <li key={label} aria-current={step === index + 1 ? 'step' : undefined} className={step === index + 1 ? 'current' : step > index + 1 ? 'complete' : ''}>
+          <span>{index + 1}</span>{label}
+        </li>
       ))}
-    </details>
+    </ol>
   )
 }
 
-function AIProtectionOptions({ study }: { study: Study }) {
-  const [result, setResult] = useState<GeneratedOptions | null>(null)
+function SelectedCoverage({ option, study }: { option: Option; study: Study }) {
+  const zones = option.zones.filter(zone => option.scheme === 'combined' ? zone.id === 'combined' : zone.id !== 'combined')
+  return (
+    <section className="panel">
+      <PanelHeader title={option.check.title} description={option.rationale} action={<Status value={option.check.status} />} />
+      <div className="scheme-detail">
+        <OneLine study={{ ...study, hv_boundary: option.hv_boundary, hv_ct: option.boundary.state }} zones={zones.map(zone => zone.id)} />
+        <div className="scheme-notes">
+          <h3>Protection paths</h3>
+          <dl>
+            <div><dt>Transformer Main A</dt><dd>{option.main_coverage.transformer_a.function} · {option.main_coverage.transformer_a.status}</dd></div>
+            <div><dt>Transformer Main B</dt><dd>87T · {option.main_coverage.transformer_b.hv_boundary === 'unresolved' ? 'HV boundary unresolved' : hvBoundaryLabels[option.main_coverage.transformer_b.hv_boundary]} · {option.main_coverage.transformer_b.status}</dd></div>
+            <div><dt>Collector bus</dt><dd>{option.main_coverage.bus.function} · {option.main_coverage.bus.status}</dd></div>
+          </dl>
+          <p>{option.check.reason}</p>
+          <p><strong>Open item</strong> · {option.open_item}</p>
+        </div>
+      </div>
+      <details className="detail-block">
+        <summary>Boundaries, trip targets and evidence</summary>
+        <p>{option.boundary.coverage}</p>
+        {zones.map(zone => <p key={zone.id}><strong>{zone.title}</strong> · {zone.boundaries.map(boundary => `${boundary.label} (${ctLabels[boundary.state]})`).join(' · ')}</p>)}
+        <p><strong>Preliminary trip targets</strong> · {option.check.trip_targets.join(' · ')}. Verify source paths and breaker-failure clearing.</p>
+        {option.main_coverage.transformer_b.coverage && <p><strong>Main B span</strong> · {option.main_coverage.transformer_b.coverage}</p>}
+        {option.main_coverage.transformer_b.alternatives.length > 0 && <p><strong>Main B CT locations to evaluate</strong> · {option.main_coverage.transformer_b.alternatives.map(location => hvBoundaryLabels[location]).join(' · ')}</p>}
+        {option.poi_line && <p><strong>Illustrative 87L</strong> · Local CT {ctLabels[option.poi_line.local_ct].toLowerCase()}. {option.poi_line.coverage}</p>}
+        <p><strong>Time-delayed backup</strong> · {option.backup}</p>
+        <p>Evaluate REF separately. Confirm transformer A/B independence, including CT cores, DC supplies and trip paths.</p>
+        <ul>{Array.from(new Map(option.sources.map(source => [`${source.id}:${source.locator}`, source])).values()).map(source => (
+          <li key={`${source.id}:${source.locator}`}><a href={source.url} target="_blank" rel="noreferrer">{source.id} · {source.locator}</a></li>
+        ))}</ul>
+      </details>
+    </section>
+  )
+}
+
+function DeviceInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="field"><span>{label}</span>
+      <input type="number" inputMode="numeric" min="0" step="1" placeholder="Unknown" value={value} onChange={event => {
+        const next = event.target.value
+        if (next === '' || (Number.isSafeInteger(Number(next)) && Number(next) >= 0)) onChange(next)
+      }} />
+    </label>
+  )
+}
+
+function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStation: () => void }) {
+  const [preview, setPreview] = useState<GeneratedOptions | null>(null)
+  const [generated, setGenerated] = useState<GeneratedOptions | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  const [retry, setRetry] = useState(0)
+  const [step, setStep] = useState(2)
+  const [selection, setSelection] = useState('')
+  const [role, setRole] = useState(0)
+  const [requirements, setRequirements] = useState<Record<string, Requirements>>({})
+  const options = [
+    ...(preview?.options.map((option, index) => ({ option, id: `local-${index}`, source: 'Station checks' })) ?? []),
+    ...(generated?.options.map((option, index) => ({ option, id: `ai-${index}`, source: 'AI proposal' })) ?? []),
+  ]
+  const selected = options.find(item => item.id === selection)
+  const option = selected?.option
+  const row = option?.device_requirements[role]
+  const values = (index: number) => requirements[`${selection}/${index}`] ?? unknownRequirements
+
+  useEffect(() => {
+    const controller = new AbortController()
+    setPreviewError(null)
+    getJson<GeneratedOptions>('/api/protection-preview', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(study), signal: controller.signal,
+    }).then(setPreview).catch(error => { if (!controller.signal.aborted) setPreviewError(error.message) })
+    return () => controller.abort()
+  }, [study, retry])
 
   async function generate() {
     setBusy(true)
     setError(null)
     try {
-      setResult(await getJson<GeneratedOptions>('/api/protection-options', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(study),
+      setGenerated(await getJson<GeneratedOptions>('/api/protection-options', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(study),
       }))
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unable to generate protection options.')
@@ -414,66 +414,96 @@ function AIProtectionOptions({ study }: { study: Study }) {
     }
   }
 
+  function changeStep(next: number) {
+    setStep(next)
+    window.scrollTo(0, 0)
+  }
+
   return (
-    <section className="panel">
-      <PanelHeader title="AI protection options" description="Claude receives a compact station summary and selected evidence. Review its proposals alongside the wizard’s boundary checks." />
-      <div className="editor-actions">
-        <button type="button" className="button primary" disabled={busy || !!result} onClick={generate}>{busy ? 'Generating…' : 'Generate protection options'}</button>
-      </div>
-      {error && <p className="error form-error" role="alert">{error}</p>}
-      {result && (
-        <div className="zone-basis">
-          {result.usage.input_tokens !== null && result.usage.output_tokens !== null && (
-            <p>Generation usage · {result.usage.input_tokens} input tokens · {result.usage.output_tokens} output tokens</p>
-          )}
-          {result.options.map((option, index) => (
-            <article className="candidate" key={index}>
-              <div className="candidate-heading"><h3>{option.check.title}</h3><Status value={option.check.status} /></div>
-              <p><strong>{hvBoundaryLabels[option.hv_boundary]}</strong> · {ctLabels[option.boundary.state]}</p>
-              <p>{option.rationale}</p>
-              <div className="table-scroll">
-                <table>
-                  <thead><tr><th scope="col">Protection path</th><th scope="col">Function</th><th scope="col">Boundary check</th></tr></thead>
-                  <tbody>
-                    <tr><th scope="row">Transformer Main A</th><td>{option.main_coverage.transformer_a.function}</td><td>{option.main_coverage.transformer_a.status}</td></tr>
-                    <tr>
-                      <th scope="row">Transformer Main B</th>
-                      <td>{option.main_coverage.transformer_b.function} · {option.main_coverage.transformer_b.hv_boundary === 'unresolved' ? 'HV boundary unresolved' : hvBoundaryLabels[option.main_coverage.transformer_b.hv_boundary]}</td>
-                      <td>{option.main_coverage.transformer_b.status}{option.main_coverage.transformer_b.boundaries.filter(boundary => boundary.state !== 'present').map(boundary => (
-                        <div key={boundary.label}>{boundary.label} · {ctLabels[boundary.state]}</div>
-                      ))}</td>
-                    </tr>
-                    <tr><th scope="row">Collector bus · single path</th><td>{option.main_coverage.bus.function}</td><td>{option.main_coverage.bus.status}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              {option.scheme === 'shared' && <p><strong>Proposed hardware</strong> · One IED for transformer Main A and 87B. A separate IED for transformer Main B.</p>}
-              {option.main_coverage.transformer_b.coverage && <p><strong>Main B span</strong> · {option.main_coverage.transformer_b.coverage}</p>}
-              {option.main_coverage.transformer_b.alternatives.length > 0 && (
-                <p><strong>Main B CT locations to evaluate</strong> · {option.main_coverage.transformer_b.alternatives.map(location => hvBoundaryLabels[location]).join(' · ')}</p>
-              )}
-              <p>Transformer A/B independence remains unverified. Confirm CT cores, DC supplies, and trip paths.</p>
-              <DeviceRequirements rows={option.device_requirements} auxiliary={study.auxiliary} />
-              <RelayShortlist rows={option.device_requirements} mainBStatus={option.main_coverage.transformer_b.status} />
-              <p><strong>Time-delayed backup</strong> · {option.backup}</p>
-              <p><strong>Supplemental transformer protection</strong> · Evaluate REF separately using winding grounding and the phase and neutral CT assignments.</p>
-              <p><strong>Open item</strong> · {option.open_item}</p>
-              <p><strong>Local boundary check</strong> · {option.check.reason} {option.boundary.coverage}</p>
-              {option.poi_line && <p><strong>Illustrative 87L</strong> · Local CT {ctLabels[option.poi_line.local_ct].toLowerCase()}. {option.poi_line.coverage}</p>}
-              <p><strong>Preliminary trip targets</strong> · {option.check.trip_targets.join(' · ')}. Verify source paths and breaker-failure clearing.</p>
-              <ul>{option.sources.map((source, sourceIndex) => <li key={sourceIndex}><a href={source.url} target="_blank" rel="noreferrer">{source.id} · {source.locator}</a></li>)}</ul>
-            </article>
+    <>
+      <StudySteps step={step} />
+      {step === 2 && <>
+        <div className="stage-intro">
+          <div><h2>Choose a protection scheme</h2><p>Compare zone boundaries first. Relay models come after you confirm the device inputs.</p></div>
+          <button type="button" className="button secondary" onClick={generate} disabled={busy || !!generated}>{busy ? 'Generating…' : generated ? 'AI alternatives added' : 'Generate AI alternatives'}</button>
+        </div>
+        {error && <p className="draft-note" role="alert">{error} You can continue with the station checks below.</p>}
+        {previewError && <p role="alert" className="draft-note">{previewError} <button type="button" className="text-button" onClick={() => setRetry(retry + 1)}>Retry station checks</button></p>}
+        {!preview && !previewError && <p role="status">Loading station checks…</p>}
+        <fieldset className="scheme-choices">
+          <legend className="sr-only">Protection scheme</legend>
+          {options.map(item => (
+            <label className={`scheme-choice${item.id === selection ? ' selected' : ''}`} key={item.id}>
+              <input type="radio" name="scheme" checked={item.id === selection} onChange={() => { setSelection(item.id); setRole(0) }} />
+              <span><small>{item.source}</small><strong>{item.option.check.title}</strong><span>{item.option.rationale}</span></span>
+              <Status value={item.option.check.status} />
+            </label>
           ))}
-          <details>
+        </fieldset>
+        {option && <SelectedCoverage option={option} study={study} />}
+        <details className="panel detail-block"><summary>Open engineering questions</summary><Questions questions={analysis.questions} /></details>
+        {generated?.usage.input_tokens != null && <p className="workflow-meta">AI usage · {generated.usage.input_tokens} input / {generated.usage.output_tokens} output tokens</p>}
+      </>}
+      {step === 3 && option && (
+        <section className="panel">
+          <PanelHeader title="Review device requirements" description={option.check.title} />
+          <div className="detail-block"><p>Phase demand comes from the selected scheme. Set neutral CT and VT requirements for each device. A blank field means unknown.</p>
+            {study.auxiliary === 'unknown' && <p className="draft-note">A separately measured auxiliary tap may add one phase bank to bus differential.</p>}
+          </div>
+          <div className="requirement-grid">{option.device_requirements.map((device, index) => (
+            <article className="requirement-card" key={index}>
+              <h3>{device.role}</h3><p>{device.functions} · {phaseDemand(device)}</p>
+              <div className="field-row">
+                <DeviceInput label="Neutral CT inputs" value={values(index).neutral} onChange={neutral => setRequirements({ ...requirements, [`${selection}/${index}`]: { ...values(index), neutral } })} />
+                <DeviceInput label="Three-phase VT banks" value={values(index).vt} onChange={vt => setRequirements({ ...requirements, [`${selection}/${index}`]: { ...values(index), vt } })} />
+              </div>
+              <p>{device.note}</p>
+            </article>
+          ))}</div>
+        </section>
+      )}
+      {step === 4 && option && row && (
+        <section className="panel">
+          <PanelHeader title="Screen relay models" description={option.check.title} />
+          <div className="detail-block">
+            <label className="field"><span>Device role</span><select value={role} onChange={event => setRole(Number(event.target.value))}>{option.device_requirements.map((device, index) => <option key={index} value={index}>{device.role}</option>)}</select></label>
+            <p><strong>{row.functions}</strong> · {phaseDemand(row)} · {values(role).neutral || 'Unknown'} neutral CT inputs · {values(role).vt || 'Unknown'} VT banks</p>
+            {row.role === 'Transformer Main B' && option.main_coverage.transformer_b.status !== 'Boundaries present' && <p className="draft-note">Main B · {option.main_coverage.transformer_b.status}. The models below are function candidates.</p>}
+            <p>Terminal fit is shown where modeled. Verify the exact order code and application before selection.</p>
+          </div>
+          <div className="relay-grid">
+            {row.candidates.map(candidate => {
+              const { neutral, vt } = values(role)
+              const matching = candidate.allocations.some(layout => layout.fit !== 'Insufficient phase banks' &&
+                (neutral === '' || layout.neutral_inputs >= Number(neutral)) && (vt === '' || layout.vt_banks >= Number(vt)))
+              return (
+                <article className="requirement-card" key={candidate.model}>
+                  <div className="candidate-heading"><h3>{candidate.model}</h3><span className="tag">{candidate.manufacturer}</span></div>
+                  <p><strong>{candidate.status}</strong></p>
+                  <p>{candidate.allocations.length ? matching ? 'Modeled layouts available for review' : 'No matching modeled layout' : candidate.capacity}</p>
+                  <p>{candidate.note}</p>
+                  <a href={candidate.source} target="_blank" rel="noreferrer">Manufacturer documentation</a>
+                  {candidate.allocations.length > 0 && <TerminalAllocation candidate={candidate} neutral={neutral} vt={vt} />}
+                </article>
+              )
+            })}
+          </div>
+          <details className="detail-block">
             <summary>High-impedance bus alternatives</summary>
-            <p>Evaluate the CT secondary circuit, including matching CTs, burden, and stabilization. These candidates use a separate screen from the low-impedance phase-input budget.</p>
-            <ul>{result.high_impedance_bus.map(candidate => (
+            <p>These require a separate CT secondary circuit check.</p>
+            <ul>{(preview ?? generated)?.high_impedance_bus.map(candidate => (
               <li key={candidate.model}><a href={candidate.source} target="_blank" rel="noreferrer">{candidate.manufacturer} · {candidate.model}</a>{candidate.legacy && ' · Legacy, existing equipment only'}</li>
             ))}</ul>
           </details>
-        </div>
+        </section>
       )}
-    </section>
+      <div className="workflow-actions">
+        <button type="button" className="button secondary" onClick={() => step === 2 ? onStation() : changeStep(step - 1)}>{step === 2 ? 'Back to station' : 'Back'}</button>
+        {step < 4 && <button type="button" className="button primary" disabled={!option} onClick={() => changeStep(step + 1)}>
+          {step === 2 ? 'Review device requirements' : 'Screen relay models'} <Icon name="arrow" size={16} />
+        </button>}
+      </div>
+    </>
   )
 }
 
@@ -545,7 +575,6 @@ function Comparison({ baseline, scenario, onCreate }: { baseline: Snapshot; scen
         })}
       </section>
       <ProtectionZoneReview {...scenario} />
-      <AIProtectionOptions key={JSON.stringify(scenario.study)} study={scenario.study} />
       <Questions questions={scenario.analysis.questions} />
     </div>
   )
@@ -629,9 +658,9 @@ function DrawingSource({ file, notes }: { file: File; notes: string[] }) {
   )
 }
 
-function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: (snapshot: Snapshot, source: 'concept' | 'drawing') => void }) {
+function ConceptStudy({ onCancel, onCreate, hasStudy }: { onCancel: () => void; onCreate: (snapshot: Snapshot, source: 'concept' | 'drawing') => void; hasStudy: boolean }) {
   const [draft, setDraft] = useState(emptyConcept)
-  const [source, setSource] = useState<'concept' | 'drawing'>('concept')
+  const [source, setSource] = useState<'concept' | 'drawing' | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [provider, setProvider] = useState<'Claude' | 'OpenAI' | null>(null)
   const [entry, setEntry] = useState(false)
@@ -713,7 +742,7 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
   async function confirmTopology() {
     const problem = validateStudy(draft)
     setError(problem)
-    if (problem) return
+    if (problem || !source) return
     setBusy(true)
     try {
       const study = withInventoryBoundaries(draft)
@@ -726,20 +755,36 @@ function ConceptStudy({ onCancel, onCreate }: { onCancel: () => void; onCreate: 
     }
   }
 
+  if (!source) return (
+    <>
+      <StudySteps step={1} />
+      <div className="start-heading"><p className="eyebrow">NEW PROTECTION STUDY</p><h1>Start with the station</h1>
+        <p>Confirm the station layout, compare protection schemes, and screen relay configurations.</p></div>
+      <div className="start-paths">
+        <button type="button" className="start-path" onClick={() => selectSource('drawing')}>
+          <Icon name="diagram" size={24} /><strong>Upload a single-line</strong>
+          <span>Review a PDF or image, then confirm the breaker layout and CTs.</span><span className="path-link">Choose drawing <Icon name="arrow" size={16} /></span>
+        </button>
+        <button type="button" className="start-path" onClick={() => selectSource('concept')}>
+          <Icon name="plus" size={24} /><strong>Build from a concept</strong>
+          <span>Enter voltages, breaker bays and circuits to create the station model.</span><span className="path-link">Enter station inputs <Icon name="arrow" size={16} /></span>
+        </button>
+      </div>
+      <button className="button secondary" type="button" onClick={onCancel}>{hasStudy ? 'Return to current study' : 'Open example study'}</button>
+    </>
+  )
+
   return (
     <>
+      <StudySteps step={1} />
       <div className="page-heading">
         <div>
-          <p className="eyebrow">{review ? 'TOPOLOGY REVIEW' : source === 'drawing' ? 'DRAWING INTAKE' : 'CONCEPT ENTRY'}</p>
-          <h1>{review ? 'Review topology' : 'New protection study'}</h1>
-          <p>{review ? draft.title : 'Start with one transformer and a single collector bus.'}</p>
+          <p className="eyebrow">{source === 'drawing' ? 'DRAWING' : 'CONCEPT'}</p>
+          <h1>{review ? 'Confirm the station' : source === 'drawing' && !entry ? 'Upload a single-line' : 'Enter station inputs'}</h1>
+          <p>{review ? draft.title : 'One transformer and a single collector bus.'}</p>
         </div>
-        <button className="button secondary" type="button" onClick={onCancel} disabled={busy}>Cancel new study</button>
+        <button className="button secondary" type="button" onClick={() => { setSource(null); setReview(false); setEntry(false); setError(null) }} disabled={busy}>Change starting point</button>
       </div>
-      {!review && !entry && <div className="source-actions" aria-label="Study starting point">
-        <button className={source === 'concept' ? 'button primary' : 'button secondary'} type="button" aria-pressed={source === 'concept'} disabled={busy} onClick={() => selectSource('concept')}>Start with a concept</button>
-        <button className={source === 'drawing' ? 'button primary' : 'button secondary'} type="button" aria-pressed={source === 'drawing'} disabled={busy} onClick={() => selectSource('drawing')}>Upload a drawing</button>
-      </div>}
       {review ? (
         <div className="workspace-grid">
           <div className="workspace-main">
@@ -808,7 +853,8 @@ function App() {
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [attempt, setAttempt] = useState(0)
-  const [creating, setCreating] = useState(false)
+  const [creating, setCreating] = useState(true)
+  const [stationReview, setStationReview] = useState(false)
   const [conceptBaseline, setConceptBaseline] = useState<Snapshot | null>(null)
   const [baselineSource, setBaselineSource] = useState<'concept' | 'drawing'>('concept')
 
@@ -827,6 +873,7 @@ function App() {
     setDraft({ ...structuredClone(baseline.study), title: 'What-if scenario' })
     setFormError(null)
     setView('workspace')
+    setStationReview(true)
   }
 
   async function analyze(event: FormEvent<HTMLFormElement>) {
@@ -845,7 +892,8 @@ function App() {
       const analysis = await analyzeStudy(study)
       setDraft(study)
       setScenario({ study, analysis })
-      setView('comparison')
+      setView('workspace')
+      setStationReview(false)
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Unable to analyze this scenario.')
     } finally {
@@ -854,84 +902,89 @@ function App() {
   }
 
   const visibleStudy = draft ?? baseline?.study
+  const circuitCount = visibleStudy?.bays.reduce((count, bay) => count + bay.branches.length, 0) ?? 0
   const analyzedCase = scenario ?? baseline
   const activeAnalysis = analyzedCase?.analysis
   const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(scenario?.study ?? (baseline && { ...baseline.study, title: 'What-if scenario' }))
   const isDraft = !!draft && (!scenario || dirty)
 
   return (
-    <div className="app">
-      <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-symbol"><Icon name="bolt" size={22} /></span>
-          <div>Relay Selection<span>WIZARD</span></div>
+    <div className="study-app">
+      <header className="study-header">
+        <div className="brand"><span className="brand-symbol"><Icon name="bolt" size={21} /></span><div>Relay Selection<span>WIZARD</span></div></div>
+        <div className="study-actions">
+          {!creating && baseline && <>
+            <button type="button" className="button secondary" disabled={busy} onClick={() => setCreating(true)}>New study</button>
+            <button type="button" className="button secondary" disabled={busy} onClick={() => setView(view === 'workspace' ? 'comparison' : 'workspace')}>{view === 'workspace' ? 'Compare scenarios' : 'Back to study'}</button>
+          </>}
+          <span className="header-label">Preliminary engineering</span>
         </div>
-        <nav aria-label="Study views">
-          <div className="nav-label">STUDY VIEWS</div>
-          <button type="button" className={view === 'workspace' ? 'active' : ''} aria-current={view === 'workspace' ? 'page' : undefined} disabled={creating} onClick={() => setView('workspace')}><Icon name="diagram" size={18} /> Study workspace</button>
-          <button type="button" className={view === 'comparison' ? 'active' : ''} aria-current={view === 'comparison' ? 'page' : undefined} disabled={creating} onClick={() => setView('comparison')}><Icon name="compare" size={18} /> Scenario comparison</button>
-        </nav>
-        <div className="sidebar-footer"><i /> Preliminary engineering</div>
-      </aside>
-      <main className="main">
-        <header className="topbar"><span>Protection studies <b>/</b> Collector substation</span><span className="tag">{creating ? 'NEW STUDY' : conceptBaseline ? (baselineSource === 'drawing' ? 'DRAWING STUDY' : 'CONCEPT STUDY') : 'SYNTHETIC STUDY'}</span></header>
-        <div className="content">
-          {creating && <ConceptStudy onCancel={() => setCreating(false)} onCreate={(snapshot, source) => {
-            setConceptBaseline(snapshot)
-            setBaselineSource(source)
-            setDraft(null)
-            setScenario(null)
-            setFormError(null)
-            setView('workspace')
-            setCreating(false)
-          }} />}
-          {!creating && !baseline && (loadError
-            ? <div className="panel load-state"><h1>Unable to load the study</h1><p role="alert">{loadError}</p><button type="button" className="button primary" onClick={() => { setLoadError(null); setAttempt(attempt + 1) }}>Try again</button></div>
-            : <div className="panel load-state" role="status">Loading the example study…</div>)}
-          {!creating && baseline && (
-            <>
-              <div className="page-heading">
-                <div><p className="eyebrow">PROTECTION STUDY</p><h1>{view === 'workspace' ? baseline.study.title : 'Scenario comparison'}</h1><p>{view === 'workspace' ? 'Review the single-line and screen preliminary protection philosophies.' : 'See how measurement and topology changes affect protection candidates.'}</p></div>
-                {view === 'workspace' && <div className="study-actions">
-                  <button type="button" className="button secondary" disabled={busy} onClick={() => setCreating(true)}><Icon name="plus" size={18} /> New protection study</button>
-                  {!draft && <button type="button" className="button primary" onClick={createScenario}>New scenario</button>}
-                </div>}
-                {view === 'comparison' && draft && <button type="button" className="button secondary" onClick={() => setView('workspace')}>Edit scenario <Icon name="arrow" size={17} /></button>}
+      </header>
+      <main className="content">
+        {creating && <ConceptStudy hasStudy={!!conceptBaseline || !!scenario} onCancel={() => {
+          setCreating(false)
+          setView('workspace')
+          if (!conceptBaseline && !scenario) setStationReview(true)
+        }} onCreate={(snapshot, source) => {
+          setConceptBaseline(snapshot)
+          setBaselineSource(source)
+          setDraft(null)
+          setScenario(null)
+          setFormError(null)
+          setView('workspace')
+          setStationReview(false)
+          setCreating(false)
+        }} />}
+        {!creating && !baseline && (loadError
+          ? <div className="panel load-state"><h1>Unable to load the example</h1><p role="alert">{loadError}</p><button type="button" className="button primary" onClick={() => { setLoadError(null); setAttempt(attempt + 1) }}>Try again</button></div>
+          : <div className="panel load-state" role="status">Loading the example study…</div>)}
+        {!creating && baseline && visibleStudy && analyzedCase && activeAnalysis && (
+          <>
+            <div className="page-heading study-context">
+              <div><p className="eyebrow">{isDraft ? 'SCENARIO DRAFT' : scenario ? 'ANALYZED SCENARIO' : conceptBaseline ? (baselineSource === 'drawing' ? 'DRAWING STUDY' : 'CONCEPT STUDY') : 'EXAMPLE STUDY'}</p>
+                <h1>{view === 'comparison' ? 'Scenario comparison' : visibleStudy.title}</h1>
+                <p>{visibleStudy.hv_kv} / {visibleStudy.mv_kv} kV · {visibleStudy.bays.length} collector {visibleStudy.bays.length === 1 ? 'breaker' : 'breakers'} · {circuitCount} {circuitCount === 1 ? 'circuit' : 'circuits'}</p>
               </div>
-              {view === 'workspace' && visibleStudy && analyzedCase && activeAnalysis && (
-                <>
-                  {isDraft && <p className="draft-note" role="status">Draft changes appear in the one-line. Counts and findings show the last analyzed case.</p>}
-                  <Metrics analysis={activeAnalysis} auxiliary={analyzedCase.study.auxiliary} />
-                  <div className="workspace-grid">
-                    <div className="workspace-main">
-                      <Topology study={visibleStudy} tag={draft ? (isDraft ? 'DRAFT' : 'SCENARIO') : 'BASELINE'} />
-                      <ProtectionZoneReview {...analyzedCase} />
-                      <AIProtectionOptions key={JSON.stringify(analyzedCase.study)} study={analyzedCase.study} />
-                      <section className="panel">
-                        <PanelHeader title="Protection philosophies" description={scenario ? 'Most recent analyzed scenario.' : 'Preliminary results for the baseline.'} />
-                        {activeAnalysis.candidates.map(candidate => <CandidateCard key={candidate.id} candidate={candidate} tripBasis={activeAnalysis.trip_basis} />)}
-                      </section>
-                    </div>
-                    <div className="workspace-side">
-                      {draft ? <StudyEditor draft={draft} update={setDraft} onSubmit={analyze} onReset={() => {
-                        if (scenario) setDraft(structuredClone(scenario.study))
-                        else createScenario()
-                        setFormError(null)
-                      }} busy={busy} dirty={dirty} error={formError} /> : (
-                        <section className="panel overview">
-                          <PanelHeader title="Study inputs" description="Boundary CT status drives the one-line. CT counts are inventory entries, prefilled with standard defaults in new studies. Start a scenario to change these inputs." />
-                          <dl><div><dt>{hvBoundaryLabels[baseline.study.hv_boundary ?? 'poi']} CT</dt><dd>{ctLabels[baseline.study.hv_ct]}</dd></div><div><dt>Transformer LV boundary CT</dt><dd>{ctLabels[baseline.study.lv_ct]}</dd></div><div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[baseline.study.auxiliary]}</dd></div><div><dt>Owner criteria</dt><dd><Status value="Pending" /></dd></div>{ctInventoryFields.map(([key, label]) => <div key={key}><dt>{label} CT count</dt><dd>{ctInventoryValue(baseline.study, key)}</dd></div>)}</dl>
-                        </section>
-                      )}
-                      <Questions questions={activeAnalysis.questions} />
-                    </div>
-                  </div>
-                </>
-              )}
-              {view === 'comparison' && <Comparison baseline={baseline} scenario={scenario} onCreate={() => draft ? setView('workspace') : createScenario()} />}
-            </>
-          )}
-        </div>
+              {view === 'comparison' && draft && <button className="button secondary" type="button" onClick={() => { setView('workspace'); setStationReview(true) }}>Edit scenario</button>}
+            </div>
+            {view === 'workspace' && (stationReview || isDraft) && <>
+              <StudySteps step={1} />
+              <div className="workspace-grid station-workspace">
+                <div className="workspace-main">
+                  <Topology study={visibleStudy} tag={isDraft ? 'DRAFT' : 'CONFIRMED'} />
+                  {!isDraft && <details className="panel detail-block"><summary>Engineering questions</summary><Questions questions={activeAnalysis.questions} /></details>}
+                </div>
+                {draft ? <StudyEditor draft={draft} update={setDraft} onSubmit={analyze} onReset={() => {
+                  if (scenario) setDraft(structuredClone(scenario.study))
+                  else createScenario()
+                  setFormError(null)
+                }} busy={busy} dirty={dirty} error={formError} /> : (
+                  <section className="panel overview">
+                    <PanelHeader title="Station measurements" description="Review the confirmed CT inventory and auxiliary branch treatment." />
+                    <dl><div><dt>{hvBoundaryLabels[baseline.study.hv_boundary ?? 'poi']} CT</dt><dd>{ctLabels[baseline.study.hv_ct]}</dd></div>
+                      <div><dt>Transformer LV boundary CT</dt><dd>{ctLabels[baseline.study.lv_ct]}</dd></div>
+                      <div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[baseline.study.auxiliary]}</dd></div>
+                      {ctInventoryFields.map(([key, label]) => <div key={key}><dt>{label} CT count</dt><dd>{ctInventoryValue(baseline.study, key)}</dd></div>)}</dl>
+                    <div className="editor-actions"><button type="button" className="button secondary" onClick={createScenario}>Create what-if scenario</button></div>
+                  </section>
+                )}
+              </div>
+              {isDraft && <div className="workflow-actions"><button type="button" className="button secondary" disabled={busy} onClick={() => {
+                setDraft(scenario?.study ?? null)
+                setFormError(null)
+                setStationReview(false)
+              }}>Discard draft changes</button></div>}
+              {!isDraft && <div className="workflow-actions"><button type="button" className="button primary" onClick={() => setStationReview(false)}>Compare protection schemes <Icon name="arrow" size={16} /></button></div>}
+            </>}
+            <div hidden={view !== 'workspace' || stationReview || isDraft}>
+              <ProtectionWorkflow key={JSON.stringify(analyzedCase.study)} {...analyzedCase} onStation={() => { setStationReview(true); window.scrollTo(0, 0) }} />
+            </div>
+            {view === 'comparison' && <Comparison baseline={baseline} scenario={scenario} onCreate={() => {
+              if (draft) { setView('workspace'); setStationReview(true) }
+              else createScenario()
+            }} />}
+          </>
+        )}
       </main>
     </div>
   )

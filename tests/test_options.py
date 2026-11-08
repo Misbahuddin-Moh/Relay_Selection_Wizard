@@ -3,7 +3,7 @@ import json
 from unittest import TestCase
 from unittest.mock import patch
 
-from backend.main import reference_study
+from backend.main import Study, protection_preview, reference_study
 from backend.engine import analyze
 from backend.options import OptionsError, device_requirements, generate_options, request_options
 
@@ -110,3 +110,16 @@ class OptionsTests(TestCase):
             [row["fit"] for row in sel["allocations"]],
             ["Insufficient phase banks"] * 3 + ["Lower phase demand only"],
         )
+
+
+    def test_local_preview_supplies_device_requirements_without_provider(self):
+        study = Study.model_validate(reference_study()["study"])
+        with patch("backend.options.request_options") as request:
+            result = protection_preview(study)
+        request.assert_not_called()
+        self.assertEqual([option["scheme"] for option in result["options"]], ["dedicated", "shared", "combined"])
+        for option in result["options"]:
+            self.assertTrue(option["zones"])
+            self.assertTrue(option["device_requirements"][0]["candidates"])
+            self.assertEqual(option["main_coverage"]["transformer_b"]["hv_boundary"], "unresolved")
+        self.assertIsNone(result["usage"]["input_tokens"])

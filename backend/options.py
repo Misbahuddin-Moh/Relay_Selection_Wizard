@@ -204,8 +204,26 @@ def generate_options(study):
     summary = json.dumps(compact_study(study), sort_keys=True, separators=(",", ":"))
     model = os.getenv("RELAY_OPTIONS_MODEL") or "claude-sonnet-4-6"
     proposal, usage = request_options(summary, model)
+    return present_options(study, proposal.options, usage)
+
+
+def preview_options(study):
+    boundary = study.get("hv_boundary", "poi")
+    return present_options(study, [
+        Option(scheme=scheme, hv_boundary=boundary, rationale=rationale,
+               transformer_main_b_hv="unresolved", open_item="Confirm independent Main B CT and trip assignments.",
+               evidence=evidence)
+        for scheme, rationale, evidence in (
+            ("dedicated", "Separate transformer and bus protection devices.", ["T_SEPARATE", "B_FULL"]),
+            ("shared", "Separate zones share a device for Main A and bus protection.", ["SHARED_IED", "B_FULL"]),
+            ("combined", "One extended Main A differential zone covers transformer and bus.", ["TB_COMBINED"]),
+        )
+    ], {})
+
+
+def present_options(study, proposals, usage):
     options = []
-    for option in proposal.options:
+    for option in proposals:
         checked = analyze({**study, "hv_boundary": option.hv_boundary})
         candidate = next(item for item in checked["candidates"] if item["id"] == option.scheme)
         boundary = next(item for item in checked["hv_boundaries"] if item["id"] == option.hv_boundary)
@@ -213,6 +231,7 @@ def generate_options(study):
             **option.model_dump(),
             "backup": "Time-graded overcurrent for coordination study. Project applicability remains open.",
             "check": candidate,
+            "zones": checked["zones"],
             "main_coverage": main_coverage(study, option, checked),
             "device_requirements": device_requirements(study, option.scheme, checked),
             "boundary": boundary,

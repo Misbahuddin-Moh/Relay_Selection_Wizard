@@ -163,6 +163,7 @@ export interface GeneratedOptions {
     }[]
     backup: string
     open_item: string
+    zones: ProtectionZone[]
     check: Candidate
     boundary: Analysis['hv_boundaries'][number]
     poi_line: Analysis['poi_line']
