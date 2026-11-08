@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
+import { Sel487eInputDiagram, T60ModulePreview } from './RelayInputDiagram'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
 import { auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, hvBoundaryLabels, withInventoryBoundaries } from './model'
 import type { Analysis, Candidate, CtInventory, DrawingDraft, GeneratedOptions, Snapshot, Study } from './model'
@@ -272,12 +273,14 @@ function TerminalAllocation({ candidate, device, neutral, vt }: {
   neutral: string
   vt: string
 }) {
+  const [selectedLayout, setSelectedLayout] = useState('')
   const complete = neutral !== '' && vt !== ''
   const layouts = candidate.allocations.filter(layout =>
     layout.fit !== 'Insufficient phase banks' &&
     (neutral === '' || layout.neutral_inputs >= Number(neutral)) &&
     (vt === '' || layout.vt_banks >= Number(vt)),
   )
+  const active = layouts.find(layout => `${layout.y}/${layout.z}` === selectedLayout) ?? layouts[0]
 
   return (
     <section className="input-fit" aria-label="Input fit">
@@ -290,17 +293,15 @@ function TerminalAllocation({ candidate, device, neutral, vt }: {
             ? 'At least one layout meets the modeled input requirements.'
             : 'Fits only the lower phase demand. Confirm which phase case applies.'}</p>
       {layouts.map(layout => (
-        <div className="input-layout" key={`${layout.y}/${layout.z}`}>
+        <button className="input-layout input-layout-choice" type="button" key={`${layout.y}/${layout.z}`}
+          aria-pressed={active === layout} onClick={() => setSelectedLayout(`${layout.y}/${layout.z}`)}>
           <strong>{layout.neutral_inputs > 0 ? 'Keep dedicated neutral inputs' : 'Trade neutral inputs for a phase CT bank'}</strong>
-          <p>{layout.phase_banks} phase CT banks · {layout.neutral_inputs} neutral CT inputs · {layout.vt_banks} VT banks</p>
-          {layout.fit === 'Lower phase demand only' && <p className="layout-condition">Fits only the lower phase demand.</p>}
-          {layout.neutral_inputs === 0 && <p className="layout-condition">This layout leaves no dedicated neutral CT inputs.</p>}
-          <details>
-            <summary>Hardware details</summary>
-            <p>Dual AC cards · Terminal Y uses {layout.y.toLowerCase()} · Terminal Z uses a {layout.z.toLowerCase()}.</p>
-          </details>
-        </div>
+          <span>{layout.phase_banks} phase CT banks · {layout.neutral_inputs} neutral CT inputs · {layout.vt_banks} VT banks</span>
+          {layout.fit === 'Lower phase demand only' && <span className="layout-condition">Fits only the lower phase demand.</span>}
+          {layout.neutral_inputs === 0 && <span className="layout-condition">This layout leaves no dedicated neutral CT inputs.</span>}
+        </button>
       ))}
+      {active && <Sel487eInputDiagram neutralInputs={active.neutral_inputs} vtBanks={active.vt_banks} />}
     </section>
   )
 }
@@ -485,6 +486,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
                   <p>{candidate.note}</p>
                   <a href={candidate.source} target="_blank" rel="noreferrer">Manufacturer documentation</a>
                   {candidate.allocations.length > 0 && <TerminalAllocation candidate={candidate} device={row} neutral={neutral} vt={vt} />}
+                  {candidate.manufacturer === 'GE' && candidate.model.startsWith('Multilin T60') && <T60ModulePreview />}
                 </article>
               )
             })}

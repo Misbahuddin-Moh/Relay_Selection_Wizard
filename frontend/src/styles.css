@@ -270,3 +270,25 @@ details.detail-block { margin-top: 12px; }
 .input-layout { display: grid; gap: 5px; padding: 10px 12px; border: 1px solid #d8e2e6; border-radius: 7px; background: #f7fafb; }
 .input-layout .layout-condition { color: #76500d; }
 .input-layout summary { color: #176367; }
+
+.input-layout-choice { text-align: left; color: inherit; width: 100%; }
+.input-layout-choice[aria-pressed="true"] { border-color: #176367; box-shadow: inset 3px 0 #176367; }
+.input-diagram { display: grid; gap: 12px; min-width: 0; padding: 14px; background: #142a35; color: #e7f2f4; border-radius: 9px; }
+.input-diagram header { display: grid; gap: 3px; }
+.input-diagram header span { color: #b6cfd4; font-size: 12px; }
+.input-diagram-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 7px; }
+.input-group { display: grid; gap: 6px; padding: 7px; border: 1px solid currentColor; border-radius: 6px; background: #223a47; text-align: left; color: #a8d5ff; }
+.input-group.neutral { color: #ffce91; }
+.input-group.voltage { color: #8ee2d7; }
+.input-group[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: 1px; background: #304b59; }
+.input-group:focus-visible { outline: 2px dashed white; outline-offset: 2px; }
+.input-channel-labels { display: flex; flex-wrap: wrap; gap: 3px; font-size: 11px; }
+.input-channel-labels span { padding: 1px 3px; border-radius: 3px; background: #142a35; }
+.input-diagram .input-group-readout { color: #e7f2f4; font-size: 13px; }
+.input-diagram-source { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.input-diagram-source .text-button, .input-diagram-source a { color: #a8e3df; font-size: 12px; }
+.vendor-drawing { width: 100%; min-height: 320px; border: 1px solid #597480; background: #fff; border-radius: 6px; }
+.input-layout-choice > span { color: #50646d; font-size: 13px; line-height: 1.45; }
+.input-layout-choice > .layout-condition { color: #76500d; }
+.relay-grid { align-items: start; }
+.input-diagram-source .text-button:hover:not(:disabled) { background: #304b59; }
