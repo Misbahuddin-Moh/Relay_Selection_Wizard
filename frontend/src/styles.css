@@ -311,3 +311,11 @@ details.detail-block { margin-top: 12px; }
 .project-requirements .field, .project-requirements .requirement-card { margin-block: 12px; }
 .project-requirements textarea { width: 100%; padding: 8px; border: 1px solid #cedbd3; border-radius: 6px; font: inherit; }
 .project-requirements blockquote { margin: 8px 0; padding-inline-start: 12px; border-inline-start: 3px solid #cedbd3; overflow-wrap: anywhere; }
+
+.study-steps li button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 0; border: 0; background: transparent; color: #124e52; text-align: left; font: inherit; cursor: pointer; }
+.study-steps li button:hover { text-decoration: underline; }
+.study-steps li button:focus-visible { outline: 2px solid #176367; outline-offset: 3px; }
+.shortlist-inputs { margin-block: 12px; }
+@media (max-width: 750px) {
+  .study-steps li button { flex-direction: column; align-items: flex-start; }
+}

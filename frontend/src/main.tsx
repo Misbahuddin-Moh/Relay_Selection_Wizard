@@ -321,14 +321,19 @@ function phaseDemand(device: Option['device_requirements'][number]) {
     : `${banks}–${alternate} phase CT banks · ${banks * 3}–${alternate * 3} phase inputs`
 }
 
-function StudySteps({ step }: { step: number }) {
+function StudySteps({ step, onBack }: { step: number; onBack?: (step: number) => void }) {
   return (
     <ol className="study-steps" aria-label="Study progress">
-      {['Station', 'Protection scheme', 'Relay signals', 'Relay shortlist'].map((label, index) => (
-        <li key={label} aria-current={step === index + 1 ? 'step' : undefined} className={step === index + 1 ? 'current' : step > index + 1 ? 'complete' : ''}>
-          <span>{index + 1}</span>{label}
-        </li>
-      ))}
+      {['Station', 'Protection scheme', 'Relay signals', 'Relay shortlist'].map((label, index) => {
+        const number = index + 1
+        return (
+          <li key={label} aria-current={step === number ? 'step' : undefined} className={step === number ? 'current' : step > number ? 'complete' : ''}>
+            {number < step && onBack
+              ? <button type="button" onClick={() => onBack(number)}><span>{number}</span>{label}</button>
+              : <><span>{number}</span>{label}</>}
+          </li>
+        )
+      })}
     </ol>
   )
 }
@@ -380,6 +385,15 @@ function DeviceInput({ label, value, onChange }: { label: string; value: string;
   )
 }
 
+function RelayInputSelection({ values, change }: { values: Requirements; change: (field: keyof Requirements, value: string) => void }) {
+  return (
+    <div className="field-row">
+      <DeviceInput label="Neutral CT inputs" value={values.neutral} onChange={value => change('neutral', value)} />
+      <DeviceInput label="Three-phase VT banks" value={values.vt} onChange={value => change('vt', value)} />
+    </div>
+  )
+}
+
 function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStation: () => void }) {
   const [preview, setPreview] = useState<GeneratedOptions | null>(null)
   const [generated, setGenerated] = useState<GeneratedOptions | null>(null)
@@ -400,6 +414,10 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
   const option = selected?.option
   const row = option?.device_requirements[role]
   const values = (index: number) => requirements[`${selection}/${index}`] ?? unknownRequirements
+  function changeInput(index: number, field: keyof Requirements, value: string) {
+    const key = `${selection}/${index}`
+    setRequirements(current => ({ ...current, [key]: { ...(current[key] ?? unknownRequirements), [field]: value } }))
+  }
   const projectFindings = applied[selection] ?? []
   const effectiveValues = (index: number) => {
     const result = { ...values(index) }
@@ -434,13 +452,18 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
   }
 
   function changeStep(next: number) {
+    if (next === 1) {
+      setStep(2)
+      onStation()
+      return
+    }
     setStep(next)
     window.scrollTo(0, 0)
   }
 
   return (
     <>
-      <StudySteps step={step} />
+      <StudySteps step={step} onBack={changeStep} />
       {step === 2 && <>
         <div className="stage-intro">
           <div><h2>Choose a protection scheme</h2><p>Compare zone boundaries first. Relay models come after you confirm the device inputs.</p></div>
@@ -478,10 +501,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
                 {device.measurement_sources.map(source => <li key={source.label}>{source.label} · {ctLabels[source.state]}</li>)}
               </ul></details>
               <p className="draft-note">Digital I/O and contact duty remain open until the signal destinations and wiring method are confirmed.</p>
-              <div className="field-row">
-                <DeviceInput label="Neutral CT inputs" value={values(index).neutral} onChange={neutral => setRequirements({ ...requirements, [`${selection}/${index}`]: { ...values(index), neutral } })} />
-                <DeviceInput label="Three-phase VT banks" value={values(index).vt} onChange={vt => setRequirements({ ...requirements, [`${selection}/${index}`]: { ...values(index), vt } })} />
-              </div>
+              <RelayInputSelection values={values(index)} change={(field, value) => changeInput(index, field, value)} />
               <p>{device.note}</p>
             </article>
           ))}</div>
@@ -492,6 +512,11 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
           <PanelHeader title="Screen relay models" description={option.check.title} />
           <div className="detail-block">
             <label className="field"><span>Device role</span><select value={role} onChange={event => setRole(Number(event.target.value))}>{option.device_requirements.map((device, index) => <option key={index} value={index}>{device.role}</option>)}</select></label>
+            <fieldset className="editor-fields shortlist-inputs">
+              <legend>Relay input selection</legend>
+              <p>Set input needs for this device. Leave a count blank if it’s unknown. Confirmed project minimums still apply.</p>
+              <RelayInputSelection values={values(role)} change={(field, value) => changeInput(role, field, value)} />
+            </fieldset>
             <p><strong>{row.functions}</strong> · {phaseDemand(row)} · {effectiveValues(role).neutral || 'Unknown'} neutral CT inputs · {effectiveValues(role).vt || 'Unknown'} VT banks</p>
             {row.role === 'Transformer Secondary' && option.main_coverage.transformer_b.status !== 'Boundaries present' && <p className="draft-note">Secondary · {option.main_coverage.transformer_b.status}. The models below are function candidates.</p>}
             {projectFindings.filter(finding => finding.device === role).map(finding =>
@@ -534,7 +559,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
         </section>
       )}
       <div className="workflow-actions">
-        <button type="button" className="button secondary" onClick={() => step === 2 ? onStation() : changeStep(step - 1)}>{step === 2 ? 'Back to station' : 'Back'}</button>
+        <button type="button" className="button secondary" onClick={() => changeStep(step - 1)}>{step === 2 ? 'Back to station' : 'Back'}</button>
         {step < 4 && <button type="button" className="button primary" disabled={!option} onClick={() => changeStep(step + 1)}>
           {step === 2 ? 'Review device requirements' : 'Screen relay models'} <Icon name="arrow" size={16} />
         </button>}
