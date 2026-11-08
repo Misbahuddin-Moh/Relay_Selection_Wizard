@@ -287,8 +287,18 @@ details.detail-block { margin-top: 12px; }
 .input-diagram .input-group-readout { color: #e7f2f4; font-size: 13px; }
 .input-diagram-source { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .input-diagram-source .text-button, .input-diagram-source a { color: #a8e3df; font-size: 12px; }
-.vendor-drawing { width: 100%; min-height: 320px; border: 1px solid #597480; background: #fff; border-radius: 6px; }
+.vendor-drawing { border: 1px solid #597480; border-radius: 6px; }
 .input-layout-choice > span { color: #50646d; font-size: 13px; line-height: 1.45; }
 .input-layout-choice > .layout-condition { color: #76500d; }
 .relay-grid { align-items: start; }
 .input-diagram-source .text-button:hover:not(:disabled) { background: #304b59; }
+.drawing-zoom { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.drawing-zoom select { padding: 4px; border: 1px solid #597480; border-radius: 4px; background: #223a47; color: #e7f2f4; }
+.vendor-drawing { min-width: 0; max-height: 440px; overflow: auto; background: #fff; }
+.vendor-drawing-sheet { position: relative; margin-inline: auto; }
+.vendor-drawing-sheet img { display: block; width: 100%; height: auto; }
+.drawing-hotspot { position: absolute; padding: 0; border: 1px solid #245c92; border-radius: 3px; background: transparent; color: #245c92; }
+.drawing-hotspot.neutral { border-color: #87510f; color: #87510f; }
+.drawing-hotspot.voltage { border-color: #126959; color: #126959; }
+.drawing-hotspot:hover, .drawing-hotspot[aria-pressed="true"] { background: color-mix(in srgb, currentColor 20%, transparent); }
+.drawing-hotspot[aria-pressed="true"], .drawing-hotspot:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; }
