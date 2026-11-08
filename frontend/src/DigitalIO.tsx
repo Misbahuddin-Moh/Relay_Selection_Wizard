@@ -16,11 +16,26 @@ type Signal = {
 }
 
 const variants = {
-  LOCK: '86 lockout · external POI breaker failure',
-  DIRECT: 'Direct trips · external POI breaker failure',
-  GOOSE_BFI: '86 lockout · GOOSE breaker-failure initiation',
-  LOCAL_H: '86 lockout · POI breaker failure in Transformer Primary',
-  EXTERNAL_F: '86 lockout · dedicated feeder breaker-failure relays',
+  LOCK: {
+    title: 'Trip through lockout relays',
+    detail: 'The transformer and bus protection outputs operate 86 lockout relays. Their contacts trip the breakers and start breaker-failure timing. A separate relay handles POI breaker failure.',
+  },
+  DIRECT: {
+    title: 'Trip breakers directly',
+    detail: 'The transformer and bus protection relays use their own outputs to trip breaker coils and send separate hardwired signals to start breaker-failure timing. A separate relay still handles POI breaker failure.',
+  },
+  GOOSE_BFI: {
+    title: 'Trip through lockouts and start breaker-failure timing over the network',
+    detail: 'Breaker trips still use 86 lockout contacts. The modeled breaker-failure start signals use IEC 61850 GOOSE messages, which free up physical DI and DO points for those signals.',
+  },
+  LOCAL_H: {
+    title: 'Put POI breaker failure in Transformer Primary',
+    detail: 'Breaker trips still use 86 lockout contacts. Transformer Primary runs the POI breaker-failure logic. Its own start signal stays inside the relay, while starts from other devices use inputs on Transformer Primary.',
+  },
+  EXTERNAL_F: {
+    title: 'Give each feeder a separate breaker-failure relay',
+    detail: 'Breaker trips still use 86 lockout contacts. Each feeder gets a separate breaker-failure relay with its own input and output budget. The POI breaker-failure relay stays separate.',
+  },
 }
 type Variant = keyof typeof variants
 type Spare = { di: number; do: number; basis: 'used' | 'installed' }
@@ -104,12 +119,17 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
       <h3>Digital I/O budget</h3>
       <p>Each relay has its own digital inputs (DI) and outputs (DO). Select a relay to review its signals. The overview shows required physical points with spares.</p>
       <p>Illustrative three-breaker reference wiring. Review the project trip matrix and control drawings before applying these counts. The 20% default is a worked-example assumption.</p>
-      <div className="field-row">
-        <label className="field"><span>Wiring example</span><select value={settings.variant}
-          onChange={event => change({ ...settings, variant: event.target.value as Variant })}>
-          {Object.entries(variants).map(([key, name]) => <option key={key} value={key}>{name}</option>)}
-        </select></label>
-      </div>
+      <fieldset>
+        <legend>How are trips and breaker failure wired?</legend>
+        <p>An 86 lockout relay trips assigned breakers and keeps them locked out until reset. Breaker-failure timing starts when a trip is issued so backup clearing can operate if the breaker fails to open.</p>
+        <div className="digital-relays wiring-examples">
+          {(Object.keys(variants) as Variant[]).map(variant => <label key={variant}>
+            <input type="radio" name={`${deviceList}-wiring`} checked={settings.variant === variant}
+              onChange={() => change({ ...settings, variant })} />
+            <span><strong>{variants[variant].title}</strong><br />{variants[variant].detail}</span>
+          </label>)}
+        </div>
+      </fieldset>
       <fieldset>
         <legend>Relay to review</legend>
         <div className="digital-relays">

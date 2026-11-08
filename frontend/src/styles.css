@@ -250,6 +250,7 @@ details.detail-block { margin-top: 12px; }
 .detail-block summary, .requirement-card summary { cursor: pointer; font-size: 14px; font-weight: 700; }
 .detail-block p + p, .detail-block summary + p { margin-top: 8px; }
 .requirement-grid, .relay-grid { padding: 0 18px; }
+.requirement-grid { align-items: start; }
 .requirement-card a, .detail-block a { color: #176367; overflow-wrap: anywhere; }
 .workflow-actions { display: flex; justify-content: flex-end; gap: 10px; padding-block: 16px; }
 .workflow-meta { margin-top: 12px; }
@@ -324,6 +325,7 @@ details.detail-block { margin-top: 12px; }
 .digital-io .field-row, .digital-io details, .digital-io fieldset { margin-block: 8px; }
 .digital-io summary { color: #124e52; }
 .digital-relays { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.wiring-examples { grid-template-columns: 1fr; }
 .digital-relays label { display: flex; align-items: start; gap: 8px; padding: 8px; border: 1px solid #d8e3e6; border-radius: 6px; cursor: pointer; }
 .digital-relays label:has(input:checked) { background: #e5f1e9; border-color: #176367; }
 .digital-io-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 8px; }
