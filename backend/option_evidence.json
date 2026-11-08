@@ -80,7 +80,7 @@
     ]
   },
   "T_REF_BACKUP": {
-    "note": "REF depends on grounding and winding phase and neutral CTs. Evaluate time-graded backup separately from Main A/B redundancy.",
+    "note": "REF depends on grounding and winding phase and neutral CTs. Evaluate time-graded backup separately from primary and secondary protection.",
     "sources": [
       {
         "id": "PV24",

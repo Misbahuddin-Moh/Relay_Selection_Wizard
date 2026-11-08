@@ -1,25 +1,25 @@
 import { useState } from 'react'
 
-type InputGroup = {
+export type InputGroup = {
   label: string
-  kind: 'phase' | 'neutral' | 'voltage'
+  kind: 'phase' | 'neutral' | 'voltage' | 'other'
   description: string
   channels: string[]
 }
 
-type Drawing = {
+export type Drawing = {
   file: string
   width: number
   height: number
   hotspots: Record<string, [number, number, number, number]>
 }
 
-function RelayInputDiagram({ groups, caption, reference, referenceLabel, drawing }: {
+export function RelayInputDiagram({ groups, caption, reference, referenceLabel, drawing }: {
   groups: InputGroup[]
   caption: string
   reference: string
   referenceLabel: string
-  drawing: Drawing
+  drawing?: Drawing
 }) {
   const [active, setActive] = useState<string | null>(null)
   const [showHighlights, setShowHighlights] = useState(true)
@@ -27,9 +27,9 @@ function RelayInputDiagram({ groups, caption, reference, referenceLabel, drawing
   const selected = groups.find(group => group.label === active) ?? groups[0]
   return (
     <section className="input-diagram" aria-label="Relay input diagram">
-      <header><strong>Vendor drawing</strong><span>{caption}</span></header>
+      <header><strong>{drawing ? 'Vendor illustration' : 'Functional input map'}</strong><span>{caption}</span></header>
       <div className="input-diagram-source">
-        <button type="button" className="text-button" aria-pressed={showHighlights} onClick={() => setShowHighlights(!showHighlights)}>
+        {drawing && <><button type="button" className="text-button" aria-pressed={showHighlights} onClick={() => setShowHighlights(!showHighlights)}>
           {showHighlights ? 'Show original' : 'Show input highlights'}
         </button>
         <label className="drawing-zoom">Zoom
@@ -39,12 +39,12 @@ function RelayInputDiagram({ groups, caption, reference, referenceLabel, drawing
             <option value={200}>200%</option>
             <option value={300}>300%</option>
           </select>
-        </label>
+        </label></>}
         <a href={reference} target="_blank" rel="noreferrer">{referenceLabel} ↗</a>
       </div>
-      <div className="vendor-drawing" tabIndex={0} role="region" aria-label="Scrollable vendor drawing">
+      {drawing && <div className="vendor-drawing" tabIndex={0} role="region" aria-label="Scrollable vendor drawing">
         <div className="vendor-drawing-sheet" style={{ width: `${zoom}%`, maxWidth: drawing.width * zoom / 100 }}>
-          <img src={`/relay-drawings/${drawing.file}.svg`} alt={referenceLabel}
+          <img src={`/relay-drawings/${drawing.file}`} alt={referenceLabel}
             width={drawing.width} height={drawing.height} loading="lazy" />
           {showHighlights && groups.map(group => {
             const [x, y, width, height] = drawing.hotspots[group.label]
@@ -57,13 +57,13 @@ function RelayInputDiagram({ groups, caption, reference, referenceLabel, drawing
             )
           })}
         </div>
-      </div>
+      </div>}
       <div className="input-diagram-groups" aria-label="Input groups">
         {groups.map(group => (
           <button className={`input-group ${group.kind}`} type="button" key={group.label}
             aria-pressed={selected.label === group.label} onClick={() => setActive(group.label)}>
             <strong>{group.label}</strong>
-            <span className="input-channel-labels">{group.channels.map(channel => <span key={channel}>{channel}</span>)}</span>
+            {group.channels.length > 0 && <span className="input-channel-labels">{group.channels.map(channel => <span key={channel}>{channel}</span>)}</span>}
           </button>
         ))}
       </div>
@@ -79,7 +79,7 @@ function selDrawing(secondVt: boolean): Drawing {
   const upper = secondVt ? 301 : 211
   const lower = secondVt ? 360 : 272
   return {
-    file: secondVt ? 'sel-487e-fig34' : 'sel-487e-fig33',
+    file: secondVt ? 'sel-487e-fig34.svg' : 'sel-487e-fig33.svg',
     width: secondVt ? 460 : 461,
     height: secondVt ? 415 : 323,
     hotspots: {
@@ -97,11 +97,11 @@ function selDrawing(secondVt: boolean): Drawing {
 
 // Fig. 20 crops start at (324, 55) for 8CT and (197, 120) for 4CT / 4VT.
 const geDrawings: Record<'ct' | 'mixed', Drawing> = {
-  ct: { file: 'ge-t60-8ct', width: 103, height: 395, hotspots: {
+  ct: { file: 'ge-t60-8ct.svg', width: 103, height: 395, hotspots: {
     'Bank 1': [23, 3, 77, 195],
     'Bank 2': [23, 198, 77, 195],
   } },
-  mixed: { file: 'ge-t60-4ct-4vt', width: 103, height: 330, hotspots: {
+  mixed: { file: 'ge-t60-4ct-4vt.svg', width: 103, height: 330, hotspots: {
     'Bank 1': [23, 3, 77, 194],
     'Bank 2': [23, 197, 77, 130],
   } },
@@ -129,7 +129,27 @@ export function Sel487eInputDiagram({ neutralInputs, vtBanks }: { neutralInputs:
     referenceLabel={`SEL datasheet · rear panel Fig. ${vtBanks === 2 ? 34 : 33}`} />
 }
 
-export function T60ModulePreview() {
+const urManuals = {
+  T60: ['t60', 'T60-1601-0090-86x-3', 101, 20],
+  B30: ['b30', 'B30-1601-0109-86x-3', 95, 24],
+  B90: ['b90', 'B90-1601-0115-86x-3', 84, 23],
+  F60: ['f60', 'F60-1601-0093-86x-3', 95, 20],
+  L90: ['l90', 'L90-1601-0081-86x-3', 111, 22],
+} as const
+
+const b90Drawings: typeof geDrawings = {
+  ct: { file: 'ge-b90-8ct.webp', width: 398, height: 104, hotspots: {
+    'Bank 1': [4, 4, 195, 90],
+    'Bank 2': [199, 4, 195, 90],
+  } },
+  mixed: { file: 'ge-b90-4ct-4vt.webp', width: 334, height: 104, hotspots: {
+    'Bank 1': [4, 4, 195, 87],
+    'Bank 2': [199, 4, 131, 87],
+  } },
+}
+
+export function UrModulePreview({ model }: { model: keyof typeof urManuals }) {
+  const [directory, manual, page, figure] = urManuals[model]
   const [module, setModule] = useState<'ct' | 'mixed'>('ct')
   const groups: InputGroup[] = [
     { label: 'Bank 1', kind: 'phase', description: 'Three phase currents plus a ground current channel.', channels: ['IA', 'IB', 'IC', 'IG'] },
@@ -138,7 +158,7 @@ export function T60ModulePreview() {
       : { label: 'Bank 2', kind: 'voltage', description: 'Three phase voltages plus an auxiliary voltage channel.', channels: ['VA', 'VB', 'VC', 'VX'] },
   ]
   return (
-    <section className="input-fit" aria-label="T60 module preview">
+    <section className="input-fit" aria-label={`${model} module preview`}>
       <h4>Compare CT/VT modules</h4>
       <label className="field"><span>Module example</span>
         <select value={module} onChange={event => setModule(event.target.value === 'mixed' ? 'mixed' : 'ct')}>
@@ -147,10 +167,10 @@ export function T60ModulePreview() {
         </select>
       </label>
       <p>One module shown. Confirm the ordered chassis slots and current-input type before mapping the station CTs.</p>
-      <RelayInputDiagram groups={groups} caption="GE T60 wiring diagram for one CT/VT module. The tilde in terminal labels stands for the chassis slot."
-        drawing={geDrawings[module]}
-        reference="https://www.gevernova.com/electrification/sites/default/files/resources/products/manuals/t60/T60-1601-0090-86x-3.pdf#page=101"
-        referenceLabel="GE T60 8.6x manual · CT/VT wiring Fig. 20" />
+      <RelayInputDiagram groups={groups} caption={`GE ${model} · wiring for one CT/VT module. The tilde stands for the chassis slot.`}
+        drawing={(model === 'B90' ? b90Drawings : geDrawings)[module]}
+        reference={`https://www.gevernova.com/electrification/sites/default/files/resources/products/manuals/${directory}/${manual}.pdf#page=${page}`}
+        referenceLabel={`GE ${model} 8.6x manual · CT/VT wiring Fig. ${figure}`} />
     </section>
   )
 }

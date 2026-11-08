@@ -44,9 +44,12 @@ class OptionsTests(TestCase):
         self.assertNotIn("backup", json.loads(sent)["output_config"]["format"]["schema"]["$defs"]["Option"]["properties"])
         self.assertEqual(first["check"]["status"], "Missing measurement")
         self.assertEqual(second["boundary"]["state"], "present")
+        self.assertEqual([row["role"] for row in second["device_requirements"][:2]], [
+            "Transformer Primary + collector bus", "Transformer Secondary",
+        ])
         self.assertIn("coverage gap", third["poi_line"]["coverage"])
         self.assertEqual(second["main_coverage"]["transformer_a"]["function"], "87TB")
-        self.assertEqual(second["main_coverage"]["bus"]["function"], "87TB (shared with transformer Main A)")
+        self.assertEqual(second["main_coverage"]["bus"]["function"], "87TB (shared with transformer primary)")
         self.assertEqual(second["main_coverage"]["transformer_b"]["status"], "Boundaries present")
         self.assertIn("excludes the HV breaker", second["main_coverage"]["transformer_b"]["coverage"])
         self.assertEqual(third["main_coverage"]["transformer_b"]["alternatives"], ["breaker_transformer", "bushing"])

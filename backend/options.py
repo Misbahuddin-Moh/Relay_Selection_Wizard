@@ -26,10 +26,10 @@ PROMPT = (
     "Use short phrases, ideally 5–12 words per text field, and cite one evidence ID unless another is needed. "
     "Only include options with a material tradeoff. Skip introductions, repeated facts, CT status, trip lists and "
     "coverage details that the app calculates. In rationale, state the decisive tradeoff. In open_item, "
-    "give the single most important unresolved question. Main A covers the transformer with 87T or combined 87TB. "
-    "Propose a transformer-only 87T Main B HV boundary when both its HV and LV CT banks are available, "
-    "otherwise return unresolved. A combined Main A still permits 87T Main B when its own CT banks are available. "
-    "For shared hardware, consolidate Main A and 87B only; Main B has a separate IED. "
+    "give the single most important unresolved question. Primary covers the transformer with 87T or combined 87TB. "
+    "In transformer_main_b_hv, propose the transformer-only 87T secondary HV boundary when both its HV and LV CT banks are available, "
+    "otherwise return unresolved. A combined primary still permits 87T secondary when its own CT banks are available. "
+    "For shared hardware, consolidate primary protection and 87B only; secondary has a separate IED. "
     "Treat relay feasibility, owner approval, CT core assignments, trip paths and remote 87L data as unresolved. "
     "Do not give settings, invent equipment or claim approved coverage."
 )
@@ -156,7 +156,7 @@ def main_coverage(study, option, main_a_analysis):
                 boundary["id"] for boundary in main_a_analysis["hv_boundaries"] if boundary["state"] == "present"
             ] if main_b_hv == "unresolved" and lv_boundary["state"] == "present" else [],
         },
-        "bus": {"function": "87TB (shared with transformer Main A)" if combined else "87B", "status": bus["status"]},
+        "bus": {"function": "87TB (shared with transformer primary)" if combined else "87B", "status": bus["status"]},
     }
 
 
@@ -177,17 +177,17 @@ def device_requirements(study, scheme, analysis):
 
     bus_banks = analysis["counts"]["combined_required_banks"]
     if scheme == "shared":
-        add("shared", "Transformer Main A + collector bus", "87T + 87B simultaneously", bus_banks + 1,
+        add("shared", "Transformer Primary + collector bus", "87T + 87B simultaneously", bus_banks + 1,
             "Lower count assumes both elements can use the same LV incomer input. Higher count uses separate inputs.",
             alternate_banks=bus_banks + 2)
     elif scheme == "combined":
-        add("combined", "Transformer Main A + collector bus", "One extended 87TB element", bus_banks,
+        add("combined", "Transformer Primary + collector bus", "One extended 87TB element", bus_banks,
             "Verify compensation and source mapping for the extended zone.")
     else:
-        add("transformer", "Transformer Main A", "87T", 2, "Selected HV CT and transformer LV CT.")
+        add("transformer", "Transformer Primary", "87T", 2, "Selected HV CT and transformer LV CT.")
         add("bus", "Collector bus · single path", "87B", bus_banks, "LV incomer, collector boundaries and measured tap if applicable.")
 
-    add("transformer", "Transformer Main B", "87T", 2, "Separate IED. Verify its own HV/LV CT assignments and trip path.")
+    add("transformer", "Transformer Secondary", "87T", 2, "Separate IED. Verify its own HV/LV CT assignments and trip path.")
     for area in analysis["feeder_areas"]:
         add("feeder", area["breaker"], "51P; evaluate 51G/51N and directionality", 1,
             f'Serves {", ".join(area["circuits"])}. Verify sensing and trip assignment for this breaker.')
@@ -211,12 +211,12 @@ def preview_options(study):
     boundary = study.get("hv_boundary", "poi")
     return present_options(study, [
         Option(scheme=scheme, hv_boundary=boundary, rationale=rationale,
-               transformer_main_b_hv="unresolved", open_item="Confirm independent Main B CT and trip assignments.",
+               transformer_main_b_hv="unresolved", open_item="Confirm independent secondary CT and trip assignments.",
                evidence=evidence)
         for scheme, rationale, evidence in (
             ("dedicated", "Separate transformer and bus protection devices.", ["T_SEPARATE", "B_FULL"]),
-            ("shared", "Separate zones share a device for Main A and bus protection.", ["SHARED_IED", "B_FULL"]),
-            ("combined", "One extended Main A differential zone covers transformer and bus.", ["TB_COMBINED"]),
+            ("shared", "Separate zones share a device for primary and bus protection.", ["SHARED_IED", "B_FULL"]),
+            ("combined", "One extended primary differential zone covers transformer and bus.", ["TB_COMBINED"]),
         )
     ], {})
 

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
-import { Sel487eInputDiagram, T60ModulePreview } from './RelayInputDiagram'
+import { Sel487eInputDiagram } from './RelayInputDiagram'
+import { CatalogRelayDiagram } from './CatalogRelayDiagram'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
 import { auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, hvBoundaryLabels, withInventoryBoundaries } from './model'
 import type { Analysis, Candidate, CtInventory, DrawingDraft, GeneratedOptions, Snapshot, Study } from './model'
@@ -301,7 +302,8 @@ function TerminalAllocation({ candidate, device, neutral, vt }: {
           {layout.neutral_inputs === 0 && <span className="layout-condition">This layout leaves no dedicated neutral CT inputs.</span>}
         </button>
       ))}
-      {active && <Sel487eInputDiagram neutralInputs={active.neutral_inputs} vtBanks={active.vt_banks} />}
+      {active ? <Sel487eInputDiagram neutralInputs={active.neutral_inputs} vtBanks={active.vt_banks} />
+        : <CatalogRelayDiagram model={candidate.model} source={candidate.source} />}
     </section>
   )
 }
@@ -338,8 +340,8 @@ function SelectedCoverage({ option, study }: { option: Option; study: Study }) {
         <div className="scheme-notes">
           <h3>Protection paths</h3>
           <dl>
-            <div><dt>Transformer Main A</dt><dd>{option.main_coverage.transformer_a.function} · {option.main_coverage.transformer_a.status}</dd></div>
-            <div><dt>Transformer Main B</dt><dd>87T · {option.main_coverage.transformer_b.hv_boundary === 'unresolved' ? 'HV boundary unresolved' : hvBoundaryLabels[option.main_coverage.transformer_b.hv_boundary]} · {option.main_coverage.transformer_b.status}</dd></div>
+            <div><dt>Transformer Primary</dt><dd>{option.main_coverage.transformer_a.function} · {option.main_coverage.transformer_a.status}</dd></div>
+            <div><dt>Transformer Secondary</dt><dd>87T · {option.main_coverage.transformer_b.hv_boundary === 'unresolved' ? 'HV boundary unresolved' : hvBoundaryLabels[option.main_coverage.transformer_b.hv_boundary]} · {option.main_coverage.transformer_b.status}</dd></div>
             <div><dt>Collector bus</dt><dd>{option.main_coverage.bus.function} · {option.main_coverage.bus.status}</dd></div>
           </dl>
           <p>{option.check.reason}</p>
@@ -351,11 +353,11 @@ function SelectedCoverage({ option, study }: { option: Option; study: Study }) {
         <p>{option.boundary.coverage}</p>
         {zones.map(zone => <p key={zone.id}><strong>{zone.title}</strong> · {zone.boundaries.map(boundary => `${boundary.label} (${ctLabels[boundary.state]})`).join(' · ')}</p>)}
         <p><strong>Preliminary trip targets</strong> · {option.check.trip_targets.join(' · ')}. Verify source paths and breaker-failure clearing.</p>
-        {option.main_coverage.transformer_b.coverage && <p><strong>Main B span</strong> · {option.main_coverage.transformer_b.coverage}</p>}
-        {option.main_coverage.transformer_b.alternatives.length > 0 && <p><strong>Main B CT locations to evaluate</strong> · {option.main_coverage.transformer_b.alternatives.map(location => hvBoundaryLabels[location]).join(' · ')}</p>}
+        {option.main_coverage.transformer_b.coverage && <p><strong>Secondary span</strong> · {option.main_coverage.transformer_b.coverage}</p>}
+        {option.main_coverage.transformer_b.alternatives.length > 0 && <p><strong>Secondary CT locations to evaluate</strong> · {option.main_coverage.transformer_b.alternatives.map(location => hvBoundaryLabels[location]).join(' · ')}</p>}
         {option.poi_line && <p><strong>Illustrative 87L</strong> · Local CT {ctLabels[option.poi_line.local_ct].toLowerCase()}. {option.poi_line.coverage}</p>}
         <p><strong>Time-delayed backup</strong> · {option.backup}</p>
-        <p>Evaluate REF separately. Confirm transformer A/B independence, including CT cores, DC supplies and trip paths.</p>
+        <p>Evaluate REF separately. Confirm independence of transformer primary and secondary protection, including CT cores, DC supplies and trip paths.</p>
         <ul>{Array.from(new Map(option.sources.map(source => [`${source.id}:${source.locator}`, source])).values()).map(source => (
           <li key={`${source.id}:${source.locator}`}><a href={source.url} target="_blank" rel="noreferrer">{source.id} · {source.locator}</a></li>
         ))}</ul>
@@ -472,7 +474,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
           <div className="detail-block">
             <label className="field"><span>Device role</span><select value={role} onChange={event => setRole(Number(event.target.value))}>{option.device_requirements.map((device, index) => <option key={index} value={index}>{device.role}</option>)}</select></label>
             <p><strong>{row.functions}</strong> · {phaseDemand(row)} · {values(role).neutral || 'Unknown'} neutral CT inputs · {values(role).vt || 'Unknown'} VT banks</p>
-            {row.role === 'Transformer Main B' && option.main_coverage.transformer_b.status !== 'Boundaries present' && <p className="draft-note">Main B · {option.main_coverage.transformer_b.status}. The models below are function candidates.</p>}
+            {row.role === 'Transformer Secondary' && option.main_coverage.transformer_b.status !== 'Boundaries present' && <p className="draft-note">Secondary · {option.main_coverage.transformer_b.status}. The models below are function candidates.</p>}
             <p>Terminal fit is shown where modeled. Verify the exact order code and application before selection.</p>
           </div>
           <div className="relay-grid">
@@ -486,7 +488,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
                   <p>{candidate.note}</p>
                   <a href={candidate.source} target="_blank" rel="noreferrer">Manufacturer documentation</a>
                   {candidate.allocations.length > 0 && <TerminalAllocation candidate={candidate} device={row} neutral={neutral} vt={vt} />}
-                  {candidate.manufacturer === 'GE' && candidate.model.startsWith('Multilin T60') && <T60ModulePreview />}
+                  {candidate.allocations.length === 0 && <CatalogRelayDiagram model={candidate.model} source={candidate.source} />}
                 </article>
               )
             })}
@@ -495,7 +497,11 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
             <summary>High-impedance bus alternatives</summary>
             <p>These require a separate CT secondary circuit check.</p>
             <ul>{(preview ?? generated)?.high_impedance_bus.map(candidate => (
-              <li key={candidate.model}><a href={candidate.source} target="_blank" rel="noreferrer">{candidate.manufacturer} · {candidate.model}</a>{candidate.legacy && ' · Legacy, existing equipment only'}</li>
+              <li key={candidate.model}>
+                <a href={candidate.source} target="_blank" rel="noreferrer">{candidate.manufacturer} · {candidate.model}</a>
+                {candidate.legacy && ' · Legacy, existing equipment only'}
+                <CatalogRelayDiagram model={candidate.model} source={candidate.source} highImpedance />
+              </li>
             ))}</ul>
           </details>
         </section>

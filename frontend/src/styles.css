@@ -302,3 +302,8 @@ details.detail-block { margin-top: 12px; }
 .drawing-hotspot.voltage { border-color: #126959; color: #126959; }
 .drawing-hotspot:hover, .drawing-hotspot[aria-pressed="true"] { background: color-mix(in srgb, currentColor 20%, transparent); }
 .drawing-hotspot[aria-pressed="true"], .drawing-hotspot:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; }
+.catalog-relay-diagram > summary { cursor: pointer; color: #176367; font-weight: 650; }
+.catalog-relay-diagram[open] > summary { margin-bottom: 8px; }
+.detail-block li > .catalog-relay-diagram { margin: 6px 0 12px; }
+.input-group.other { color: #d8cef5; }
+.drawing-hotspot.other { border-color: #7448a2; color: #7448a2; }

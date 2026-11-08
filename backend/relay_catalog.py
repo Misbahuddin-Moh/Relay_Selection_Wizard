@@ -46,7 +46,7 @@ CATALOG = {
 HIGH_IMPEDANCE = [
     {"manufacturer": "SEL", "model": "SEL-587Z", "legacy": True, "source": "https://selinc.com/products/587z/"},
     {"manufacturer": "SEL", "model": "SEL-787Z + SEL-HZM", "source": "https://selinc.com/products/comparisons/587z-787z-comparison/"},
-    {"manufacturer": "GE", "model": "Multilin MIB", "source": "https://www.gevernova.com/electrification/automation/protection-control-metering/bus-protection/typical-applications"},
+    {"manufacturer": "GE", "model": "Multilin MIB", "source": "https://www.gevernova.com/grid-solutions/sites/default/files/2025-02/ger-4632.pdf"},
 ]
 
 
