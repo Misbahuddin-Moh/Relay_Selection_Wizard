@@ -97,7 +97,12 @@ const highImpedanceGroups: InputGroup[] = [
 
 const urModels = ['T60', 'B30', 'B90', 'F60', 'L90'] as const
 
-export function CatalogRelayDiagram({ model, source, highImpedance = false }: { model: string; source: string; highImpedance?: boolean }) {
+export function CatalogRelayDiagram({ model, source, highImpedance = false, selLayout }: {
+  model: string
+  source: string
+  highImpedance?: boolean
+  selLayout?: { neutral_inputs: number; vt_banks: number }
+}) {
   const ur = urModels.find(family => model === `Multilin ${family}` || model.startsWith(`Multilin ${family} `))
   const illustration = figures[model]
   const is487e = model.startsWith('SEL-487E')
@@ -109,7 +114,7 @@ export function CatalogRelayDiagram({ model, source, highImpedance = false }: { 
       {ur ? <UrModulePreview model={ur} /> : illustration ? (
         <RelayInputDiagram {...illustration} caption={`${model} · Manufacturer example. Confirm the ordered hardware before assigning terminals.`} />
       ) : is487e ? (
-        <Sel487eInputDiagram neutralInputs={3} vtBanks={2} />
+        <Sel487eInputDiagram neutralInputs={selLayout?.neutral_inputs ?? 3} vtBanks={selLayout?.vt_banks ?? 2} />
       ) : groups ? (
         <RelayInputDiagram groups={groups} caption={`${model} · Application overview. Vendor terminal drawing pending.`}
           reference={source} referenceLabel="Manufacturer documentation" />

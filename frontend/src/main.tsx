@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
-import { Sel487eInputDiagram } from './RelayInputDiagram'
 import { CatalogRelayDiagram } from './CatalogRelayDiagram'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
 import { auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, hvBoundaryLabels, withInventoryBoundaries } from './model'
@@ -307,8 +306,7 @@ function TerminalAllocation({ candidate, device, neutral, vt }: {
           {layout.neutral_inputs === 0 && <span className="layout-condition">This layout leaves no dedicated neutral CT inputs.</span>}
         </button>
       ))}
-      {active ? <Sel487eInputDiagram neutralInputs={active.neutral_inputs} vtBanks={active.vt_banks} />
-        : <CatalogRelayDiagram model={candidate.model} source={candidate.source} />}
+      <CatalogRelayDiagram model={candidate.model} source={candidate.source} selLayout={active} />
     </section>
   )
 }
@@ -540,25 +538,30 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
             <p>Terminal fit is shown where modeled. Verify the exact order code and application before selection.</p>
           </div>
           <div className="relay-grid">
-            {row.candidates.map(candidate => {
-              const { neutral, vt } = effectiveValues(role)
-              return (
-                <article className="requirement-card" key={candidate.model}>
-                  <div className="candidate-heading"><h3>{candidate.model}</h3><span className="tag">{candidate.manufacturer}</span></div>
-                  <p><strong>{candidate.status}</strong></p>
-                  {candidate.allocations.length === 0 && <p>{candidate.capacity}</p>}
-                  <p>{candidate.note}</p>
-                  {(candidate.model.startsWith('SEL-487E') || candidate.model.startsWith('Multilin T60')) &&
-                    <p><strong>Partial configuration</strong> · Confirm ratings, output duties, power supply, communications and vendor order fields.</p>}
-                  <a href={candidate.source} target="_blank" rel="noreferrer">Manufacturer documentation</a>
-                  {candidate.model.startsWith('Multilin T60') && <T60InputFit
-                    minimum={row.phase_banks} maximum={row.alternate_phase_banks ?? row.phase_banks}
-                    vt={vt} neutral={neutral} auxiliaryUnknown={study.auxiliary === 'unknown' && (row.kind === 'combined' || row.kind === 'shared')} />}
-                  {candidate.allocations.length > 0 && <TerminalAllocation candidate={candidate} device={row} neutral={neutral} vt={vt} />}
-                  {candidate.allocations.length === 0 && <CatalogRelayDiagram model={candidate.model} source={candidate.source} />}
-                </article>
-              )
-            })}
+            {(['GE', 'SEL'] as const).map(manufacturer => (
+              <section className="relay-column" key={manufacturer} aria-label={`${manufacturer} devices`}>
+                <h3>{manufacturer}</h3>
+                {row.candidates.filter(candidate => candidate.manufacturer === manufacturer).map(candidate => {
+                  const { neutral, vt } = effectiveValues(role)
+                  return (
+                    <article className="requirement-card" key={candidate.model}>
+                      <div className="candidate-heading"><h3>{candidate.model}</h3><span className="tag">{candidate.manufacturer}</span></div>
+                      <p><strong>{candidate.status}</strong></p>
+                      {candidate.allocations.length === 0 && <p>{candidate.capacity}</p>}
+                      <p>{candidate.note}</p>
+                      {(candidate.model.startsWith('SEL-487E') || candidate.model.startsWith('Multilin T60')) &&
+                        <p><strong>Partial configuration</strong> · Confirm ratings, output duties, power supply, communications and vendor order fields.</p>}
+                      <a href={candidate.source} target="_blank" rel="noreferrer">Manufacturer documentation</a>
+                      {candidate.model.startsWith('Multilin T60') && <T60InputFit
+                        minimum={row.phase_banks} maximum={row.alternate_phase_banks ?? row.phase_banks}
+                        vt={vt} neutral={neutral} auxiliaryUnknown={study.auxiliary === 'unknown' && (row.kind === 'combined' || row.kind === 'shared')} />}
+                      {candidate.allocations.length > 0 && <TerminalAllocation candidate={candidate} device={row} neutral={neutral} vt={vt} />}
+                      {candidate.allocations.length === 0 && <CatalogRelayDiagram model={candidate.model} source={candidate.source} />}
+                    </article>
+                  )
+                })}
+              </section>
+            ))}
           </div>
           <details className="detail-block">
             <summary>High-impedance bus alternatives</summary>
