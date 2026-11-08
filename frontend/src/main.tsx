@@ -266,8 +266,9 @@ function ProtectionZoneReview({ study, analysis }: Snapshot) {
   )
 }
 
-function TerminalAllocation({ candidate, neutral, vt }: {
-  candidate: GeneratedOptions['options'][number]['device_requirements'][number]['candidates'][number]
+function TerminalAllocation({ candidate, device, neutral, vt }: {
+  candidate: Option['device_requirements'][number]['candidates'][number]
+  device: Option['device_requirements'][number]
   neutral: string
   vt: string
 }) {
@@ -279,26 +280,28 @@ function TerminalAllocation({ candidate, neutral, vt }: {
   )
 
   return (
-    <details>
-      <summary>Dual AC card terminal allocation</summary>
-      <p>Confirm ordered cards, CT ratings, and LV input reuse before selecting a configuration.</p>
-      <p role="status">{layouts.length === 0
+    <section className="input-fit" aria-label="Input fit">
+      <h4>Input fit</h4>
+      <p><strong>Study needs</strong> · {phaseDemand(device)} · {neutral || 'Unknown'} neutral CT inputs · {vt || 'Unknown'} VT banks</p>
+      <p>{layouts.length === 0
         ? 'No modeled layout meets the entered requirements.'
-        : complete ? 'Candidate layouts for the entered inputs.' : 'Enter both requirements to complete the input screen.'}</p>
-      {layouts.length > 0 && (
-        <div className="table-scroll">
-          <table>
-            <thead><tr><th>Y</th><th>Z</th><th>Phase CT banks</th><th>Neutral inputs</th><th>VT banks</th><th>Phase demand</th></tr></thead>
-            <tbody>{layouts.map(layout => (
-              <tr key={`${layout.y}/${layout.z}`}>
-                <td>{layout.y}</td><td>{layout.z}</td><td>{layout.phase_banks}</td>
-                <td>{layout.neutral_inputs}</td><td>{layout.vt_banks}</td><td>{layout.fit}</td>
-              </tr>
-            ))}</tbody>
-          </table>
+        : !complete ? 'Possible layouts based on known inputs. Confirm neutral and VT requirements.'
+          : layouts.some(layout => layout.fit === 'All listed phase cases')
+            ? 'At least one layout meets the modeled input requirements.'
+            : 'Fits only the lower phase demand. Confirm which phase case applies.'}</p>
+      {layouts.map(layout => (
+        <div className="input-layout" key={`${layout.y}/${layout.z}`}>
+          <strong>{layout.neutral_inputs > 0 ? 'Keep dedicated neutral inputs' : 'Trade neutral inputs for a phase CT bank'}</strong>
+          <p>{layout.phase_banks} phase CT banks · {layout.neutral_inputs} neutral CT inputs · {layout.vt_banks} VT banks</p>
+          {layout.fit === 'Lower phase demand only' && <p className="layout-condition">Fits only the lower phase demand.</p>}
+          {layout.neutral_inputs === 0 && <p className="layout-condition">This layout leaves no dedicated neutral CT inputs.</p>}
+          <details>
+            <summary>Hardware details</summary>
+            <p>Dual AC cards · Terminal Y uses {layout.y.toLowerCase()} · Terminal Z uses a {layout.z.toLowerCase()}.</p>
+          </details>
         </div>
-      )}
-    </details>
+      ))}
+    </section>
   )
 }
 
@@ -474,16 +477,14 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
           <div className="relay-grid">
             {row.candidates.map(candidate => {
               const { neutral, vt } = values(role)
-              const matching = candidate.allocations.some(layout => layout.fit !== 'Insufficient phase banks' &&
-                (neutral === '' || layout.neutral_inputs >= Number(neutral)) && (vt === '' || layout.vt_banks >= Number(vt)))
               return (
                 <article className="requirement-card" key={candidate.model}>
                   <div className="candidate-heading"><h3>{candidate.model}</h3><span className="tag">{candidate.manufacturer}</span></div>
                   <p><strong>{candidate.status}</strong></p>
-                  <p>{candidate.allocations.length ? matching ? 'Modeled layouts available for review' : 'No matching modeled layout' : candidate.capacity}</p>
+                  {candidate.allocations.length === 0 && <p>{candidate.capacity}</p>}
                   <p>{candidate.note}</p>
                   <a href={candidate.source} target="_blank" rel="noreferrer">Manufacturer documentation</a>
-                  {candidate.allocations.length > 0 && <TerminalAllocation candidate={candidate} neutral={neutral} vt={vt} />}
+                  {candidate.allocations.length > 0 && <TerminalAllocation candidate={candidate} device={row} neutral={neutral} vt={vt} />}
                 </article>
               )
             })}

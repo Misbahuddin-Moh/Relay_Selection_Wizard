@@ -263,3 +263,10 @@ details.detail-block { margin-top: 12px; }
   .scheme-choice .status { grid-column: 2; justify-self: start; }
   .workflow-actions { flex-wrap: wrap; }
 }
+
+.input-fit { display: grid; gap: 9px; border-top: 1px solid #d8e2e6; padding-top: 12px; }
+.input-fit h4, .input-fit p { margin: 0; }
+.input-fit p { color: #50646d; font-size: 14px; line-height: 1.5; }
+.input-layout { display: grid; gap: 5px; padding: 10px 12px; border: 1px solid #d8e2e6; border-radius: 7px; background: #f7fafb; }
+.input-layout .layout-condition { color: #76500d; }
+.input-layout summary { color: #176367; }
