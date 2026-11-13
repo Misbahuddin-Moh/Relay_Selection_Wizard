@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from .drawing import CLAUDE_IMAGE_BYTES, FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, drawing_provider, extract_drawing
+from .assessment import CT_KEYS
 from .engine import analyze
 from .options import OptionsError, generate_options, preview_options
 from .project_requirements import MAX_BYTES, RequirementError, extract_requirements, source_pages
@@ -42,6 +43,14 @@ class CtInventory(BaseModel):
     transformer_lv_neutral: Optional[CtCount] = Field(...)
 
 
+class CtProvenance(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    value: Optional[CtCount]
+    origin: Literal["assumed", "user", "document", "unknown"]
+    revision: Annotated[str, StringConstraints(min_length=1, max_length=100)]
+
+
 class Study(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -53,11 +62,14 @@ class Study(BaseModel):
     bays: Annotated[list[Bay], Field(min_length=1, max_length=40)]
     auxiliary: Literal["unknown", "included", "excluded"]
     ct_inventory: Optional[CtInventory] = None
+    ct_provenance: dict[str, CtProvenance] = Field(default_factory=dict)
     hv_boundary: Literal["poi", "breaker_transformer", "bushing"] = "poi"
     include_poi_line: bool = False
 
     @model_validator(mode="after")
     def validate_equipment_ids(self):
+        if set(self.ct_provenance) - set(CT_KEYS):
+            raise ValueError("Unknown CT provenance field.")
         bay_ids = [bay.id.casefold() for bay in self.bays]
         if len(set(bay_ids)) != len(bay_ids):
             raise ValueError("Collector breaker IDs must be unique.")
@@ -68,13 +80,31 @@ class Study(BaseModel):
 
 
 app = FastAPI(title="Relay Selection Wizard")
+# The shared alpha deliberately has no public route to paid providers. Re-enable
+# only with the access, ownership, consent and cost controls of the pilot gate.
+PROVIDER_PATHS = frozenset({
+    "/api/protection-options", "/api/drawing/extract", "/api/requirements/extract",
+})
+
+
+@app.middleware("http")
+async def provider_guard(request: Request, call_next):
+    from fastapi.responses import JSONResponse
+    if request.url.path.rstrip("/") in PROVIDER_PATHS:
+        return JSONResponse(status_code=403, content={
+            "detail": "Provider operations are disabled in this alpha. Use manual entry and station checks.",
+        })
+    return await call_next(request)
+
+
 FIXTURE = Path(__file__).with_name("fixture.json")
 FRONTEND = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "revision": os.getenv("RENDER_GIT_COMMIT") or os.getenv("APP_REVISION") or "local",
+            "provider_operations": "disabled", "release_gate": "foundation_alpha"}
 
 
 @app.get("/api/study")
@@ -103,8 +133,7 @@ def protection_options(study: Study):
 
 @app.get("/api/drawing/status")
 def drawing_status():
-    provider = drawing_provider()
-    return {"configured": provider is not None, "provider": provider}
+    return {"configured": False, "provider": None, "reason": "Provider operations disabled in this alpha."}
 
 
 @app.post("/api/drawing/extract")
@@ -138,7 +167,7 @@ async def extract_single_line(request: Request):
 
 @app.get("/api/requirements/status")
 def requirements_status():
-    return {"configured": bool(os.getenv("ANTHROPIC_API_KEY", "").strip())}
+    return {"configured": False, "reason": "Provider operations disabled in this alpha."}
 
 
 @app.post("/api/requirements/extract")

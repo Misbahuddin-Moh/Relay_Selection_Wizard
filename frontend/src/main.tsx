@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
 import { CatalogRelayDiagram } from './CatalogRelayDiagram'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
-import { auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, hvBoundaryLabels, withInventoryBoundaries } from './model'
+import { assumedCtProvenance, auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, hvBoundaryLabels, withInventoryBoundaries } from './model'
 import type { Ct, Analysis, Candidate, CtInventory, DrawingDraft, GeneratedOptions, Snapshot, Study } from './model'
 import './styles.css'
 
@@ -105,17 +105,19 @@ function CtInventoryEditor({ study, update, disabled = false }: {
       <div className="field-row">
         {ctInventoryFields.map(([key, label]) => (
           <label className="field" key={key}>
-            <span>{label}</span>
+            <span>{label} · {study.ct_provenance?.[key]?.value === inventory[key] ? study.ct_provenance[key]?.origin : 'unreviewed'}</span>
             <input type="number" min="0" max="99" step="1" placeholder="Unknown" value={inventory[key] ?? ''} onChange={event => {
               const count = event.target.value === '' ? null : event.target.valueAsNumber
-              update({ ...study, ct_inventory: { ...inventory, [key]: count } })
+              update({ ...study, ct_inventory: { ...inventory, [key]: count }, ct_provenance: {
+                ...study.ct_provenance, [key]: { value: count, origin: 'user', revision: crypto.randomUUID() },
+              } })
             }} />
           </label>
         ))}
       </div>
       <Select label="Station differential HV boundary" options={hvBoundaryLabels} value={study.hv_boundary ?? 'poi'} change={hv_boundary => update({ ...study, hv_boundary })} />
       <label><input type="checkbox" checked={study.include_poi_line ?? false} onChange={event => update({ ...study, include_poi_line: event.target.checked })} /> Include POI line protection area</label>
-      <button type="button" className="text-button" onClick={() => update({ ...study, ct_inventory: defaultCtInventory() })}>Use standard defaults</button>
+      <button type="button" className="text-button" onClick={() => { const ct_inventory = defaultCtInventory(); update({ ...study, ct_inventory, ct_provenance: assumedCtProvenance(ct_inventory) }) }}>Use standard defaults</button>
     </fieldset>
   )
 }
@@ -468,7 +470,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
     setRequirements(current => ({ ...current, [key]: { ...(current[key] ?? unknownRequirements), [field]: value } }))
   }
   const dio = digitalSettings[selection] ?? defaultDigitalSettings
-  const referenceIO = study.bays.length === 3 && option ? digitalCase(option.scheme, study.include_poi_line ?? false, dio.variant) : undefined
+  const referenceIO = analysis.assessment.scope.reference_hardware_supported && option ? digitalCase(option.scheme, study.include_poi_line ?? false, dio.variant) : undefined
   const ioDevice = row?.kind === 'feeder' ? `FP-F${study.bays.findIndex(bay => bay.id === row.role) + 1}`
     : row?.kind === 'line' ? 'LINE-H' : row?.kind === 'bus' ? 'BUS'
     : row?.role === 'Transformer Secondary' ? 'T-S' : row?.kind === 'meter' ? '' : 'T-P'
@@ -523,7 +525,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
       {step === 2 && <>
         <div className="stage-intro">
           <div><h2>Choose a protection scheme</h2><p>Compare zone boundaries first. Relay models come after you confirm the device inputs.</p></div>
-          <button type="button" className="button secondary" onClick={generate} disabled={busy || !!generated}>{busy ? 'Generating…' : generated ? 'AI alternatives added' : 'Generate AI alternatives'}</button>
+          <button type="button" className="button secondary" onClick={generate} disabled={true}>AI alternatives disabled in alpha</button>
         </div>
         {error && <p className="draft-note" role="alert">{error} You can continue with the station checks below.</p>}
         {previewError && <p role="alert" className="draft-note">{previewError} <button type="button" className="text-button" onClick={() => setRetry(retry + 1)}>Retry station checks</button></p>}
@@ -552,7 +554,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
             applied={projectFindings} onChange={update => setApplied(current => ({ ...current, [selection]: update(current[selection] ?? []) }))} />
           {referenceIO ? <DigitalIO key={`digital-io/${selection}`} scheme={option.scheme} bays={study.bays.map(bay => bay.id)}
             line={study.include_poi_line ?? false} settings={dio} change={next => setDigitalSettings(current => ({ ...current, [selection]: next }))} />
-            : <div className="detail-block"><p>Digital I/O estimates are available for the three-breaker straight-bus example. Relay function and analog input screening are shown below.</p></div>}
+            : <div className="detail-block"><p>Reference hardware screening is unavailable for this layout. Modeled functions and measurement quantities remain visible for draft review.</p></div>}
           <div className="requirement-grid">{option.device_requirements.map((device, index) => (
             <article className="requirement-card" key={index}>
               <h3>{device.role}</h3><p>{device.functions} · {phaseDemand(device)}</p>
@@ -653,7 +655,7 @@ function Comparison({ baseline, scenario, onCreate }: { baseline: Snapshot; scen
   const counts = [
     ['Collector breakers', 'breakers'],
     ['Outgoing branches', 'branches'],
-    ['Confirmed bay CTs', 'confirmed_bay_cts'],
+    ['Modeled bay CTs (unverified)', 'modeled_bay_cts'],
     ['Combined zone phase banks', 'combined_required_banks'],
     ['Combined zone phase channels', 'combined_phase_channels'],
   ] as const
@@ -866,7 +868,8 @@ function ConceptStudy({ onCancel, onCreate, hasStudy }: { onCancel: () => void; 
     const problem = validateStudy(study)
     setError(problem)
     if (problem) return
-    setDraft({ ...study, ct_inventory: study.ct_inventory ?? defaultCtInventory() })
+    const ct_inventory = study.ct_inventory ?? defaultCtInventory()
+    setDraft({ ...study, ct_inventory, ct_provenance: study.ct_inventory ? study.ct_provenance : assumedCtProvenance(ct_inventory) })
     setReview(true)
   }
 
@@ -1078,11 +1081,21 @@ function App() {
               </div>
               {view === 'comparison' && draft && <button className="button secondary" type="button" onClick={() => { setView('workspace'); setStationReview(true) }}>Edit scenario</button>}
             </div>
+            <section className="panel" aria-label="Study evidence and support">
+              <p><strong>Preliminary draft · engineering approval unavailable</strong></p>
+              <p>CT quantities describe modeled inventory. Assumed and unreviewed facts do not establish verified CT assignments. Transformer system independence remains unverified.</p>
+              {isDraft ? <p role="status">Inputs changed. Analyze this draft to refresh evidence and support; previous results are no longer current.</p> : <>
+              <details><summary>CT fact origins and review state</summary>
+                <ul>{activeAnalysis.assessment.facts.map(fact => <li key={fact.subject}>{ctInventoryFields.find(([key]) => key === fact.subject)?.[1] ?? fact.subject}: {fact.value ?? 'Unknown'} · {fact.origin} · {fact.review_state}</li>)}</ul>
+              </details>
+              {activeAnalysis.assessment.scope.reasons.map(reason => <p key={reason.code} role="status"><strong>Hardware screening unavailable:</strong> {reason.message}</p>)}
+              </>}
+            </section>
             {view === 'workspace' && (stationReview || isDraft) && <>
               <StudySteps step={1} />
               <div className="workspace-grid station-workspace">
                 <div className="workspace-main">
-                  <Topology study={visibleStudy} tag={isDraft ? 'DRAFT' : 'CONFIRMED'} />
+                  <Topology study={visibleStudy} tag={isDraft ? 'DRAFT' : 'MODELED'} />
                   {!isDraft && <details className="panel detail-block"><summary>Engineering questions</summary><Questions questions={activeAnalysis.questions} /></details>}
                 </div>
                 {draft ? <StudyEditor draft={draft} update={setDraft} onSubmit={analyze} onReset={() => {
@@ -1091,7 +1104,7 @@ function App() {
                   setFormError(null)
                 }} busy={busy} dirty={dirty} error={formError} /> : (
                   <section className="panel overview">
-                    <PanelHeader title="Station measurements" description="Review the confirmed CT inventory and auxiliary branch treatment." />
+                    <PanelHeader title="Station measurements" description="Review the modeled CT inventory and auxiliary branch treatment. Counts do not establish engineering approval." />
                     <dl><div><dt>{hvBoundaryLabels[baseline.study.hv_boundary ?? 'poi']} CT</dt><dd>{ctLabels[baseline.study.hv_ct]}</dd></div>
                       <div><dt>Transformer LV boundary CT</dt><dd>{ctLabels[baseline.study.lv_ct]}</dd></div>
                       <div><dt>Auxiliary branch</dt><dd>{auxiliaryLabels[baseline.study.auxiliary]}</dd></div>

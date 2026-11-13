@@ -197,7 +197,11 @@ def device_requirements(study, scheme, analysis, coverage=None):
             "note": note,
             "measurement_sources": measurement_sources if measurement_sources is not None else signals[kind],
         }
-        rows.append({**row, "candidates": screen_devices(row, study["auxiliary"])})
+        scope = analysis["assessment"]["scope"]
+        rows.append({**row,
+                     "support": "reference" if scope["reference_hardware_supported"] else "unsupported",
+                     "note": note if scope["reference_hardware_supported"] else " ".join(reason["message"] for reason in scope["reasons"]),
+                     "candidates": screen_devices(row, study["auxiliary"]) if scope["reference_hardware_supported"] else []})
 
     bus_banks = analysis["counts"]["combined_required_banks"]
     if scheme == "shared":
@@ -258,6 +262,7 @@ def present_options(study, proposals, usage):
         coverage = main_coverage(study, option, checked)
         options.append({
             **option.model_dump(),
+            "assessment": checked["assessment"],
             "backup": "Time-graded overcurrent for coordination study. Project applicability remains open.",
             "check": candidate,
             "zones": checked["zones"],
@@ -267,4 +272,4 @@ def present_options(study, proposals, usage):
             "poi_line": checked["poi_line"],
             "sources": [ref for key in option.evidence for ref in EVIDENCE[key]["sources"]],
         })
-    return {"options": options, "high_impedance_bus": HIGH_IMPEDANCE, "usage": {key: usage.get(key) for key in ("input_tokens", "output_tokens")}}
+    return {"options": options, "high_impedance_bus": HIGH_IMPEDANCE if analyze(study)["assessment"]["scope"]["reference_hardware_supported"] else [], "usage": {key: usage.get(key) for key in ("input_tokens", "output_tokens")}}

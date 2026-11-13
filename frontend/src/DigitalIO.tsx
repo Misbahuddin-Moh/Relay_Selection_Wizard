@@ -1,3 +1,5 @@
+import { digitalBudget } from './digitalBudget'
+export { digitalBudget } from './digitalBudget'
 import { useId, useState } from 'react'
 import { PrimaryOrderDraft } from './PrimaryOrderDraft'
 import matrix from './digital-io-matrix.json'
@@ -57,28 +59,9 @@ export function digitalCase(scheme: string, line: boolean, variant: Variant) {
   return { ...entry, signals }
 }
 
-export function digitalBudget(signals: Signal[], device: string, spare: Spare) {
-  let di = 0, coil = 0, other = 0, open = 0
-  for (const signal of signals) {
-    if (!signal.included) continue
-    if (signal.method === 'hardwired or communicated' && (signal.source === device || signal.destination === device)) open++
-    if (signal.method !== 'hardwired') continue
-    if (signal.destination === device) di += signal.di
-    if (signal.source === device) {
-      if (signal.coil) coil += signal.do
-      else other += signal.do
-    }
-  }
-  const withSpare = (used: number, percent: number) => spare.basis === 'used'
-    ? used + Math.ceil(used * percent / 100)
-    : Math.ceil(used * 100 / (100 - percent))
-  const coilRequired = withSpare(coil, spare.do)
-  return { di, coil, other, open, diRequired: withSpare(di, spare.di), coilRequired,
-    doRequired: coilRequired + withSpare(other, spare.do) }
-}
 
 export function budgetText(budget: ReturnType<typeof digitalBudget>) {
-  return `${budget.di} DI / ${budget.coil + budget.other} DO used · ${budget.diRequired} DI / ${budget.doRequired} DO with spares (${budget.coilRequired} coil-duty DO)${budget.open ? ` · ${budget.open} unresolved interface(s)` : ''}`
+  return `Partial interface budget · ${budget.di} DI / ${budget.coil + budget.other} DO used · ${budget.diRequired} DI / ${budget.doRequired} DO with spares (${budget.coilRequired} coil-duty DO)${budget.open ? ` · ${budget.open} unresolved interface(s)` : ''}`
 }
 
 export function PrimaryDigitalFit({ example, variant, budget, model, phase, neutral, vt }: {
@@ -112,7 +95,7 @@ export function PrimaryDigitalFit({ example, variant, budget, model, phase, neut
     <h4>Digital I/O fit</h4>
     <p>{variants[variant].title} · {name} · {hardware}</p>
     <p><strong>{short ? 'This card example falls short'
-      : budget.open ? 'Known points fit · unresolved signals remain' : 'Meets modeled point counts'}</strong></p>
+      : budget.open ? 'Partial budget · unresolved signals remain' : 'Known points fit · budget remains partial'}</strong></p>
     <details><summary>See point counts and hardware limits</summary>
       <div className="table-scroll">
         <table>
@@ -128,7 +111,7 @@ export function PrimaryDigitalFit({ example, variant, budget, model, phase, neut
     <PrimaryOrderDraft key={JSON.stringify([variant, budget, hardware, phase, neutral, vt])}
       model={cardModel === 'SEL-487E-3' ? cardModel : 'GE T60'} hardware={hardware} wiring={variants[variant].title}
       phase={phase} neutral={neutral} vt={vt} digital={budgetText(budget)} blocked={short ? 'The modeled digital hardware falls short. Revise the configuration before ordering.'
-        : budget.open ? 'Resolve the open digital interfaces before ordering.' : null} />
+        : budget.open ? 'Resolve the open digital interfaces. Budget remains partial.' : 'Partial interface budget: complete signal ownership and category review are required before complete I/O fit.'} />
     <p>Before ordering, verify contact duty and that the CT/VT and digital modules fit together.</p>
     <p>{source.split(';').map((url, index) =>
       <a key={url} href={url.trim()} target="_blank" rel="noreferrer">Card reference {index + 1} ↗ </a>)}</p>
@@ -173,7 +156,7 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
     <section className="detail-block digital-io" aria-label="Digital I/O budget">
       <h3>Digital I/O budget</h3>
       <p><strong>Starting assumption</strong> · {variants[settings.variant].title}</p>
-      <p>Example for a straight collector bus with three feeder breakers. Use the counts for preliminary screening.</p>
+      <p>Example for a straight collector bus with three feeder breakers. This is a partial interface budget. Mechanical, control, status, supervision and other categories need a complete ownership review; adding spares does not establish completeness.</p>
       <details>
         <summary>Compare wiring examples</summary>
         <p>Each example changes the trip path or which relay handles breaker failure. For a different design, start with the closest example and edit its signals below.</p>

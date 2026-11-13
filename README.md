@@ -1,5 +1,7 @@
 # Relay Selection Wizard
 
+**Foundation alpha:** public provider operations are disabled. Use manual drawing entry or a concept study and deterministic station checks. CT quantities carry unreviewed origin metadata; digital budgets remain partial and cannot establish complete I/O fit or procurement readiness. See [status](docs/STATUS.md), [decisions](docs/DECISIONS.md), and [quality trace](docs/QUALITY_TRACE.md).
+
 A preliminary protection study workspace for a synthetic single-transformer, single-collector-bus station. The baseline has three collector breaker positions serving five outgoing branches. Create a scenario to change measurement availability or feeder layout, then compare its findings with the baseline.
 
 ## Run locally
@@ -17,7 +19,7 @@ From the repository root on macOS or Linux, run:
 
 ```sh
 python3 -m venv .venv &&
-  .venv/bin/python -m pip install -r requirements.txt &&
+  .venv/bin/python -m pip install -r requirements-dev.txt &&
   npm --prefix frontend ci &&
   npm --prefix frontend run build &&
   .venv/bin/python -m uvicorn backend.main:app --port 8000
@@ -44,7 +46,7 @@ Select **Review topology** to check the one-line and review the CT inventory, th
 
 Choose **New protection study → Upload a drawing**. Select a PDF, PNG, or JPEG up to 20 MiB. The app wraps images above the provider’s inline threshold in a PDF without reducing their pixel resolution. The source preview uses your original file. A direct PDF export is preferable when available. **Enter manually** keeps the original available while you enter the topology without sending the file to an extraction service.
 
-For Claude extraction, set `ANTHROPIC_API_KEY` in the terminal that runs Uvicorn. On macOS with zsh, stop the running server first, then enter:
+Public extraction is disabled in the foundation alpha. The inherited provider setup below is retained for future secured integration. For Claude extraction, set `ANTHROPIC_API_KEY` in the terminal that runs Uvicorn. On macOS with zsh, stop the running server first, then enter:
 
 ```zsh
 read -rs 'ANTHROPIC_API_KEY?Claude API key: '
@@ -60,15 +62,19 @@ Compare the proposed fields and extraction notes with the source, correct the dr
 
 Both entry paths show editable CT counts after the topology review. Breaker counts default to two CTs per phase on each breaker side. The collector counts apply uniformly to each physical collector breaker. Transformer phase counts default to three per phase on each side, with two separate neutral CTs per side. Enter zero where none exist or clear a count to leave it unknown.
 
-The wizard derives the HV boundary from the selected HV CT location (POI side by default) and each collector boundary from the collector breaker PV circuit-side count. The transformer LV phase count supplies the incomer boundary for the separate-zone comparison. Zero means Absent, a positive count means Present, and a blank count means Unknown.
+Default quantities remain **assumed**. Editing one quantity records **user** origin without claiming it is engineer-reviewed. Older quantities without metadata have unknown origin. The wizard derives the HV boundary from the selected HV CT location (POI side by default) and each collector boundary from the collector breaker PV circuit-side count. The transformer LV phase count supplies the incomer boundary for the separate-zone comparison. Zero means Absent, a positive count means Present, and a blank count means Unknown.
 
-The inventory records quantities for the study and its what-if scenarios. Review boundary location, CT suitability, and assignment to primary and backup protection separately. Check winding grounding and the intended ground differential or restricted earth fault application before assigning neutral CTs. Phase-bank requirements are calculated from modeled measurement boundaries.
+Positive CT counts establish modeled presence only; they do not establish confirmation, CT suitability or independence. The inventory records quantities for the study and its what-if scenarios. Review boundary location, CT suitability, and assignment to primary and backup protection separately. Check winding grounding and the intended ground differential or restricted earth fault application before assigning neutral CTs. Phase-bank requirements are calculated from modeled measurement boundaries.
 
 ## Review protection areas
 
 In the CT inventory, choose the station differential HV boundary and optionally include the POI line in the study. The zone review counts one local feeder area per collector breaker and shows the circuits served by that breaker. It also shows how selecting a different HV CT moves the station differential span. The optional POI line area is a preliminary 87L example with remote information left open. Coverage and trip targets remain subject to engineering review.
 
-## Generate AI protection options
+## Provider functionality (disabled in this alpha)
+
+All public AI/extraction POST routes return HTTP 403, regardless of configured credentials. The following describes the inherited provider implementation for later secured integration; setting a key does not enable it. Do not put production keys on staging.
+
+### Inherited option generation
 
 From an analyzed study, select **Generate protection options**. This uses the server's `ANTHROPIC_API_KEY` and defaults to `claude-sonnet-4-6`. Set `RELAY_OPTIONS_MODEL` to select another Claude model that supports the structured response. The request sends grouped station facts and curated evidence. Drawing bytes, study titles, and equipment tags stay local.
 
@@ -94,3 +100,11 @@ The same FastAPI process serves the API and the built frontend. Deploy the conta
 docker build -t relay-wizard .
 docker run --rm -p 127.0.0.1:8000:8000 relay-wizard
 ```
+
+## Quality and staging release
+
+Install development dependencies with `pip install -r requirements-dev.txt` and `npm --prefix frontend ci`. Install the browser with `cd frontend && npx playwright install chromium` or set `CHROMIUM_EXECUTABLE_PATH` to an existing Chromium binary.
+
+Run `bash scripts/verify.sh` for backend HTTP/unit tests, digital-budget tests, production build and browser smoke checks. Normal verification unsets provider keys and makes no paid requests.
+
+On `staging/quality-foundation`, stage only reviewed changes and run `bash scripts/release-staging.sh "Describe the change"`. It verifies before committing and pushing. CI advances `staging/release` only after all checks (including browser checks) pass; Render tracks that release branch. The staging container also runs unit/build gates before deployment. Inspect the resulting Render deploy, `/api/health` revision, static assets and protected endpoints; a pushed commit or accepted deploy is not proof of a live release. Production promotion remains separate.

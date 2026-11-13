@@ -38,6 +38,26 @@ const hvBoundaryInventory: Record<HvBoundary, keyof CtInventory> = {
   bushing: 'transformer_hv_phase',
 }
 
+export type CtProvenance = Partial<Record<keyof CtInventory, {
+  value: number | null; origin: 'assumed' | 'user' | 'document' | 'unknown'; revision: string
+}>>
+
+export function assumedCtProvenance(inventory: CtInventory): CtProvenance {
+  const revision = `standard-defaults/${crypto.randomUUID()}`
+  return Object.fromEntries(Object.entries(inventory).map(([key, value]) => [key, { value, origin: 'assumed', revision }])) as CtProvenance
+}
+
+export interface Assessment {
+  schema_version: number
+  policy_version: string
+  input_fingerprint: string
+  budget_completeness: 'partial'
+  code_status: 'not_generated'
+  independence_status: 'unverified'
+  facts: { subject: string; value: number | null; unit: string; origin: string; revision: string | null; review_state: string }[]
+  scope: { reference_hardware_supported: boolean; reasons: { code: string; message: string }[]; topology_basis: string }
+}
+
 export interface Study {
   title: string
   hv_kv: number
@@ -47,6 +67,7 @@ export interface Study {
   bays: Bay[]
   auxiliary: Auxiliary
   ct_inventory?: CtInventory | null
+  ct_provenance?: CtProvenance
   hv_boundary?: HvBoundary
   include_poi_line?: boolean
 }
@@ -83,10 +104,11 @@ export interface ProtectionZone {
 }
 
 export interface Analysis {
+  assessment: Assessment
   counts: {
     breakers: number
     branches: number
-    confirmed_bay_cts: number
+    modeled_bay_cts: number
     combined_required_banks: number | null
     combined_phase_channels: number | null
   }

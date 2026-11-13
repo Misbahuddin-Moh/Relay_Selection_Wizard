@@ -18,7 +18,7 @@ class StudyBenchmarkTests(unittest.TestCase):
         counts = result["counts"]
         self.assertEqual(counts["breakers"], 3)
         self.assertEqual(counts["branches"], 5)
-        self.assertEqual(counts["confirmed_bay_cts"], 0)
+        self.assertEqual(counts["modeled_bay_cts"], 0)
         self.assertEqual(counts["combined_required_banks"], 4)
         self.assertEqual(counts["combined_phase_channels"], 12)
         combined = self._candidate(result, "combined")
@@ -56,7 +56,7 @@ class StudyBenchmarkTests(unittest.TestCase):
         alternative_counts = analyze(alternative)["counts"]
         self.assertEqual(alternative_counts["breakers"], 7)
         self.assertEqual(alternative_counts["branches"], 9)
-        self.assertEqual(alternative_counts["confirmed_bay_cts"], 4)
+        self.assertEqual(alternative_counts["modeled_bay_cts"], 4)
         self.assertEqual(alternative_counts["combined_required_banks"], 8)
         self.assertEqual(alternative_counts["combined_phase_channels"], 24)
         self.assertEqual(self.study, baseline)
@@ -86,7 +86,7 @@ class StudyBenchmarkTests(unittest.TestCase):
         }
         inventory = self.study["ct_inventory"]
         result = analyze(self.study)
-        self.assertEqual(result["counts"]["confirmed_bay_cts"], 0)
+        self.assertEqual(result["counts"]["modeled_bay_cts"], 0)
         combined = self._candidate(result, "combined")
         self.assertEqual(combined["status"], "Missing measurement")
         self.assertIn("HV breaker POI-side", combined["reason"])
@@ -96,7 +96,7 @@ class StudyBenchmarkTests(unittest.TestCase):
         inventory["lv_breaker_246"] = 1
         inventory["lv_breaker_135"] = 0
         result = analyze(self.study)
-        self.assertEqual(result["counts"]["confirmed_bay_cts"], 3)
+        self.assertEqual(result["counts"]["modeled_bay_cts"], 3)
         self.assertEqual(self._candidate(result, "dedicated")["status"], "Baseline candidate")
 
         inventory["lv_breaker_246"] = None

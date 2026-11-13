@@ -42,6 +42,7 @@ export function PrimaryOrderDraft({ model, hardware, wiring, phase, neutral, vt,
   const ready = missing.length === 0 && !blocked
   const draft = [
     'Transformer Primary · preliminary manufacturer configuration request',
+    'Evidence status: unverified draft; procurement release unavailable',
     `Relay model: ${model}`,
     `Protection: 87T · ${wiring}`,
     `Digital hardware example: ${hardware}`,

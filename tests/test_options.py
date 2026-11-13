@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from backend.main import Study, protection_preview, reference_study
 from backend.engine import analyze
+from backend.relay_catalog import screen_devices
 from backend.options import OptionsError, device_requirements, generate_options, request_options
 
 
@@ -32,7 +33,13 @@ class OptionsTests(TestCase):
         ) as call:
             result = generate_options(study)
             again = generate_options({**study, "title": "Renamed study"})
-        self.assertEqual(result, again)
+        # The provider summary is cached across display renames, but project
+        # evidence fingerprints must identify the current input revision.
+        for left, right in zip(result["options"], again["options"]):
+            self.assertNotEqual(left["assessment"]["input_fingerprint"], right["assessment"]["input_fingerprint"])
+            left_without_revision = {k: v for k, v in left.items() if k != "assessment"}
+            right_without_revision = {k: v for k, v in right.items() if k != "assessment"}
+            self.assertEqual(left_without_revision, right_without_revision)
         self.assertEqual(call.call_count, 1)
         sent = call.call_args.args[0].data.decode()
         self.assertNotIn(study["title"], sent)
@@ -106,7 +113,10 @@ class OptionsTests(TestCase):
         study = reference_study()["study"]
         study["auxiliary"] = "included"
         shared = device_requirements(study, "shared", analyze(study))
-        ge, sel = shared[0]["candidates"]
+        # Preserve the historical catalog arithmetic as a low-level example.
+        # It is not an approved measured-auxiliary application.
+        self.assertEqual(shared[0]["candidates"], [])
+        ge, sel = screen_devices(shared[0], study["auxiliary"])
         self.assertEqual(ge["status"], "Unverified application")
         self.assertEqual(sel["status"], "Conditional configuration")
         self.assertEqual(sel["capacity"], "See dual-card terminal allocation")
@@ -119,7 +129,9 @@ class OptionsTests(TestCase):
         self.assertEqual(sel["allocations"][3]["fit"], "All listed phase cases")
 
         study["bays"].append({**study["bays"][0], "id": "CB-04"})
-        sel = device_requirements(study, "shared", analyze(study))[0]["candidates"][1]
+        row = device_requirements(study, "shared", analyze(study))[0]
+        self.assertEqual(row["candidates"], [])
+        sel = screen_devices(row, study["auxiliary"])[1]
         self.assertEqual(
             [row["fit"] for row in sel["allocations"]],
             ["Insufficient phase banks"] * 3 + ["Lower phase demand only"],

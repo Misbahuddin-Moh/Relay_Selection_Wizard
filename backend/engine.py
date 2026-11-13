@@ -2,6 +2,8 @@
 
 from typing import Any, Optional
 
+from .assessment import assess
+
 
 def phase_ct_status(count: Optional[int]) -> str:
     if count is None:
@@ -11,6 +13,7 @@ def phase_ct_status(count: Optional[int]) -> str:
 
 def analyze(study: dict[str, Any]) -> dict[str, Any]:
     """Screen the modeled measurement boundaries and list provisional trip targets."""
+    assessment = assess(study)
     bays = study["bays"]
     hv_ct = study.get("hv_ct", "unknown")
     lv_ct = study.get("lv_ct", "unknown")
@@ -204,10 +207,11 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
         }
 
     return {
+        "assessment": assessment,
         "counts": {
             "breakers": len(bays),
             "branches": sum(len(bay["branches"]) for bay in bays),
-            "confirmed_bay_cts": sum(bay.get("ct") == "present" for bay in bays),
+            "modeled_bay_cts": sum(bay.get("ct") == "present" for bay in bays),
             "combined_required_banks": combined_banks,
             "combined_phase_channels": 3 * combined_banks,
         },

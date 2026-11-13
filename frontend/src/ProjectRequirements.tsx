@@ -94,7 +94,7 @@ export function ProjectRequirements({ roles, applied, onChange }: {
     <details className="detail-block project-requirements">
       <summary>Project documents and requirements · optional</summary>
       <p>Upload a text-readable PDF excerpt (up to 30 pages) or paste a clause. Extraction sends the readable source text and selected scheme’s relay labels to Claude. Use synthetic or approved excerpts.</p>
-      {configured === false && <p className="draft-note">Claude is unconfigured. You can continue with the station and scheme requirements.</p>}
+      {configured === false && <p className="draft-note">Provider extraction is disabled in this alpha. You can continue with manual station and scheme requirements.</p>}
       <label className="field"><span>Project excerpt file</span><input type="file" accept=".pdf,.txt,application/pdf,text/plain" disabled={busy} onChange={event => setFile(event.target.files?.[0] ?? null)} /></label>
       <label className="field"><span>Or paste project text</span><textarea rows={4} value={excerpt} disabled={busy || !!file} onChange={event => setExcerpt(event.target.value)} /></label>
       <button type="button" className="text-button" disabled={busy || !!file} onClick={() => setExcerpt(example)}>Use synthetic example</button>
