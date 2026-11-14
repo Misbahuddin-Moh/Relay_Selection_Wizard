@@ -2,6 +2,7 @@ export type Ct = 'unknown' | 'present' | 'absent'
 export type Auxiliary = 'unknown' | 'included' | 'excluded'
 
 export interface Bay {
+  uid: string
   id: string
   branches: string[]
   ct: Ct
@@ -59,6 +60,7 @@ export interface Assessment {
 }
 
 export interface Study {
+  uid: string
   title: string
   hv_kv: number
   mv_kv: number
@@ -104,6 +106,7 @@ export interface ProtectionZone {
 }
 
 export interface Analysis {
+  role_keys?: string[]
   assessment: Assessment
   counts: {
     breakers: number
@@ -152,6 +155,7 @@ export interface DrawingDraft {
 
 export interface GeneratedOptions {
   options: {
+    option_id: string
     scheme: string
     hv_boundary: HvBoundary
     rationale: string
@@ -168,6 +172,8 @@ export interface GeneratedOptions {
       bus: { function: string; status: string }
     }
     device_requirements: {
+      role_id: string
+      subject_id: string
       kind: string
       role: string
       functions: string

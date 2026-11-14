@@ -64,7 +64,7 @@ export function budgetText(budget: ReturnType<typeof digitalBudget>) {
   return `Partial interface budget · ${budget.di} DI / ${budget.coil + budget.other} DO used · ${budget.diRequired} DI / ${budget.doRequired} DO with spares (${budget.coilRequired} coil-duty DO)${budget.open ? ` · ${budget.open} unresolved interface(s)` : ''}`
 }
 
-export function PrimaryDigitalFit({ example, variant, budget, model, phase, neutral, vt }: {
+export function PrimaryDigitalFit({ example, variant, budget, model, phase, neutral, vt, orderingNotes, changeOrderingNotes }: {
   example: NonNullable<ReturnType<typeof digitalCase>>
   variant: Variant
   budget: ReturnType<typeof digitalBudget>
@@ -72,6 +72,8 @@ export function PrimaryDigitalFit({ example, variant, budget, model, phase, neut
   phase: number
   neutral: string
   vt: string
+  orderingNotes: Record<string, string>
+  changeOrderingNotes: (notes: Record<string, string>) => void
 }) {
   const cardModel = model === 'SEL-487E-3/-4' ? 'SEL-487E-3' : model === 'Multilin T60' ? 'GE T60' : ''
   const card = example.cards.map(index => matrix.cards[index])
@@ -109,6 +111,7 @@ export function PrimaryDigitalFit({ example, variant, budget, model, phase, neut
       <p>{slotNote}</p>
     </details>
     <PrimaryOrderDraft key={JSON.stringify([variant, budget, hardware, phase, neutral, vt])}
+      fields={orderingNotes} changeFields={changeOrderingNotes}
       model={cardModel === 'SEL-487E-3' ? cardModel : 'GE T60'} hardware={hardware} wiring={variants[variant].title}
       phase={phase} neutral={neutral} vt={vt} digital={budgetText(budget)} blocked={short ? 'The modeled digital hardware falls short. Revise the configuration before ordering.'
         : budget.open ? 'Resolve the open digital interfaces. Budget remains partial.' : 'Partial interface budget: complete signal ownership and category review are required before complete I/O fit.'} />

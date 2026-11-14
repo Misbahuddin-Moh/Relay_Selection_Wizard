@@ -20,7 +20,7 @@ const geFields = {
   supply: 'Power supply option and redundancy',
 }
 
-export function PrimaryOrderDraft({ model, hardware, wiring, phase, neutral, vt, digital, blocked }: {
+export function PrimaryOrderDraft({ model, hardware, wiring, phase, neutral, vt, digital, blocked, fields, changeFields }: {
   model: 'SEL-487E-3' | 'GE T60'
   hardware: string
   wiring: string
@@ -28,9 +28,10 @@ export function PrimaryOrderDraft({ model, hardware, wiring, phase, neutral, vt,
   neutral: string
   vt: string
   digital: string
+  fields: Record<string, string>
+  changeFields: (fields: Record<string, string>) => void
   blocked: string | null
 }) {
-  const [fields, setFields] = useState<Record<string, string>>({})
   const [code, setCode] = useState('')
   const sel = model === 'SEL-487E-3'
   const orderFields = Object.entries({ ...commonFields, ...(sel ? selFields : geFields) })
@@ -65,7 +66,7 @@ export function PrimaryOrderDraft({ model, hardware, wiring, phase, neutral, vt,
         {orderFields.map(([id, label]) => <label className="field" key={id}>
           <span>{label}</span>
           <input value={fields[id] ?? ''} onChange={event => {
-            setFields(current => ({ ...current, [id]: event.target.value }))
+            changeFields({ ...fields, [id]: event.target.value })
             setCode('')
           }} />
         </label>)}

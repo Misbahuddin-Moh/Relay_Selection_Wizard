@@ -40,7 +40,7 @@ npm --prefix frontend run build
 
 Choose **New protection study** from the workspace. Enter a study name and the voltage levels, then add one collector bay per breaker position. Expand each bay to edit its breaker tag, assign the branches it serves, and review CT counts in the next step.
 
-Select **Review topology** to check the one-line and review the CT inventory, then **Confirm and analyze** to make it the active baseline. Create a **New scenario** to test a change against that baseline. Concept studies and scenarios reset when you reload the page.
+Select **Review topology** to check the one-line and review the CT inventory, then **Confirm and analyze** to make it the active baseline. Create a **New scenario** to test a change against that baseline. After the first successful analysis, the active study, pending scenario inputs and relay choices recover from this browser. Download a project JSON file for transfer. Earlier comparison history and source files are excluded; see [portable projects](docs/PROJECTS.md).
 
 ## Start from a one-line drawing
 
@@ -82,9 +82,9 @@ Generation is on demand, with up to three proposals. The prompt aims for 300–6
 
 ## Study scope
 
-The example baseline is synthetic. Scenario edits stay in the current page and reset when it reloads. A missing CT blocks the corresponding modeled differential boundary, while an unknown CT prompts confirmation. The input budget assumes one phase CT bank per collector breaker position and counts the auxiliary boundary separately when selected. Trip targets are preliminary and assume potential collector backfeed and no LV main breaker. Confirm actual CT locations and performance, auxiliary and remote trip paths, fault contributions, breaker failure, and owner requirements independently.
+The example baseline is synthetic. The active station and pending scenario inputs recover after refresh; earlier comparison history is excluded. A missing CT blocks the corresponding modeled differential boundary, while an unknown CT prompts confirmation. The input budget assumes one phase CT bank per collector breaker position and counts the auxiliary boundary separately when selected. Trip targets are preliminary and assume potential collector backfeed and no LV main breaker. Confirm actual CT locations and performance, auxiliary and remote trip paths, fault contributions, breaker failure, and owner requirements independently.
 
-This milestone covers concept entry, topology review, and preliminary candidate comparison. Persistent study storage, manufacturer-specific relay selection, and report export are planned for later milestones.
+This milestone covers concept entry, topology review, and preliminary candidate comparison. Portable study JSON, local recovery and stable study/breaker/role identities are implemented. Shared project storage, manufacturer-validated ordering and report export remain later milestones.
 
 ## Review relay signals and project excerpts
 
@@ -108,3 +108,7 @@ Install development dependencies with `pip install -r requirements-dev.txt` and 
 Run `bash scripts/verify.sh` for backend HTTP/unit tests, digital-budget tests, production build and browser smoke checks. Normal verification unsets provider keys and makes no paid requests.
 
 On `staging/quality-foundation`, stage only reviewed changes and run `bash scripts/release-staging.sh "Describe the change"`. It verifies before committing and pushing. CI advances `staging/release` only after all checks (including browser checks) pass; Render tracks that release branch. The staging container also runs unit/build gates before deployment. Inspect the resulting Render deploy, `/api/health` revision, static assets and protected endpoints; a pushed commit or accepted deploy is not proof of a live release. Production promotion remains separate.
+
+## Save and recovery
+
+Use **Download project** for a portable JSON file. **Open project file** validates first and opens a separate copy only after you choose **Open imported copy**. After the first analysis, browser recovery saves the active station, pending edits and relay choices. The save panel reports failures and pauses when another tab changes the same study. Pending scenario edits support undo/redo. Source drawings/excerpts and earlier comparison history are excluded. [Full contract and limitations](docs/PROJECTS.md).

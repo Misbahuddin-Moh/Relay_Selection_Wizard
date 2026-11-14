@@ -3,7 +3,7 @@ import type { DigitalSettings } from './DigitalIO'
 import { T60InputFit } from './T60InputFit'
 import { modeledMinimum, ProjectRequirements } from './ProjectRequirements'
 import type { AppliedRequirement } from './ProjectRequirements'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OneLine } from './OneLine'
@@ -11,6 +11,9 @@ import { CatalogRelayDiagram } from './CatalogRelayDiagram'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
 import { assumedCtProvenance, auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, hvBoundaryLabels, withInventoryBoundaries } from './model'
 import type { Ct, Analysis, Candidate, CtInventory, DrawingDraft, GeneratedOptions, Snapshot, Study } from './model'
+import { emptyChoices, projectFile, reconcileChoices } from './projectState'
+import type { WorkflowChoices, ProjectFile } from './projectState'
+import { ProjectStorage } from './ProjectStorage'
 import './styles.css'
 
 const icons = {
@@ -155,12 +158,12 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error, con
             <Select label="Auxiliary branch treatment" options={auxiliaryLabels} value={draft.auxiliary} change={auxiliary => update({ ...draft, auxiliary })} />
           </div>
           <div className="bay-list">
-            <div className="bay-list-header"><h3>Collector breaker bays</h3><button type="button" className="text-button" disabled={draft.bays.length >= 40} onClick={() => update({ ...draft, bays: [...draft.bays, { id: nextLabel('52-F', draft.bays.map(bay => bay.id)), ct: 'unknown', branches: [nextLabel('Feeder', branches)] }] })}><Icon name="plus" size={15} /> Add bay</button></div>
+            <div className="bay-list-header"><h3>Collector breaker bays</h3><button type="button" className="text-button" disabled={draft.bays.length >= 40} onClick={() => update({ ...draft, bays: [...draft.bays, { uid: crypto.randomUUID(), id: nextLabel('52-F', draft.bays.map(bay => bay.id)), ct: 'unknown', branches: [nextLabel('Feeder', branches)] }] })}><Icon name="plus" size={15} /> Add bay</button></div>
             {draft.bays.map((bay, index) => (
-              <details className="bay" key={concept ? index : bay.id}>
+              <details className="bay" key={bay.uid}>
                 <summary><strong>{bay.id}</strong><span>{bay.branches.length} {bay.branches.length === 1 ? 'branch' : 'branches'}</span></summary>
                 <div className="bay-fields">
-                  {concept && <label className="field"><span>Breaker tag</span><input value={bay.id} maxLength={100} required onChange={event => changeBay(index, { ...bay, id: event.target.value })} /></label>}
+                  <label className="field"><span>Breaker tag</span><input value={bay.id} maxLength={100} required onChange={event => changeBay(index, { ...bay, id: event.target.value })} /></label>
                   {bay.branches.map((branch, branchIndex) => (
                     <div className="branch-row" key={branchIndex}>
                       <label className="field"><span>Branch {branchIndex + 1}</span><input value={branch} maxLength={100} required onChange={event => changeBay(index, { ...bay, branches: bay.branches.map((name, i) => i === branchIndex ? event.target.value : name) })} /></label>
@@ -168,6 +171,8 @@ function StudyEditor({ draft, update, onSubmit, onReset, busy, dirty, error, con
                     </div>
                   ))}
                   <div className="bay-actions">
+                    <button type="button" className="text-button" disabled={index === 0} aria-label={`Move ${bay.id} up`} onClick={() => { const bays = [...draft.bays]; [bays[index - 1], bays[index]] = [bays[index], bays[index - 1]]; update({ ...draft, bays }) }}>Move up</button>
+                    <button type="button" className="text-button" disabled={index === draft.bays.length - 1} aria-label={`Move ${bay.id} down`} onClick={() => { const bays = [...draft.bays]; [bays[index + 1], bays[index]] = [bays[index], bays[index + 1]]; update({ ...draft, bays }) }}>Move down</button>
                     <button type="button" className="text-button" disabled={bay.branches.length >= 30} onClick={() => changeBay(index, { ...bay, branches: [...bay.branches, nextLabel('Feeder', branches)] })}><Icon name="plus" size={15} /> Add branch</button>
                     <button type="button" className="text-button danger" disabled={draft.bays.length === 1} onClick={() => update({ ...draft, bays: draft.bays.filter((_, i) => i !== index) })}>Remove bay</button>
                   </div>
@@ -441,7 +446,9 @@ function lineScreen(checks: LineChecks, model: string, localCt: Ct) {
   return '87L preferred candidate · Peer, CT banks, channel and DTT disposition recorded.'
 }
 
-function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStation: () => void }) {
+function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices }: Snapshot & {
+  onStation: () => void; choices: WorkflowChoices; changeChoices: (next: WorkflowChoices) => void
+}) {
   const [preview, setPreview] = useState<GeneratedOptions | null>(null)
   const [generated, setGenerated] = useState<GeneratedOptions | null>(null)
   const [busy, setBusy] = useState(false)
@@ -449,25 +456,25 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [retry, setRetry] = useState(0)
   const [step, setStep] = useState(2)
-  const [selection, setSelection] = useState('')
+  const selection = choices.selection
+  const setSelection = (selection: string) => changeChoices({ ...choices, selection })
   const [role, setRole] = useState(0)
-  const [lineChecks, setLineChecks] = useState<LineChecks>({
-    remoteCt: 'unknown', remoteModel: '', compatibleModel: '', channel: false, dtt: 'unknown',
-  })
-  const [requirements, setRequirements] = useState<Record<string, Requirements>>({})
-  const [digitalSettings, setDigitalSettings] = useState<Record<string, DigitalSettings>>({})
+  const lineChecks = choices.line_checks
+  const setLineChecks = (line_checks: LineChecks) => changeChoices({ ...choices, line_checks })
+  const requirements = choices.requirements
+  const digitalSettings = choices.digital_settings
   const [applied, setApplied] = useState<Record<string, AppliedRequirement[]>>({})
   const options = [
-    ...(preview?.options.map((option, index) => ({ option, id: `local-${index}`, source: 'Station checks' })) ?? []),
-    ...(generated?.options.map((option, index) => ({ option, id: `ai-${index}`, source: 'AI proposal' })) ?? []),
+    ...(preview?.options.map(option => ({ option, id: option.option_id, source: 'Station checks' })) ?? []),
+    ...(generated?.options.map(option => ({ option, id: `ai:${option.option_id}`, source: 'AI proposal' })) ?? []),
   ]
   const selected = options.find(item => item.id === selection)
   const option = selected?.option
   const row = option?.device_requirements[role]
-  const values = (index: number) => requirements[`${selection}/${index}`] ?? unknownRequirements
+  const values = (index: number) => requirements[`${selection}/${option?.device_requirements[index]?.role_id}`] ?? unknownRequirements
   function changeInput(index: number, field: keyof Requirements, value: string) {
-    const key = `${selection}/${index}`
-    setRequirements(current => ({ ...current, [key]: { ...(current[key] ?? unknownRequirements), [field]: value } }))
+    const key = `${selection}/${option?.device_requirements[index]?.role_id}`
+    changeChoices({ ...choices, requirements: { ...requirements, [key]: { ...(requirements[key] ?? unknownRequirements), [field]: value } } })
   }
   const dio = digitalSettings[selection] ?? defaultDigitalSettings
   const referenceIO = analysis.assessment.scope.reference_hardware_supported && option ? digitalCase(option.scheme, study.include_poi_line ?? false, dio.variant) : undefined
@@ -479,7 +486,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
   const projectFindings = applied[selection] ?? []
   const effectiveValues = (index: number) => {
     const result = { ...values(index) }
-    for (const finding of projectFindings.filter(item => item.device === index && modeledMinimum(item))) {
+    for (const finding of projectFindings.filter(item => item.role_id === option?.device_requirements[index]?.role_id && modeledMinimum(item))) {
       const key = finding.category === 'neutral_ct' ? 'neutral' : 'vt'
       result[key] = String(Math.max(Number(result[key]), finding.minimum ?? 0))
     }
@@ -521,6 +528,9 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
 
   return (
     <>
+      {choices.notices.map((notice, i) => <p className="draft-note" role="status" key={i}>{notice}</p>)}
+      {!!Object.keys(choices.retired_requirements).length && <details className="panel"><summary>Retired equipment input decisions ({Object.keys(choices.retired_requirements).length})</summary><p>Preserved for review. These inputs are not assigned to active equipment.</p><pre>{JSON.stringify(choices.retired_requirements, null, 2)}</pre></details>}
+      {!!Object.keys(choices.retired_ordering_notes).length && <details className="panel"><summary>Retired equipment ordering notes ({Object.keys(choices.retired_ordering_notes).length})</summary><p>Preserved for review; excluded from active configuration requests.</p><pre>{JSON.stringify(choices.retired_ordering_notes, null, 2)}</pre></details>}
       <StudySteps step={step} onBack={changeStep} />
       {step === 2 && <>
         <div className="stage-intro">
@@ -550,13 +560,13 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
           <div className="detail-block"><p>The wizard derives phase CT sources and protection functions from the selected scheme. Enter neutral CT and VT needs only when known. Extracted project minimums automatically apply to matching relays.</p>
             {study.auxiliary === 'unknown' && <p className="draft-note">A separately measured auxiliary tap may add one phase bank to bus differential.</p>}
           </div>
-          <ProjectRequirements key={`documents/${selection}`} roles={option.device_requirements.map(device => device.role)}
+          <ProjectRequirements key={`documents/${selection}`} roles={option.device_requirements.map(device => ({id: device.role_id, label: device.role}))}
             applied={projectFindings} onChange={update => setApplied(current => ({ ...current, [selection]: update(current[selection] ?? []) }))} />
           {referenceIO ? <DigitalIO key={`digital-io/${selection}`} scheme={option.scheme} bays={study.bays.map(bay => bay.id)}
-            line={study.include_poi_line ?? false} settings={dio} change={next => setDigitalSettings(current => ({ ...current, [selection]: next }))} />
+            line={study.include_poi_line ?? false} settings={dio} change={next => changeChoices({ ...choices, digital_settings: { ...digitalSettings, [selection]: next } })} />
             : <div className="detail-block"><p>Reference hardware screening is unavailable for this layout. Modeled functions and measurement quantities remain visible for draft review.</p></div>}
           <div className="requirement-grid">{option.device_requirements.map((device, index) => (
-            <article className="requirement-card" key={index}>
+            <article className="requirement-card" key={device.role_id} data-role-id={device.role_id}>
               <h3>{device.role}</h3><p>{device.functions} · {phaseDemand(device)}</p>
               <details><summary>Measurement sources</summary><ul>
                 {device.measurement_sources.map(source => <li key={source.label}>{source.label} · {ctLabels[source.remote ? lineChecks.remoteCt : source.state]}</li>)}
@@ -564,7 +574,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
               {device.kind === 'line' && <LineVerification checks={lineChecks}
                 models={device.candidates.map(candidate => candidate.model)} change={setLineChecks} />}
               <RelayInputSelection values={values(index)} change={(field, value) => changeInput(index, field, value)} />
-              {projectFindings.some(finding => finding.device === index && modeledMinimum(finding)) &&
+              {projectFindings.some(finding => finding.role_id === device.role_id && modeledMinimum(finding)) &&
                 <p><strong>Used for screening</strong> · {effectiveValues(index).neutral || 'Unknown'} neutral CT inputs · {effectiveValues(index).vt || 'Unknown'} VT banks</p>}
               <p>{device.note}</p>
             </article>
@@ -575,7 +585,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
         <section className="panel">
           <PanelHeader title="Screen relay models" description={option.check.title} />
           <div className="detail-block">
-            <label className="field"><span>Device role</span><select value={role} onChange={event => setRole(Number(event.target.value))}>{option.device_requirements.map((device, index) => <option key={index} value={index}>{device.role}</option>)}</select></label>
+            <label className="field"><span>Device role</span><select value={role} onChange={event => setRole(Number(event.target.value))}>{option.device_requirements.map((device, index) => <option key={device.role_id} value={index}>{device.role}</option>)}</select></label>
             <details className="shortlist-inputs">
               <summary>Adjust neutral CT and VT inputs</summary>
               <p>Set input needs for this device. Leave a count blank if it’s unknown. The shortlist uses the higher of your entry and any extracted project minimum.</p>
@@ -583,7 +593,7 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
             </details>
             <p><strong>{row.functions}</strong> · {phaseDemand(row)} · {effectiveValues(role).neutral || 'Unknown'} neutral CT inputs · {effectiveValues(role).vt || 'Unknown'} VT banks</p>
             {row.role === 'Transformer Secondary' && option.main_coverage.transformer_b.status !== 'Boundaries present' && <p className="draft-note">Secondary · {option.main_coverage.transformer_b.status}. The models below are function candidates.</p>}
-            {projectFindings.filter(finding => finding.device === role).map(finding =>
+            {projectFindings.filter(finding => finding.role_id === row.role_id).map(finding =>
               <p key={finding.id}><strong>{modeledMinimum(finding) ? 'Extracted minimum' : 'Open ordering review'}</strong> · {finding.requirement} · {finding.source}, page {finding.page}</p>
             )}
             {row.kind === 'line' && <p><strong>Remote terminal</strong> · {lineChecks.remoteModel || 'Relay model unknown'} · Remote CT {ctLabels[lineChecks.remoteCt].toLowerCase()}</p>}
@@ -604,7 +614,9 @@ function ProtectionWorkflow({ study, analysis, onStation }: Snapshot & { onStati
                       <p>{candidate.note}</p>
                       {option.scheme === 'dedicated' && row.role === 'Transformer Primary' && referenceIO && shortlistIO &&
                         <PrimaryDigitalFit example={referenceIO} variant={dio.variant} budget={shortlistIO} model={candidate.model}
-                          phase={row.phase_banks} neutral={neutral} vt={vt} />}
+                          phase={row.phase_banks} neutral={neutral} vt={vt}
+                          orderingNotes={choices.ordering_notes[`${selection}/${row.role_id}/${candidate.model === 'Multilin T60' ? 'GE T60' : 'SEL-487E-3'}`] ?? {}}
+                          changeOrderingNotes={notes => changeChoices({ ...choices, ordering_notes: { ...choices.ordering_notes, [`${selection}/${row.role_id}/${candidate.model === 'Multilin T60' ? 'GE T60' : 'SEL-487E-3'}`]: notes } })} />}
                       <a href={candidate.source} target="_blank" rel="noreferrer">Manufacturer documentation</a>
                       {candidate.model.startsWith('Multilin T60') && <T60InputFit
                         minimum={row.phase_banks} maximum={row.alternate_phase_banks ?? row.phase_banks}
@@ -713,15 +725,16 @@ function Comparison({ baseline, scenario, onCreate }: { baseline: Snapshot; scen
   )
 }
 
-const emptyConcept: Study = {
+const emptyConcept = (): Study => ({
+  uid: crypto.randomUUID(),
   title: '',
   hv_kv: 0,
   mv_kv: 0,
   hv_ct: 'unknown',
   lv_ct: 'unknown',
   auxiliary: 'unknown',
-  bays: [{ id: '52-F-1', branches: ['Feeder-1'], ct: 'unknown' }],
-}
+  bays: [{ uid: crypto.randomUUID(), id: '52-F-1', branches: ['Feeder-1'], ct: 'unknown' }],
+})
 
 function normalizeStudy(draft: Study) {
   return {
@@ -792,7 +805,7 @@ function DrawingSource({ file, notes }: { file: File; notes: string[] }) {
 }
 
 function ConceptStudy({ onCancel, onCreate, hasStudy }: { onCancel: () => void; onCreate: (snapshot: Snapshot, source: 'concept' | 'drawing') => void; hasStudy: boolean }) {
-  const [draft, setDraft] = useState(emptyConcept)
+  const [draft, setDraft] = useState<Study>(emptyConcept)
   const [source, setSource] = useState<'concept' | 'drawing' | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [provider, setProvider] = useState<'Claude' | 'OpenAI' | null>(null)
@@ -837,7 +850,7 @@ function ConceptStudy({ onCancel, onCreate, hasStudy }: { onCancel: () => void; 
         setNotes(['The drawing scope could not be established. Check the supported layout before continuing.', ...result.notes])
       }
       setDraft({
-        ...emptyConcept,
+        ...emptyConcept(),
         title: (result.title.trim() || file.name).slice(0, 100),
         hv_kv: result.hv_kv ?? 0,
         mv_kv: result.mv_kv ?? 0,
@@ -845,11 +858,12 @@ function ConceptStudy({ onCancel, onCreate, hasStudy }: { onCancel: () => void; 
         lv_ct: result.lv_ct,
         bays: result.bays.length
           ? result.bays.map(({ id, ct, branches }) => ({
+            uid: crypto.randomUUID(),
             id,
             ct,
             branches: branches.length ? branches : [''],
           }))
-          : emptyConcept.bays.map(bay => ({ ...bay, id: '', branches: [''] })),
+          : emptyConcept().bays.map(bay => ({ ...bay, id: '', branches: [''] })),
       })
       setEntry(true)
     } catch (error) {
@@ -956,7 +970,7 @@ function ConceptStudy({ onCancel, onCreate, hasStudy }: { onCancel: () => void; 
             </div>
             <div className="editor-actions">
               <button className="button secondary" type="button" disabled={!file || busy} onClick={() => {
-                setDraft({ ...emptyConcept, title: file?.name.slice(0, 100) ?? '' })
+                setDraft({ ...emptyConcept(), title: file?.name.slice(0, 100) ?? '' })
                 setError(null)
                 setEntry(true)
               }}>Enter manually</button>
@@ -968,7 +982,7 @@ function ConceptStudy({ onCancel, onCreate, hasStudy }: { onCancel: () => void; 
         </div>
       ) : (
         <div className="workspace-grid">
-          <StudyEditor concept draft={draft} update={setDraft} onSubmit={reviewTopology} onReset={() => { setDraft(emptyConcept); setError(null) }} busy={false} dirty={draft !== emptyConcept} error={error} />
+          <StudyEditor concept draft={draft} update={setDraft} onSubmit={reviewTopology} onReset={() => { setDraft(emptyConcept()); setError(null) }} busy={false} dirty={true} error={error} />
           {source === 'drawing' && file ? <DrawingSource file={file} notes={notes} /> : <section className="panel">
             <PanelHeader title="Build the collector layout" description="Add one bay for each breaker position. Expand a bay to assign all outgoing branches served by that breaker then review the breaker CT counts." />
           </section>}
@@ -991,6 +1005,33 @@ function App() {
   const [stationReview, setStationReview] = useState(false)
   const [conceptBaseline, setConceptBaseline] = useState<Snapshot | null>(null)
   const [baselineSource, setBaselineSource] = useState<'concept' | 'drawing'>('concept')
+  const [choices, setChoices] = useState<WorkflowChoices>(emptyChoices)
+  const [projectId, setProjectId] = useState<string>(() => crypto.randomUUID())
+  const [hydrated, setHydrated] = useState(false)
+  const [projectStarted, setProjectStarted] = useState(false)
+  const [undo, setUndo] = useState<Study[]>([])
+  const [redo, setRedo] = useState<Study[]>([])
+  const analysisEpoch = useRef(0)
+  const beforeSwitch = useRef<(() => Promise<boolean>) | null>(null)
+  function editDraft(next: Study) {
+    if (draft) setUndo(history => [...history.slice(-39), structuredClone(draft)])
+    setRedo([])
+    analysisEpoch.current++
+    setDraft(next)
+  }
+  function restoreProject(result: {project: ProjectFile; analysis: Analysis; warnings: string[]; role_keys: string[]}) {
+    analysisEpoch.current++
+    setBusy(false)
+    const file = result.project
+    const restored = reconcileChoices(file.decisions, file.study, new Set(result.role_keys))
+    restored.notices = [...restored.notices, ...result.warnings].slice(-30)
+    setProjectStarted(true)
+    setProjectId(file.project_id)
+    setConceptBaseline({study: file.study, analysis: result.analysis})
+    setScenario(null); setDraft(file.draft); setChoices(restored)
+    setUndo([]); setRedo([]); setCreating(false); setStationReview(!!file.draft)
+    setView('workspace'); setFormError(null)
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -1004,7 +1045,8 @@ function App() {
 
   function createScenario() {
     if (!baseline) return
-    setDraft({ ...structuredClone(baseline.study), title: 'What-if scenario' })
+    setUndo([]); setRedo([])
+    setDraft({ ...structuredClone((scenario ?? baseline).study), title: 'What-if scenario' })
     setFormError(null)
     setView('workspace')
     setStationReview(true)
@@ -1020,18 +1062,23 @@ function App() {
       return
     }
 
+    const epoch = ++analysisEpoch.current
     setBusy(true)
     setFormError(null)
     try {
       const analysis = await analyzeStudy(study)
+      if (epoch !== analysisEpoch.current) return
+      const roleKeys = new Set(analysis.role_keys ?? [])
+      setChoices(current => reconcileChoices(current, study, roleKeys))
+      setUndo([]); setRedo([])
       setDraft(study)
       setScenario({ study, analysis })
       setView('workspace')
       setStationReview(false)
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Unable to analyze this scenario.')
+      if (epoch === analysisEpoch.current) setFormError(error instanceof Error ? error.message : 'Unable to analyze this scenario.')
     } finally {
-      setBusy(false)
+      if (epoch === analysisEpoch.current) setBusy(false)
     }
   }
 
@@ -1042,24 +1089,32 @@ function App() {
   const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(scenario?.study ?? (baseline && { ...baseline.study, title: 'What-if scenario' }))
   const isDraft = !!draft && (!scenario || dirty)
 
+  const portable = analyzedCase && projectStarted ? projectFile(projectId, analyzedCase.study, isDraft ? draft : null, choices) : null
+
   return (
     <div className="study-app">
       <header className="study-header">
         <div className="brand"><span className="brand-symbol"><Icon name="bolt" size={21} /></span><div>Relay Selection<span>WIZARD</span></div></div>
         <div className="study-actions">
           {!creating && baseline && <>
-            <button type="button" className="button secondary" disabled={busy} onClick={() => setCreating(true)}>New study</button>
+            <button type="button" className="button secondary" disabled={busy} onClick={async () => { if (!beforeSwitch.current || await beforeSwitch.current()) setCreating(true) }}>New study</button>
             <button type="button" className="button secondary" disabled={busy} onClick={() => setView(view === 'workspace' ? 'comparison' : 'workspace')}>{view === 'workspace' ? 'Compare scenarios' : 'Back to study'}</button>
           </>}
           <span className="header-label">Preliminary engineering</span>
         </div>
       </header>
       <main className="content">
-        {creating && <ConceptStudy hasStudy={!!conceptBaseline || !!scenario} onCancel={() => {
+        <ProjectStorage beforeSwitch={beforeSwitch} project={portable} onOpen={restoreProject} onHydrated={() => setHydrated(true)} onCopy={() => setProjectId(crypto.randomUUID())} />
+        {!hydrated && <p role="status">Restoring saved inputs…</p>}
+        {hydrated && creating && <ConceptStudy hasStudy={!!conceptBaseline || !!scenario} onCancel={() => {
+          setProjectStarted(true)
           setCreating(false)
           setView('workspace')
           if (!conceptBaseline && !scenario) setStationReview(true)
         }} onCreate={(snapshot, source) => {
+          analysisEpoch.current++
+          setProjectStarted(true)
+          setProjectId(crypto.randomUUID()); setChoices({ ...emptyChoices(), digital_bay_order: snapshot.study.bays.map(bay => bay.uid), digital_include_line: !!snapshot.study.include_poi_line }); setUndo([]); setRedo([])
           setConceptBaseline(snapshot)
           setBaselineSource(source)
           setDraft(null)
@@ -1098,7 +1153,7 @@ function App() {
                   <Topology study={visibleStudy} tag={isDraft ? 'DRAFT' : 'MODELED'} />
                   {!isDraft && <details className="panel detail-block"><summary>Engineering questions</summary><Questions questions={activeAnalysis.questions} /></details>}
                 </div>
-                {draft ? <StudyEditor draft={draft} update={setDraft} onSubmit={analyze} onReset={() => {
+                {draft ? <StudyEditor draft={draft} update={editDraft} onSubmit={analyze} onReset={() => {
                   if (scenario) setDraft(structuredClone(scenario.study))
                   else createScenario()
                   setFormError(null)
@@ -1113,7 +1168,9 @@ function App() {
                   </section>
                 )}
               </div>
-              {isDraft && <div className="workflow-actions"><button type="button" className="button secondary" disabled={busy} onClick={() => {
+              {isDraft && <div className="workflow-actions">
+                <button type="button" className="button secondary" disabled={busy || !undo.length} onClick={() => { if (!draft) return; setRedo(history => [structuredClone(draft), ...history]); setDraft(undo[undo.length - 1]); setUndo(history => history.slice(0, -1)); analysisEpoch.current++ }}>Undo input edit</button>
+                <button type="button" className="button secondary" disabled={busy || !redo.length} onClick={() => { if (!draft) return; setUndo(history => [...history, structuredClone(draft)]); setDraft(redo[0]); setRedo(history => history.slice(1)); analysisEpoch.current++ }}>Redo input edit</button><button type="button" className="button secondary" disabled={busy} onClick={() => {
                 setDraft(scenario?.study ?? null)
                 setFormError(null)
                 setStationReview(false)
@@ -1121,7 +1178,7 @@ function App() {
               {!isDraft && <div className="workflow-actions"><button type="button" className="button primary" onClick={() => setStationReview(false)}>Compare protection schemes <Icon name="arrow" size={16} /></button></div>}
             </>}
             <div hidden={view !== 'workspace' || stationReview || isDraft}>
-              <ProtectionWorkflow key={JSON.stringify(analyzedCase.study)} {...analyzedCase} onStation={() => { setStationReview(true); window.scrollTo(0, 0) }} />
+              <ProtectionWorkflow key={JSON.stringify(analyzedCase.study)} {...analyzedCase} choices={choices} changeChoices={next => setChoices({ ...next, digital_bay_order: analyzedCase.study.bays.map(bay => bay.uid), digital_include_line: !!analyzedCase.study.include_poi_line })} onStation={() => { setStationReview(true); window.scrollTo(0, 0) }} />
             </div>
             {view === 'comparison' && <Comparison baseline={baseline} scenario={scenario} onCreate={() => {
               if (draft) { setView('workspace'); setStationReview(true) }

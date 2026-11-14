@@ -7,3 +7,4 @@ env -u ANTHROPIC_API_KEY -u OPENAI_API_KEY "$relay_python" -m unittest discover 
 npm --prefix frontend test
 npm --prefix frontend run build
 RELAY_TEST_PYTHON="$relay_python" node scripts/browser-smoke.mjs
+RELAY_TEST_PYTHON="$relay_python" node scripts/project-recovery-smoke.mjs

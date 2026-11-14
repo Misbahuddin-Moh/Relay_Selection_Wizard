@@ -7,76 +7,16 @@ from urllib.parse import unquote
 from fastapi import FastAPI, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from .drawing import CLAUDE_IMAGE_BYTES, FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, drawing_provider, extract_drawing
-from .assessment import CT_KEYS
 from .engine import analyze
 from .options import OptionsError, generate_options, preview_options
 from .project_requirements import MAX_BYTES, RequirementError, extract_requirements, source_pages
 
-Measurement = Literal["unknown", "present", "absent"]
-Label = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
-
-
-class Bay(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    id: Label
-    branches: Annotated[list[Label], Field(min_length=1, max_length=30)]
-    ct: Measurement
-
-
-CtCount = Annotated[int, Field(strict=True, ge=0, le=99)]
-
-
-class CtInventory(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    lv_breaker_135: Optional[CtCount] = Field(...)
-    lv_breaker_246: Optional[CtCount] = Field(...)
-    hv_breaker_135: Optional[CtCount] = Field(...)
-    hv_breaker_246: Optional[CtCount] = Field(...)
-    transformer_hv_phase: Optional[CtCount] = Field(...)
-    transformer_lv_phase: Optional[CtCount] = Field(...)
-    transformer_hv_neutral: Optional[CtCount] = Field(...)
-    transformer_lv_neutral: Optional[CtCount] = Field(...)
-
-
-class CtProvenance(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    value: Optional[CtCount]
-    origin: Literal["assumed", "user", "document", "unknown"]
-    revision: Annotated[str, StringConstraints(min_length=1, max_length=100)]
-
-
-class Study(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    title: Label
-    hv_kv: Annotated[float, Field(gt=0, allow_inf_nan=False)]
-    mv_kv: Annotated[float, Field(gt=0, allow_inf_nan=False)]
-    lv_ct: Measurement
-    hv_ct: Measurement
-    bays: Annotated[list[Bay], Field(min_length=1, max_length=40)]
-    auxiliary: Literal["unknown", "included", "excluded"]
-    ct_inventory: Optional[CtInventory] = None
-    ct_provenance: dict[str, CtProvenance] = Field(default_factory=dict)
-    hv_boundary: Literal["poi", "breaker_transformer", "bushing"] = "poi"
-    include_poi_line: bool = False
-
-    @model_validator(mode="after")
-    def validate_equipment_ids(self):
-        if set(self.ct_provenance) - set(CT_KEYS):
-            raise ValueError("Unknown CT provenance field.")
-        bay_ids = [bay.id.casefold() for bay in self.bays]
-        if len(set(bay_ids)) != len(bay_ids):
-            raise ValueError("Collector breaker IDs must be unique.")
-        branch_ids = [branch.casefold() for bay in self.bays for branch in bay.branches]
-        if len(set(branch_ids)) != len(branch_ids):
-            raise ValueError("Outgoing branch IDs must be unique.")
-        return self
+from .models import Bay, CtCount, CtInventory, CtProvenance, Study
+from .projects import MAX_PROJECT_BYTES, validate_project, project_role_keys
+from pydantic import ValidationError
+from uuid import NAMESPACE_URL, uuid5
 
 
 app = FastAPI(title="Relay Selection Wizard")
@@ -109,13 +49,31 @@ def health():
 
 @app.get("/api/study")
 def reference_study():
-    study = Study.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8"))).model_dump()
+    seed = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    seed['uid'] = str(uuid5(NAMESPACE_URL, 'relay-wizard/reference-station'))
+    for bay in seed['bays']:
+        bay['uid'] = str(uuid5(NAMESPACE_URL, f"relay-wizard/reference-station/{bay['id']}"))
+    study = Study.model_validate(seed).model_dump()
     return {"study": study, "analysis": analyze(study)}
+
+
+@app.post("/api/projects/validate")
+async def validate_portable_project(request: Request):
+    data = bytearray()
+    async for chunk in request.stream():
+        if len(data) + len(chunk) > MAX_PROJECT_BYTES:
+            raise HTTPException(413, 'Project files must be no larger than 2 MiB.')
+        data.extend(chunk)
+    try:
+        decoded = json.loads(data)
+        return validate_project(decoded)
+    except (ValueError, RecursionError, UnicodeDecodeError, ValidationError):
+        raise HTTPException(422, 'Invalid project file: check its version, identities, counts and decision references. No current work has been replaced.') from None
 
 
 @app.post("/api/analyze")
 def analyze_study(study: Study):
-    return analyze(study.model_dump())
+    return {**analyze(study.model_dump()), "role_keys": project_role_keys(study.model_dump())}
 
 
 @app.post("/api/protection-preview")

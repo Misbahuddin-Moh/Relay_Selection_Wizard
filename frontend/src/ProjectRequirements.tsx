@@ -20,7 +20,7 @@ The breaker drawing labels its trip coils TC1 and TC2.`
 
 type ReviewedFinding = Finding & { source: string; id: string }
 type Extraction = { findings: Finding[]; pages_processed: number; unreadable_pages: number[]; unverified_findings: number }
-export type AppliedRequirement = ReviewedFinding & { device: number }
+export type AppliedRequirement = ReviewedFinding & { role_id: string }
 
 export function modeledMinimum(finding: Finding) {
   return finding.status === 'required' && finding.timing !== 'future'
@@ -29,7 +29,7 @@ export function modeledMinimum(finding: Finding) {
 }
 
 export function ProjectRequirements({ roles, applied, onChange }: {
-  roles: string[]
+  roles: {id: string; label: string}[]
   applied: AppliedRequirement[]
   onChange: (update: (findings: AppliedRequirement[]) => AppliedRequirement[]) => void
 }) {
@@ -60,7 +60,7 @@ export function ProjectRequirements({ roles, applied, onChange }: {
         method: 'POST',
         headers: {
           'Content-Type': file?.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'text/plain',
-          'X-Relay-Roles': encodeURIComponent(JSON.stringify(roles)),
+          'X-Relay-Roles': encodeURIComponent(JSON.stringify(roles.map(role => role.label))),
         },
         body,
       })
@@ -73,7 +73,7 @@ export function ProjectRequirements({ roles, applied, onChange }: {
           index => Number.isInteger(index) && index >= 0 && index < roles.length,
         ),
       }))
-      const mapped = reviewed.flatMap(finding => finding.affected_device_indices.map(device => ({ ...finding, device })))
+      const mapped = reviewed.flatMap(finding => finding.affected_device_indices.map(device => ({ ...finding, role_id: roles[device].id })))
       setFindings(current => [...current, ...reviewed])
       onChange(current => [...current, ...mapped])
       setNotice([
@@ -110,7 +110,7 @@ export function ProjectRequirements({ roles, applied, onChange }: {
           <blockquote>{finding.quote}</blockquote>
           <p>{finding.source} · page {finding.page}</p>
           <p><strong>{active.length ? (modeledMinimum(finding) ? 'Applied to' : 'Tracked for') : 'Relay assignment'}</strong> · {
-            active.length ? active.map(item => roles[item.device]).join(', ')
+            active.length ? active.map(item => roles.find(role => role.id === item.role_id)?.label ?? 'Retired role').join(', ')
               : finding.affected_device_indices.length ? 'Removed from screening' : 'No clear match in this scheme'
           }</p>
           {active.length > 0 && <button type="button" className="text-button"

@@ -12,6 +12,7 @@ from urllib.request import Request, urlopen
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .engine import analyze
+from uuid import NAMESPACE_URL, uuid5
 from .relay_catalog import HIGH_IMPEDANCE, screen_devices
 
 EVIDENCE = json.loads(Path(__file__).with_name("option_evidence.json").read_text(encoding="utf-8"))
@@ -187,8 +188,14 @@ def device_requirements(study, scheme, analysis, coverage=None):
         ],
     }
 
-    def add(kind, role, functions, banks, note, alternate_banks=None, measurement_sources=None):
+    def add(kind, role, functions, banks, note, alternate_banks=None, measurement_sources=None, subject=None, purpose=None):
+        study_uid = study.get("uid", "legacy-unassigned")
+        subject = subject or ("transformer" if kind in ("transformer", "shared", "combined") else kind)
+        purpose = purpose or ("secondary" if role == "Transformer Secondary" else "primary")
+        role_id = str(uuid5(NAMESPACE_URL, f"relay-wizard/{study_uid}/{subject}/{purpose}"))
         row = {
+            "role_id": role_id,
+            "subject_id": subject,
             "kind": kind,
             "role": role,
             "functions": functions,
@@ -221,7 +228,7 @@ def device_requirements(study, scheme, analysis, coverage=None):
         _, bus_side_ct = area["measurements"]
         add("feeder", area["breaker"], "51P; evaluate 51G/51N and directionality", 1,
             f'Serves {", ".join(area["circuits"])}. Uses the bus-side phase CT bank. Verify the CT core and trip assignment.',
-            measurement_sources=[bus_side_ct])
+            measurement_sources=[bus_side_ct], subject=next((bay.get("uid", bay["id"]) for bay in study["bays"] if bay["id"] == area["breaker"])))
     if study["include_poi_line"]:
         add("line", "POI line · local terminal", "87L", 1,
             "The remote CT bank terminates at the remote relay. Verify the 87L current channel and any required DTT clearing path.")
@@ -262,6 +269,7 @@ def present_options(study, proposals, usage):
         coverage = main_coverage(study, option, checked)
         options.append({
             **option.model_dump(),
+            "option_id": f"{option.scheme}:{option.hv_boundary}",
             "assessment": checked["assessment"],
             "backup": "Time-graded overcurrent for coordination study. Project applicability remains open.",
             "check": candidate,

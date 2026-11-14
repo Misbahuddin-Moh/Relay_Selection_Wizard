@@ -12,3 +12,14 @@
 | Q33 Deployment | health revision, verify/release scripts, CI, Docker test stages | tested commit and observed Render deploy; post-deploy smoke |
 
 These rows cover implemented subsets only. They do not close entire Q families or imply complete engineering coverage. The three original test files retain prototype arithmetic and provider-format regression fixtures; generated catalog output is not an independent engineering oracle.
+
+## Identity and recovery slice
+
+| Plan requirement | Implementation | Evidence |
+|---|---|---|
+| Q03 Stable identities | models, options role IDs, semantic option IDs, lifted decisions | test_projects rename/reorder/recreate; project-state reconciliation; recovery browser |
+| Q24 Portable study | strict ProjectFile schema and projects/validate | migration/roundtrip/version/size/invalid-reference tests; portable download/import browser |
+| Q25 Autosave/undo | ProjectStorage, draft history | refresh/incomplete draft/undo/redo/tab-conflict/quota/corruption browser gates |
+| Q32 Invalidation | analysis epoch, stale draft display, input-only load | malformed/extra approval rejection; fresh analysis; positional edit invalidation and remote-review reset |
+
+Scope and limitations: PROJECTS.md. Local Chromium remains unavailable in this execution environment; actual browser results must come from the CI run for the release commit.

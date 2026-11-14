@@ -20,3 +20,8 @@ Next slice: stable project/equipment/role contracts and revision ownership, foll
 ## Verification checkpoint before CI
 
 27 backend tests and four frontend digital-budget tests pass; TypeScript/Vite production build passes. The local Chromium process is blocked by the execution environment before page creation, and bundled browser downloads are truncated. This is **blocked browser verification**, not a pass. The initial source-branch commit is therefore a CI candidate only. CI must run the browser gate and advance `staging/release` before Render can deploy it. Local `release-staging.sh` correctly refuses to release while a required check cannot run.
+
+
+## Identity and recovery slice — candidate checkpoint
+
+Stable study/bay IDs, backend role identities, semantic option keys and lifted user choices are implemented. Portable schema-1 JSON, fresh analysis on recovery, browser autosave with cooperative locks/conflict detection, staged imports and pending-input undo are implemented. See PROJECTS.md for the bounded recovery scope (after first analysis; active study and pending edits only). Added independent project/identity HTTP tests, frontend reconciliation tests and a required second browser recovery gate. Candidate must pass both browser suites in CI before staging promotion. Full G1 remains open; manufacturer/catalog and complete signal derivation remain later gates.

@@ -339,3 +339,11 @@ details.detail-block { margin-top: 12px; }
 
 .relay-column { display: grid; gap: 14px; min-width: 0; }
 .relay-column > h3 { margin: 0; color: #124e52; }
+
+.project-storage { margin-bottom: 18px; }
+.project-storage > p { margin-top: 0; }
+.project-storage .editor-actions { flex-wrap: wrap; align-items: end; gap: 12px; }
+.project-storage .field { max-width: 300px; min-width: 0; }
+.project-storage input[type="file"] { max-width: 100%; }
+.project-storage details { margin-top: 12px; }
+.panel pre { overflow-wrap: anywhere; white-space: pre-wrap; }
