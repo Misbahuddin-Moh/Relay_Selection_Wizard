@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 
 from .drawing import CLAUDE_IMAGE_BYTES, FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, drawing_provider, extract_drawing
 from .engine import analyze
+from .provider_policy import DISABLED_REASON, deny_provider_requests
 from .options import OptionsError, generate_options, preview_options
 from .project_requirements import MAX_BYTES, RequirementError, extract_requirements, source_pages
 
@@ -68,13 +69,16 @@ class Study(BaseModel):
 
 
 app = FastAPI(title="Relay Selection Wizard")
+app.middleware("http")(deny_provider_requests)
+
 FIXTURE = Path(__file__).with_name("fixture.json")
 FRONTEND = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "revision": os.getenv("RENDER_GIT_COMMIT") or os.getenv("APP_REVISION") or "local",
+            "provider_operations": "disabled"}
 
 
 @app.get("/api/study")
@@ -103,9 +107,7 @@ def protection_options(study: Study):
 
 @app.get("/api/drawing/status")
 def drawing_status():
-    provider = drawing_provider()
-    return {"configured": provider is not None, "provider": provider}
-
+    return {"configured": False, "provider": None, "reason": DISABLED_REASON}
 
 @app.post("/api/drawing/extract")
 async def extract_single_line(request: Request):
@@ -138,8 +140,7 @@ async def extract_single_line(request: Request):
 
 @app.get("/api/requirements/status")
 def requirements_status():
-    return {"configured": bool(os.getenv("ANTHROPIC_API_KEY", "").strip())}
-
+    return {"configured": False, "reason": DISABLED_REASON}
 
 @app.post("/api/requirements/extract")
 async def extract_project_requirements(request: Request):
