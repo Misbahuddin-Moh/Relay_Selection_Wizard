@@ -8,3 +8,4 @@ npm --prefix frontend test
 npm --prefix frontend run build
 RELAY_TEST_PYTHON="$relay_python" node scripts/browser-smoke.mjs
 RELAY_TEST_PYTHON="$relay_python" node scripts/project-recovery-smoke.mjs
+RELAY_TEST_PYTHON="$relay_python" node scripts/engineering-io-smoke.mjs

@@ -1,10 +1,10 @@
-import { digitalBudget } from './digitalBudget'
-export { digitalBudget } from './digitalBudget'
+import { budgetText } from './engineeringIO'
+import type { CardExample, DigitalBudget, EngineeringIOResult } from './engineeringIO'
+export { budgetText } from './engineeringIO'
 import { useId, useState } from 'react'
 import { PrimaryOrderDraft } from './PrimaryOrderDraft'
-import matrix from './digital-io-matrix.json'
 
-type Signal = {
+export type Signal = {
   id: number
   name: string
   source: string
@@ -42,32 +42,13 @@ const variants = {
 }
 type Variant = keyof typeof variants
 type Spare = { di: number; do: number; basis: 'used' | 'installed' }
-export type DigitalSettings = { variant: Variant; spare: Spare; edits: Partial<Record<Variant, Signal[]>> }
+export type DigitalSettings = { variant: Variant; spare: Spare; edits: Partial<Record<Variant, Signal[]>>; output_classes?: Partial<Record<Variant, Record<string, ('fast' | 'form_c')[]>>> }
 export const defaultDigitalSettings: DigitalSettings = { variant: 'LOCK', spare: { di: 20, do: 20, basis: 'used' }, edits: {} }
 
-export function digitalCase(scheme: string, line: boolean, variant: Variant) {
-  const prefix = scheme === 'dedicated' ? 'SEP' : scheme === 'shared' ? 'SHARED' : scheme === 'combined' ? 'COMB_ASYM' : ''
-  const key = `${prefix}.${variant}.L${Number(line)}`
-  const entry = matrix.cases[key as keyof typeof matrix.cases]
-  if (!entry) return undefined
-  const signals: Signal[] = entry.signals.map((index, id) => {
-    const [name, source, destination, method, di, output, coil, included, reference, condition] = matrix.signals[index]
-    return { id, name: String(name), source: String(source), destination: String(destination), method: String(method),
-      di: Number(di), do: Number(output), coil: Boolean(coil), included: Boolean(included),
-      reference: String(reference), condition: String(condition) }
-  })
-  return { ...entry, signals }
-}
-
-
-export function budgetText(budget: ReturnType<typeof digitalBudget>) {
-  return `Partial interface budget · ${budget.di} DI / ${budget.coil + budget.other} DO used · ${budget.diRequired} DI / ${budget.doRequired} DO with spares (${budget.coilRequired} coil-duty DO)${budget.open ? ` · ${budget.open} unresolved interface(s)` : ''}`
-}
-
-export function PrimaryDigitalFit({ example, variant, budget, model, phase, neutral, vt, orderingNotes, changeOrderingNotes }: {
-  example: NonNullable<ReturnType<typeof digitalCase>>
+export function PrimaryDigitalFit({ cards, variant, budget, model, phase, neutral, vt, orderingNotes, changeOrderingNotes }: {
+  cards: CardExample[]
   variant: Variant
-  budget: ReturnType<typeof digitalBudget>
+  budget: DigitalBudget
   model: string
   phase: number
   neutral: string
@@ -76,62 +57,54 @@ export function PrimaryDigitalFit({ example, variant, budget, model, phase, neut
   changeOrderingNotes: (notes: Record<string, string>) => void
 }) {
   const cardModel = model === 'SEL-487E-3/-4' ? 'SEL-487E-3' : model === 'Multilin T60' ? 'GE T60' : ''
-  const card = example.cards.map(index => matrix.cards[index])
-    .find(row => row[0] === 'T-P' && row[1] === cardModel && row[6] === 'capacity_candidate')
+  const card = cards.find(row => row.device === 'T-P' && row.model === cardModel)
   if (!card) return <p>Digital I/O fit is open. This model has no card example for the selected wiring.</p>
-
-  const [, name, hardware, di, outputs, coil, , , source] = card
+  const {hardware, model: name} = card
   const counts = [
-    { label: 'Digital inputs', required: budget.diRequired, available: Number(di) },
-    { label: 'Total digital outputs', required: budget.doRequired, available: Number(outputs) },
-    { label: 'Coil-duty outputs (included in total)', required: budget.coilRequired, available: Number(coil) },
+    {label: 'Digital inputs', required: budget.diRequired, available: card.capacities.di, used: budget.di, spare: card.actual_spares.di_percent},
+    {label: 'Total digital outputs', required: budget.doRequired, available: card.capacities.do, used: budget.doUsed, spare: card.actual_spares.do_percent},
+    {label: 'Coil-duty outputs (included in total)', required: budget.coilRequired, available: card.capacities.coil, used: budget.coil, spare: card.actual_spares.coil_percent},
+    {label: 'Fast outputs (can overlap other classes)', required: budget.fastRequired, available: card.capacities.fast, used: budget.fastUsed, spare: card.actual_spares.fast_percent},
+    {label: 'Form-C contacts (one physical contact each)', required: budget.formCRequired, available: card.capacities.form_c, used: budget.formCUsed, spare: card.actual_spares.form_c_percent},
   ]
-  const short = counts.some(point => point.available < point.required)
-  const slotNote = cardModel === 'SEL-487E-3'
-    ? hardware.includes('INT7')
-      ? 'INT7 needs one expansion position. The smallest chassis supporting it is 4U with one AC card or 6U with two AC cards.'
-      : 'The main-board example uses no I/O expansion position. Confirm the AC card count and chassis.'
-    : `This example needs ${hardware.split(' + ').length} digital module position(s). Confirm the available positions after assigning CT/VT modules in the exact T60 chassis.`
 
   return <section className="input-fit" aria-label="Transformer Primary digital I/O fit">
     <h4>Digital I/O fit</h4>
     <p>{variants[variant].title} · {name} · {hardware}</p>
-    <p><strong>{short ? 'This card example falls short'
-      : budget.open ? 'Partial budget · unresolved signals remain' : 'Known points fit · budget remains partial'}</strong></p>
+    <p><strong>{card.screening === 'insufficient_nominal' ? 'This card example falls short' : card.screening === 'class_evidence_missing' ? 'Required contact class evidence is missing' : card.screening === 'within_nominal_counts' ? 'Known points fit · budget remains partial' : 'Function or capacity evidence remains unverified'}</strong></p>
     <details><summary>See point counts and hardware limits</summary>
       <div className="table-scroll">
         <table>
-          <thead><tr><th scope="col">Point type</th><th scope="col">Needed with spares</th><th scope="col">Example capacity</th></tr></thead>
-          <tbody>{counts.map(({ label, required, available }) => <tr key={label}>
+          <thead><tr><th scope="col">Point type</th><th scope="col">Needed with spares</th><th scope="col">Example capacity</th><th scope="col">Used points</th><th scope="col">Actual installed spares</th></tr></thead>
+          <tbody>{counts.map(({ label, required, available, used, spare }) => <tr key={label}>
             <th scope="row">{label}</th><td>{required}</td>
-            <td>{available}{available < required && <strong> · short {required - available}</strong>}</td>
+            <td>{available ?? 'Unverified'}</td><td>{used}</td><td>{spare === null ? 'Not established' : `${spare.toFixed(1)}%`}</td>
           </tr>)}</tbody>
         </table>
       </div>
-      <p>{slotNote}</p>
+      <p>{card.module_note}</p>
     </details>
     <PrimaryOrderDraft key={JSON.stringify([variant, budget, hardware, phase, neutral, vt])}
       fields={orderingNotes} changeFields={changeOrderingNotes}
       model={cardModel === 'SEL-487E-3' ? cardModel : 'GE T60'} hardware={hardware} wiring={variants[variant].title}
-      phase={phase} neutral={neutral} vt={vt} digital={budgetText(budget)} blocked={short ? 'The modeled digital hardware falls short. Revise the configuration before ordering.'
-        : budget.open ? 'Resolve the open digital interfaces. Budget remains partial.' : 'Partial interface budget: complete signal ownership and category review are required before complete I/O fit.'} />
+      phase={phase} neutral={neutral} vt={vt} digital={budgetText(budget)} blocked={card.ordering_block} />
     <p>Before ordering, verify contact duty and that the CT/VT and digital modules fit together.</p>
-    <p>{source.split(';').map((url, index) =>
+    <p>{card.source_urls.map((url, index) =>
       <a key={url} href={url.trim()} target="_blank" rel="noreferrer">Card reference {index + 1} ↗ </a>)}</p>
   </section>
 }
 
-export function DigitalIO({ scheme, bays, line, settings, change }: {
-  scheme: string; bays: string[]; line: boolean; settings: DigitalSettings; change: (next: DigitalSettings) => void
+export function DigitalIO({ scheme, bays, editor, result, pending, error, retry, settings, change }: {
+  scheme: string; bays: string[]; editor: NonNullable<EngineeringIOResult['editor']>; result: EngineeringIOResult | null; pending: boolean; error: string | null; retry: () => void; settings: DigitalSettings; change: (next: DigitalSettings) => void
 }) {
   const [picked, setPicked] = useState('T-P')
+  const [allEndpoints, setAllEndpoints] = useState(true)
   const deviceList = useId()
-  const example = digitalCase(scheme, line, settings.variant)
-  if (!example) return null
+  const example = editor
   const device = example.devices.includes(picked) ? picked : 'T-P'
   const signals = settings.edits[settings.variant] ?? example.signals
   const related = signals.filter(signal => signal.source === device || signal.destination === device)
-  const budget = digitalBudget(signals, device, settings.spare)
+  const budget = result?.budgets[device]
   const label = (value: string) => value.replace(/\bF([123])\b/g, (_, number) => bays[Number(number) - 1]).replace(/\bH\b/g, 'POI breaker')
   const primaryName = scheme === 'shared' ? 'Transformer Primary + bus protection'
     : scheme === 'combined' ? 'Combined transformer + bus Primary' : 'Transformer Primary'
@@ -178,16 +151,25 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
         <legend>Relay to review</legend>
         <div className="digital-relays">
           {example.devices.map(id => {
-            const counts = digitalBudget(signals, id, settings.spare)
+            const counts = result?.budgets[id]
             return <label key={id}>
               <input type="radio" name={`${deviceList}-relay`} checked={device === id} onChange={() => setPicked(id)} />
-              <span><strong>{relayName(id)}</strong><br />{counts.diRequired} DI / {counts.doRequired} DO</span>
+              <span><strong>{relayName(id)}</strong><br />{counts ? `${counts.diRequired} DI / ${counts.doRequired} DO` : 'Pending backend calculation'}</span>
             </label>
           })}
         </div>
       </fieldset>
       <h4>{relayName(device)} signal budget</h4>
-      <p aria-live="polite"><strong>{budgetText(budget)}</strong></p>
+      <section aria-label="Backend I/O assessment" data-fingerprint={result?.request_fingerprint ?? ''}>
+        {pending && <p role="status">Calculating backend I/O… Previous totals and fit are not current.</p>}
+        {error && <p role="alert">{error} <button type="button" className="button secondary" onClick={retry}>Retry I/O calculation</button></p>}
+        {budget && <><p aria-live="polite"><strong>{budgetText(budget)}</strong></p>
+          <p>Backend assessment · {result?.solver_version} · {result?.matrix_version}</p>
+          <p>{budget.fastRequired} fast outputs · {budget.formCRequired} form-C contacts required with spares. Class counts may overlap on one physical contact.</p>
+          <details><summary>Signal category review · incomplete</summary><ul>{budget.category_review.map(item => <li key={item.category}>{item.category.replaceAll('_', ' ')}: {item.state.replaceAll('_', ' ')} ({item.enumerated_rows} rows)</li>)}</ul></details>
+          <p>{budget.ordering_block}</p>
+        </>}
+      </section>
       <details><summary>Adjust spare I/O</summary>
         <div className="field-row">
           {(['di', 'do'] as const).map(field => <label className="field" key={field}><span>{field.toUpperCase()} spares (%)</span>
@@ -202,7 +184,7 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
         </div>
       </details>
       <details><summary>Review and edit {relayName(device)} signals</summary>
-        <p>Included hardwired signals count toward relay contacts. Coil-duty and other output spares round up separately.</p>
+        <p>Included hardwired signals count toward relay contacts. Spares round up separately for each distinct required contact capability group; a physical contact is counted once.</p>
         <datalist id={deviceList}>{example.devices.map(id => <option key={id} value={id}>{relayName(id)}</option>)}</datalist>
         <div className="digital-io-actions">
           <button type="button" className="button secondary" onClick={() => add('di')}>Add DI</button>
@@ -245,21 +227,36 @@ export function DigitalIO({ scheme, bays, line, settings, change }: {
                     if (Number.isInteger(value) && value >= 0 && value <= 99) update(signal.id, { [field]: value })
                   }} /></label>)}
               </div>
+              {signal.method === 'hardwired' && signal.do > 0 && <fieldset><legend>Additional required output properties</legend>{(['fast', 'form_c'] as const).map(property => {
+                const selected = settings.output_classes?.[settings.variant]?.[String(signal.id)] ?? []
+                return <label key={property}><input type="checkbox" checked={selected.includes(property)} onChange={event => {
+                  const next = event.target.checked ? [...selected, property] : selected.filter(value => value !== property)
+                  change({ ...settings, output_classes: { ...settings.output_classes, [settings.variant]: { ...settings.output_classes?.[settings.variant], [String(signal.id)]: next } } })
+                }} /> {property === 'fast' ? 'Fast output required' : 'Form-C contact required'}</label>
+              })}</fieldset>}
               {signal.method === 'hardwired' && signal.do > 0 && <label><input type="checkbox" checked={signal.coil}
                 onChange={event => update(signal.id, { coil: event.target.checked })} /> Coil-duty output</label>}
-              {signal.reference === 'User entry' && <button type="button" className="text-button" onClick={() => setSignals(signals.filter(item => item.id !== signal.id))}>Remove custom signal</button>}
+              {signal.reference === 'User entry' && <button type="button" className="text-button" onClick={() => { const classes = {...settings.output_classes?.[settings.variant]}; delete classes[String(signal.id)]; change({ ...settings, edits: { ...settings.edits, [settings.variant]: signals.filter(item => item.id !== signal.id) }, output_classes: { ...settings.output_classes, [settings.variant]: classes } }) }}>Remove custom signal</button>}
             </details>
           </fieldset>
         })}
       </details>
       <details><summary>SEL and GE card capacity examples</summary>
-        <p>Counts are screened against the card examples in this wiring case. Verify contact ratings, isolation, slots, analog fit, and protection support separately.</p>
-        {example.cards.map(index => matrix.cards[index]).filter(card => card[0] === device).map(card => {
-          const [, model, hardware, di, outputs, coil, status, gate, source] = card
-          const within = Number(di) >= budget.diRequired && Number(outputs) >= budget.doRequired && Number(coil) >= budget.coilRequired
-          return <p key={model}><strong>{model} · {hardware}</strong> · {status === 'function_unverified' ? 'Function unverified'
-            : within ? 'Within nominal point counts' : 'Exceeds this card example'} · {gate.replace('Verify winding compensation and physical source routing', 'Verify physical source routing')} {source.split(';').map((url, i) => <a key={url} href={url.trim()} target="_blank" rel="noreferrer">Reference {i + 1} ↗ </a>)}</p>
-        })}
+        <p>Backend nominal screening only. Manufacturer contact properties, module coexistence and complete requirements remain unverified.</p>
+        {!result && <p>Waiting for current backend results.</p>}
+        {result?.card_examples.filter(card => card.device === device).map(card => <p key={card.model}><strong>{card.model} · {card.hardware}</strong> · {card.screening.replaceAll('_', ' ')} · {card.gate} {card.source_urls.map(url => <a href={url} key={url} target="_blank" rel="noreferrer">Reference ↗ </a>)}</p>)}
+      </details>
+      <details><summary>Full endpoint signal ledger</summary>
+        <p>{result?.endpoint_count_basis}</p>
+        <label><input type="checkbox" checked={allEndpoints} onChange={event => setAllEndpoints(event.target.checked)} /> Show all relay and field endpoints</label>
+        {result?.ledger_findings?.map(item => <p role="status" key={item.code}>{item.message} ({item.count})</p>)}
+        <p>Drawing tags identify required documents; actual approved drawing numbers have not been supplied. Field contacts and coil drives are separate from relay DI/DO.</p>
+        {result?.ledger.filter(item => allEndpoints || item.source === device || item.destination === device || item.owner.label === relayName(device)).map(item => <article className="input-fit" key={item.ledger_id}>
+          <strong>{item.name}</strong><p>{item.source_endpoint.label} → {item.destination_endpoint.label} · {item.method} · {item.included ? 'Included' : 'Excluded'}</p>
+          <p>Owner: {item.owner.label} ({item.owner_state}) · {item.authority.replaceAll('_', ' ')}</p>
+          <p>Source relay DO: {item.consumption.source_relay_do}; destination relay DI: {item.consumption.destination_relay_di}; external source contacts: {item.consumption.source_external_contacts ?? 'Unknown'}; destination coil drives: {item.consumption.destination_coil_drives ?? 'Unknown'}.</p>
+          <p>{item.condition}</p><p>Research row {item.source_row_id} · {item.source_documents_required.map(doc => `${doc.tag}: ${doc.document} (${doc.state.replaceAll('_', ' ')})`).join('; ')}</p>
+        </article>)}
       </details>
     </section>
   )

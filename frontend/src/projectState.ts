@@ -58,9 +58,9 @@ export function reconcileChoices(choices: WorkflowChoices, study: Study, roles: 
   if (next.selection && !next.selection.endsWith(`:${study.hv_boundary ?? 'poi'}`)) next.selection = ''
   const order = study.bays.map(bay => bay.uid)
   if (JSON.stringify(order) !== JSON.stringify(next.digital_bay_order) || !!study.include_poi_line !== next.digital_include_line) {
-    const hadEdits = Object.values(next.digital_settings).some(setting => Object.keys(setting.edits).length)
-    for (const setting of Object.values(next.digital_settings)) setting.edits = {}
-    if (hadEdits) next.notices = [...next.notices, 'Breaker order or line scope changed. Positional digital signal edits were cleared; wiring and spare choices were retained.'].slice(-30)
+    const hadEdits = Object.values(next.digital_settings).some(setting => Object.keys(setting.edits).length || Object.keys(setting.output_classes ?? {}).length)
+    for (const setting of Object.values(next.digital_settings)) { setting.edits = {}; setting.output_classes = {} }
+    if (hadEdits) next.notices = [...next.notices, 'Breaker order or line scope changed. Positional digital signal edits and output-class overrides were cleared; wiring and spare choices were retained.'].slice(-30)
     next.digital_bay_order = order
     next.digital_include_line = !!study.include_poi_line
   }

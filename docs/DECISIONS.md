@@ -13,3 +13,7 @@
 | P02 | 2026-11-13 | Equipment and role IDs survive tag/order changes. Retire removed-role choices; reattach only to original identity. | General topology graph and source identity migration. |
 | P03 | 2026-11-13 | Positional digital signal edits are cleared explicitly on breaker-order/line-scope change; retain wiring/spares. | Endpoints migrate to persistent equipment/signal identities. |
 | P04 | 2026-11-13 | Use Web Locks and revision comparison for autosave; preserve current revision before switching; fail visibly on storage errors. | Durable shared project storage. |
+| I01 | 2026-11-13 | Move digital ledger, point/reserve calculations and nominal card screening to the backend; UI renders a current shared result. | Verified configuration service extends analog and purchasing scope. |
+| I02 | 2026-11-13 | Recover full illustrative field endpoints from earlier research; keep source tags unverified and budgets partial. | Approved project drawings and reviewed signal ownership. |
+| I03 | 2026-11-13 | Group output demands by conjunctive capability, round reserves per disjoint group and allocate physical contacts once. | An adopted owner reserve/allocation policy requires different semantics. |
+| I04 | 2026-11-13 | Fast/form-C and module coexistence stay unknown where nominal examples lack evidence; no purchasing readiness. | Exact versioned manufacturer documentation and configurations. |

@@ -23,3 +23,15 @@ These rows cover implemented subsets only. They do not close entire Q families o
 | Q32 Invalidation | analysis epoch, stale draft display, input-only load | malformed/extra approval rejection; fresh analysis; positional edit invalidation and remote-review reset |
 
 Scope and limitations: PROJECTS.md. Local Chromium remains unavailable in this execution environment; actual browser results must come from the CI run for the release commit.
+
+## Shared backend I/O slice
+
+| Requirement | Implementation | Evidence |
+|---|---|---|
+| Q09/Q11 endpoint ownership | normalized full ledger, stable relay/external IDs, separate physical endpoint counts | 217 historical relay totals / 30 cases; independent synthetic endpoint and BF examples |
+| Q10 completeness | backend partial category review and purchasing block | no computed/client status can grant complete fit |
+| Q12/Q13 output classes/reserves | integer reserve groups and grouped contact max-flow | conjunctive/overlap/scarcity tests; 0/20/40/99% cases; unknown capacity tests |
+| Q16/Q23/Q32 coherent results | backend-only digital calculations, dependency fingerprints, stale response guards | catalog/policy invalidation tests; engineering browser table/request consistency and delayed/failing response tests |
+| Q24 portable wiring | shared semantic input validator and positional-class invalidation | invalid internal/orphan-class import rejection; stale line signature normalization |
+
+See ENGINEERING_IO.md for evidence limits. Manufacturer catalog validation, complete signal review and full analog/module allocation remain open.

@@ -1,4 +1,4 @@
-import { budgetText, defaultDigitalSettings, DigitalIO, digitalBudget, digitalCase, PrimaryDigitalFit } from './DigitalIO'
+import { budgetText, defaultDigitalSettings, DigitalIO, PrimaryDigitalFit } from './DigitalIO'
 import type { DigitalSettings } from './DigitalIO'
 import { T60InputFit } from './T60InputFit'
 import { modeledMinimum, ProjectRequirements } from './ProjectRequirements'
@@ -11,6 +11,7 @@ import { CatalogRelayDiagram } from './CatalogRelayDiagram'
 import { extractionFile, maxDrawingBytes } from './drawingUpload'
 import { assumedCtProvenance, auxiliaryLabels, ctInventoryFields, ctLabels, defaultCtInventory, hvBoundaryLabels, withInventoryBoundaries } from './model'
 import type { Ct, Analysis, Candidate, CtInventory, DrawingDraft, GeneratedOptions, Snapshot, Study } from './model'
+import { useEngineeringIO } from './engineeringIO'
 import { emptyChoices, projectFile, reconcileChoices } from './projectState'
 import type { WorkflowChoices, ProjectFile } from './projectState'
 import { ProjectStorage } from './ProjectStorage'
@@ -477,12 +478,12 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
     changeChoices({ ...choices, requirements: { ...requirements, [key]: { ...(requirements[key] ?? unknownRequirements), [field]: value } } })
   }
   const dio = digitalSettings[selection] ?? defaultDigitalSettings
-  const referenceIO = analysis.assessment.scope.reference_hardware_supported && option ? digitalCase(option.scheme, study.include_poi_line ?? false, dio.variant) : undefined
+  const io = useEngineeringIO(study, option?.scheme ?? null, dio)
+  const referenceIO = analysis.assessment.scope.reference_hardware_supported ? io.editor : null
   const ioDevice = row?.kind === 'feeder' ? `FP-F${study.bays.findIndex(bay => bay.id === row.role) + 1}`
     : row?.kind === 'line' ? 'LINE-H' : row?.kind === 'bus' ? 'BUS'
     : row?.role === 'Transformer Secondary' ? 'T-S' : row?.kind === 'meter' ? '' : 'T-P'
-  const shortlistIO = referenceIO && referenceIO.devices.includes(ioDevice)
-    ? digitalBudget(dio.edits[dio.variant] ?? referenceIO.signals, ioDevice, dio.spare) : null
+  const shortlistIO = io.result?.budgets[ioDevice] ?? null
   const projectFindings = applied[selection] ?? []
   const effectiveValues = (index: number) => {
     const result = { ...values(index) }
@@ -563,8 +564,8 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
           <ProjectRequirements key={`documents/${selection}`} roles={option.device_requirements.map(device => ({id: device.role_id, label: device.role}))}
             applied={projectFindings} onChange={update => setApplied(current => ({ ...current, [selection]: update(current[selection] ?? []) }))} />
           {referenceIO ? <DigitalIO key={`digital-io/${selection}`} scheme={option.scheme} bays={study.bays.map(bay => bay.id)}
-            line={study.include_poi_line ?? false} settings={dio} change={next => changeChoices({ ...choices, digital_settings: { ...digitalSettings, [selection]: next } })} />
-            : <div className="detail-block"><p>Reference hardware screening is unavailable for this layout. Modeled functions and measurement quantities remain visible for draft review.</p></div>}
+            editor={referenceIO} result={io.result} pending={io.pending} error={io.error} retry={io.retry} settings={dio} change={next => changeChoices({ ...choices, digital_settings: { ...digitalSettings, [selection]: next } })} />
+            : <div className="detail-block"><p>{io.pending ? 'Loading backend signal ledger…' : io.error ? io.error : 'Reference hardware screening is unavailable for this layout. Modeled functions and measurement quantities remain visible for draft review.'}</p>{io.error && <button type="button" className="button secondary" onClick={io.retry}>Retry I/O calculation</button>}</div>}
           <div className="requirement-grid">{option.device_requirements.map((device, index) => (
             <article className="requirement-card" key={device.role_id} data-role-id={device.role_id}>
               <h3>{device.role}</h3><p>{device.functions} · {phaseDemand(device)}</p>
@@ -597,6 +598,7 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
               <p key={finding.id}><strong>{modeledMinimum(finding) ? 'Extracted minimum' : 'Open ordering review'}</strong> · {finding.requirement} · {finding.source}, page {finding.page}</p>
             )}
             {row.kind === 'line' && <p><strong>Remote terminal</strong> · {lineChecks.remoteModel || 'Relay model unknown'} · Remote CT {ctLabels[lineChecks.remoteCt].toLowerCase()}</p>}
+            {(io.pending || io.error) && <p role={io.error ? 'alert' : 'status'}>{io.error ?? 'Calculating current backend I/O. Prior totals and ordering fit are not current.'}{io.error && <button type="button" className="button secondary" onClick={io.retry}>Retry I/O calculation</button>}</p>}
             {shortlistIO && <p><strong>Illustrative digital I/O · </strong>{budgetText(shortlistIO)}</p>}
           </div>
           <div className="relay-grid">
@@ -613,7 +615,7 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
                       {candidate.allocations.length === 0 && <p>{candidate.capacity}</p>}
                       <p>{candidate.note}</p>
                       {option.scheme === 'dedicated' && row.role === 'Transformer Primary' && referenceIO && shortlistIO &&
-                        <PrimaryDigitalFit example={referenceIO} variant={dio.variant} budget={shortlistIO} model={candidate.model}
+                        <PrimaryDigitalFit cards={io.result?.card_examples ?? []} variant={dio.variant} budget={shortlistIO} model={candidate.model}
                           phase={row.phase_banks} neutral={neutral} vt={vt}
                           orderingNotes={choices.ordering_notes[`${selection}/${row.role_id}/${candidate.model === 'Multilin T60' ? 'GE T60' : 'SEL-487E-3'}`] ?? {}}
                           changeOrderingNotes={notes => changeChoices({ ...choices, ordering_notes: { ...choices.ordering_notes, [`${selection}/${row.role_id}/${candidate.model === 'Multilin T60' ? 'GE T60' : 'SEL-487E-3'}`]: notes } })} />}

@@ -5,6 +5,8 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 from .models import Identity, Study, StudyDraft, new_identity
 from .options import preview_options
 from .engine import analyze
+from .engineering_io import validate_persisted_wiring
+from .io_models import DigitalSettings, Signal, Spare, Variant
 
 MAX_PROJECT_BYTES = 2 * 1024 * 1024
 Variant = Literal['LOCK', 'DIRECT', 'GOOSE_BFI', 'LOCAL_H', 'EXTERNAL_F']
@@ -19,39 +21,6 @@ class StrictModel(BaseModel):
 class RelayInputs(StrictModel):
     neutral: InputCount = ''
     vt: InputCount = ''
-
-
-class Spare(StrictModel):
-    di: Annotated[int, Field(strict=True, ge=0, le=99)]
-    do: Annotated[int, Field(strict=True, ge=0, le=99)]
-    basis: Literal['used', 'installed']
-
-
-class Signal(StrictModel):
-    id: Annotated[int, Field(strict=True, ge=0)]
-    name: Text
-    source: Text
-    destination: Text
-    method: Literal['hardwired', 'GOOSE', 'SCADA message', 'internal', 'teleprotection', 'hardwired or communicated']
-    di: Annotated[int, Field(strict=True, ge=0, le=99)]
-    do: Annotated[int, Field(strict=True, ge=0, le=99)]
-    coil: bool
-    included: bool
-    reference: Text
-    condition: Text
-
-
-class DigitalSettings(StrictModel):
-    variant: Variant
-    spare: Spare
-    edits: dict[Variant, Annotated[list[Signal], Field(max_length=1000)]] = Field(default_factory=dict)
-
-    @model_validator(mode='after')
-    def unique_signals(self):
-        for rows in self.edits.values():
-            if len({row.id for row in rows}) != len(rows):
-                raise ValueError('Duplicate signal identity in digital edits.')
-        return self
 
 
 class RemoteChecks(StrictModel):
@@ -128,6 +97,11 @@ class ProjectFile(StrictModel):
         for key in self.decisions.retired_ordering_notes:
             if '/' not in key or not re.fullmatch(role_pattern, key.rsplit('/', 1)[0]) or key.rsplit('/', 1)[-1] not in ('GE T60', 'SEL-487E-3'):
                 raise ValueError('Invalid retired ordering role or model.')
+        signature_current = (self.decisions.digital_bay_order == [bay.uid for bay in self.study.bays]
+                             and self.decisions.digital_include_line == self.study.include_poi_line)
+        if signature_current:
+            for option_id, settings in self.decisions.digital_settings.items():
+                validate_persisted_wiring(self.study.model_dump(), option_id.split(':')[0], settings.model_dump())
         for key in self.decisions.ordering_notes:
             if key.rsplit('/', 1)[0] not in role_keys or key.rsplit('/', 1)[-1] not in ('GE T60', 'SEL-487E-3'):
                 raise ValueError('Ordering notes reference an unknown role or model.')
@@ -155,10 +129,11 @@ def validate_project(data):
     order = [bay['uid'] for bay in result['study']['bays']]
     decisions = result['decisions']
     if decisions['digital_bay_order'] != order or decisions['digital_include_line'] != result['study']['include_poi_line']:
-        if any(settings['edits'] for settings in decisions['digital_settings'].values()):
+        if any(settings['edits'] or settings['output_classes'] for settings in decisions['digital_settings'].values()):
             warnings.append('Positional digital edits were cleared because breaker order or line scope changed.')
         for settings in decisions['digital_settings'].values():
             settings['edits'] = {}
+            settings['output_classes'] = {}
         decisions['digital_bay_order'] = order
         decisions['digital_include_line'] = result['study']['include_poi_line']
     role_keys = project_role_keys(result['study'])

@@ -112,3 +112,7 @@ On `staging/quality-foundation`, stage only reviewed changes and run `bash scrip
 ## Save and recovery
 
 Use **Download project** for a portable JSON file. **Open project file** validates first and opens a separate copy only after you choose **Open imported copy**. After the first analysis, browser recovery saves the active station, pending edits and relay choices. The save panel reports failures and pauses when another tab changes the same study. Pending scenario edits support undo/redo. Source drawings/excerpts and earlier comparison history are excluded. [Full contract and limitations](docs/PROJECTS.md).
+
+## Backend I/O assessment
+
+The signal budget, nominal card comparison and ordering-request digital totals now use one versioned backend result. Open **Full endpoint signal ledger** to inspect relay and field contacts, coil drives, inclusion conditions and missing drawing references. Fast and form-C requirements can be entered per output; absent manufacturer capabilities stay unverified. Budgets remain partial and cannot establish purchasing readiness. [Engineering I/O contract and evidence limits](docs/ENGINEERING_IO.md).

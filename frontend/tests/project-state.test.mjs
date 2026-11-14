@@ -6,7 +6,7 @@ test('rename keeps choices; reorder clears positional signal edits only', () => 
   const choices = emptyChoices()
   choices.requirements = {'dedicated:poi/role-a': {neutral: '2', vt: '1'}}
   choices.digital_bay_order = ['bay-a', 'bay-b']
-  choices.digital_settings = {'dedicated:poi': {variant: 'DIRECT', spare: {di:20, do:20, basis:'used'}, edits: {DIRECT: [{id:1}]}}}
+  choices.digital_settings = {'dedicated:poi': {variant: 'DIRECT', spare: {di:20, do:20, basis:'used'}, edits: {DIRECT: [{id:1}]}, output_classes: {DIRECT: {'1': ['fast']}}}}
   const renamed = study(); renamed.bays[0].id = 'Renamed breaker'
   const stable = reconcileChoices(choices, renamed, new Set(['dedicated:poi/role-a']))
   assert.deepEqual(stable.requirements, choices.requirements)
@@ -14,6 +14,7 @@ test('rename keeps choices; reorder clears positional signal edits only', () => 
   const reversed = {...renamed, bays: [...renamed.bays].reverse()}
   const changed = reconcileChoices(stable, reversed, new Set(['dedicated:poi/role-a']))
   assert.deepEqual(changed.digital_settings['dedicated:poi'].edits, {})
+  assert.deepEqual(changed.digital_settings['dedicated:poi'].output_classes, {})
   assert.equal(changed.digital_settings['dedicated:poi'].variant, 'DIRECT')
   assert.equal(changed.digital_settings['dedicated:poi'].spare.di, 20)
   assert.match(changed.notices[0], /Positional/)

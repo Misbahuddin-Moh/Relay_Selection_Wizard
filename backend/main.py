@@ -14,6 +14,8 @@ from .options import OptionsError, generate_options, preview_options
 from .project_requirements import MAX_BYTES, RequirementError, extract_requirements, source_pages
 
 from .models import Bay, CtCount, CtInventory, CtProvenance, Study
+from .io_models import EngineeringRequest
+from .engineering_io import engineering_io
 from .projects import MAX_PROJECT_BYTES, validate_project, project_role_keys
 from pydantic import ValidationError
 from uuid import NAMESPACE_URL, uuid5
@@ -55,6 +57,20 @@ def reference_study():
         bay['uid'] = str(uuid5(NAMESPACE_URL, f"relay-wizard/reference-station/{bay['id']}"))
     study = Study.model_validate(seed).model_dump()
     return {"study": study, "analysis": analyze(study)}
+
+
+@app.post("/api/engineering/io")
+async def analyze_engineering_io(request: Request):
+    data = bytearray()
+    async for chunk in request.stream():
+        if len(data) + len(chunk) > 2 * 1024 * 1024:
+            raise HTTPException(413, 'Engineering inputs must be no larger than 2 MiB.')
+        data.extend(chunk)
+    try:
+        validated = EngineeringRequest.model_validate_json(data)
+        return engineering_io(validated)
+    except (ValueError, RecursionError, ValidationError):
+        raise HTTPException(422, 'Invalid engineering inputs: check the study, signal identities, methods, points and output classes.') from None
 
 
 @app.post("/api/projects/validate")

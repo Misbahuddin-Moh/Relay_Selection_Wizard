@@ -25,3 +25,7 @@ Next slice: stable project/equipment/role contracts and revision ownership, foll
 ## Identity and recovery slice — candidate checkpoint
 
 Stable study/bay IDs, backend role identities, semantic option keys and lifted user choices are implemented. Portable schema-1 JSON, fresh analysis on recovery, browser autosave with cooperative locks/conflict detection, staged imports and pending-input undo are implemented. See PROJECTS.md for the bounded recovery scope (after first analysis; active study and pending edits only). Added independent project/identity HTTP tests, frontend reconciliation tests and a required second browser recovery gate. Candidate must pass both browser suites in CI before staging promotion. Full G1 remains open; manufacturer/catalog and complete signal derivation remain later gates.
+
+## Backend I/O slice — candidate checkpoint
+
+The backend owns the digital ledger, counts/reserves and nominal card screening. The browser's duplicate calculator and matrix have been removed. Full reference field endpoints are traceable; fast/form-C conjunctions are modeled without reusing contacts, but missing manufacturer properties remain unknown. All budgets remain partial and ordering remains blocked. ENGINEERING_IO.md documents input/result contracts and limitations. Three browser gates must pass before staging promotion. The earlier staging service required an explicit API deploy after CI promotion; do not assume a successful branch update means deployment occurred.
