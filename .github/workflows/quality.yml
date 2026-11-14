@@ -1,7 +1,7 @@
 name: Quality gates
 on:
   push:
-    branches: [main, 'staging/quality-foundation']
+    branches: [main, 'staging/quality-foundation', 'staging/release']
   pull_request:
 permissions:
   contents: read

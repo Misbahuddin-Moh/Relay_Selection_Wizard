@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .drawing import CLAUDE_IMAGE_BYTES, FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, drawing_provider, extract_drawing
 from .engine import analyze
+from .provider_policy import DISABLED_REASON, deny_provider_requests
 from .options import OptionsError, generate_options, preview_options
 from .project_requirements import MAX_BYTES, RequirementError, extract_requirements, source_pages
 
@@ -22,22 +23,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 
 app = FastAPI(title="Relay Selection Wizard")
-# The shared alpha deliberately has no public route to paid providers. Re-enable
-# only with the access, ownership, consent and cost controls of the pilot gate.
-PROVIDER_PATHS = frozenset({
-    "/api/protection-options", "/api/drawing/extract", "/api/requirements/extract",
-})
-
-
-@app.middleware("http")
-async def provider_guard(request: Request, call_next):
-    from fastapi.responses import JSONResponse
-    if request.url.path.rstrip("/") in PROVIDER_PATHS:
-        return JSONResponse(status_code=403, content={
-            "detail": "Provider operations are disabled in this alpha. Use manual entry and station checks.",
-        })
-    return await call_next(request)
-
+app.middleware("http")(deny_provider_requests)
 
 FIXTURE = Path(__file__).with_name("fixture.json")
 FRONTEND = Path(__file__).resolve().parents[1] / "frontend" / "dist"
@@ -107,8 +93,7 @@ def protection_options(study: Study):
 
 @app.get("/api/drawing/status")
 def drawing_status():
-    return {"configured": False, "provider": None, "reason": "Provider operations disabled in this alpha."}
-
+    return {"configured": False, "provider": None, "reason": DISABLED_REASON}
 
 @app.post("/api/drawing/extract")
 async def extract_single_line(request: Request):
@@ -141,8 +126,7 @@ async def extract_single_line(request: Request):
 
 @app.get("/api/requirements/status")
 def requirements_status():
-    return {"configured": False, "reason": "Provider operations disabled in this alpha."}
-
+    return {"configured": False, "reason": DISABLED_REASON}
 
 @app.post("/api/requirements/extract")
 async def extract_project_requirements(request: Request):
