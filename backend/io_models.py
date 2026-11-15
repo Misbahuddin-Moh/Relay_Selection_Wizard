@@ -47,10 +47,16 @@ class DigitalSettings(StrictModel):
 
 
 
+class AnalogRequirements(StrictModel):
+    neutral: Annotated[int, Field(strict=True, ge=0, le=999)] | None = None
+    vt: Annotated[int, Field(strict=True, ge=0, le=999)] | None = None
+
+
 class EngineeringRequest(StrictModel):
     study: Study
     scheme: Literal['dedicated', 'shared', 'combined']
     settings: DigitalSettings
+    analog_requirements: dict[Annotated[str, StringConstraints(max_length=100)], AnalogRequirements] = Field(default_factory=dict, max_length=100)
 
     @model_validator(mode='before')
     @classmethod

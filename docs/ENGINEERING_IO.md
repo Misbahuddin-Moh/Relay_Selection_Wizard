@@ -1,6 +1,6 @@
 # Backend I/O service — first reference path
 
-The backend now owns the reference digital ledger, point arithmetic, class-group reserves and nominal card screening. The browser edits input decisions and renders one current result across the signal budget, shortlist point table and manufacturer request text. There is no remaining browser I/O calculator or independent card-capacity comparison. Analog-family screening remains preliminary and is not a verified module allocator.
+The backend now owns the reference digital ledger, point arithmetic, class-group reserves and nominal card screening. The browser edits input decisions and renders one current result across the signal budget, shortlist point table and manufacturer request text. There is no remaining browser I/O calculator or independent card-capacity comparison. Analog-family screening is now part of the same backend response; it remains preliminary and is not a verified module allocator.
 
 ## Input and result
 
@@ -43,3 +43,40 @@ The first fully traced purchasing path still requires approved project signal ow
 Schema-1 projects retain input edits and output-class requirements, not derived budgets. All saved variants receive the same semantic wiring validation. Changing breaker order or line scope clears positional edits and class overrides with a notice before applying a new case. Existing source excerpts and credentials remain excluded.
 
 Independent regression fixtures cover all 217 researched per-relay totals over 30 cases; they establish reproduction of illustrative examples, not engineering approval. Unit/HTTP tests also cover endpoints, reserves, class overlap, missing evidence, scope, manipulated inputs, import semantics and dependency invalidation. The third browser gate verifies one backend result across the budget/shortlist/request text, class persistence, failure/retry and delayed-response protection. The prior foundation and recovery browser suites remain required.
+
+## Backend analog screening (2026-11-15)
+
+The optional `analog_requirements` input maps current scheme role IDs to strict
+`neutral` and `vt` integers (0–999), or null for unknown. These are user-entered
+neutral CT inputs and three-phase VT banks, not CT quantities per core. Omitted
+requirements remain unknown; zero means explicitly none. Foreign/stale roles,
+booleans, fractional/negative counts and client-derived fit claims are rejected.
+Portable projects continue to store the existing input strings by stable role ID;
+restored inputs are sent through the same backend assessment.
+
+`analog_assessments` returns study-derived phase-bank envelopes and inherited
+candidate capacity examples for the roles in the protection shortlist. Shared
+Primary retains both input-reuse cases; an unknown auxiliary measurement adds an
+upper phase case for bus/shared/combined roles. Remote 87L measurements are not
+local physical current inputs. SEL terminal-layout filtering and inherited T60
+three-module arithmetic now run in the backend; the browser only selects/renders
+returned layouts and module cases. No browser analog capacity calculator remains.
+
+Each digital budget also exposes `analog_reference`: included reference-ledger
+CT/VT channel sums and original research row IDs. The UI shows these traces and
+per-row analog consumption. These illustrative conditional rows do not replace
+study demand. For example, the shared Primary ledger has 15 CT channels while its
+study envelope can require five–six phase banks (or seven with unknown auxiliary).
+Dedicated BF roles have ledger traces but no adjustable analog shortlist yet.
+
+Analog input changes invalidate the entire current result and hide prior derived
+screens while calculating or after failure. The request fingerprint includes
+analog inputs, derived roles/candidates, analog solver source and catalog source.
+Independent tests include terminal-capacity dependency invalidation. The browser
+gate checks analog input delivery, layout rendering, and obsolete-response rejection.
+
+These are inherited unreviewed capacity examples, not newly manufacturer-validated
+configurations. T60 ground/neutral routing remains unknown, even with a requested
+count. SEL nominal layouts do not verify function options, CT suitability or
+ratings. Analog and digital slots are not jointly allocated. Every complete-fit
+flag remains false; module/electrical evidence and procurement release stay blocked.

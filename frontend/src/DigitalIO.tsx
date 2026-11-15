@@ -167,6 +167,12 @@ export function DigitalIO({ scheme, bays, editor, result, pending, error, retry,
           <p>Backend assessment · {result?.solver_version} · {result?.matrix_version}</p>
           <p>{budget.fastRequired} fast outputs · {budget.formCRequired} form-C contacts required with spares. Class counts may overlap on one physical contact.</p>
           <details><summary>Signal category review · incomplete</summary><ul>{budget.category_review.map(item => <li key={item.category}>{item.category.replaceAll('_', ' ')}: {item.state.replaceAll('_', ' ')} ({item.enumerated_rows} rows)</li>)}</ul></details>
+          <details><summary>Reference analog channel trace</summary>
+            <p>{budget.analog_reference.ct_channels} CT channels · {budget.analog_reference.vt_channels} VT channels in the illustrative ledger.</p>
+            <p>{budget.analog_reference.basis}</p>
+            <p>Evidence: {budget.analog_reference.evidence_state.replaceAll('_', ' ')}. These totals do not resolve phase-bank alternatives or neutral/VT requirements.</p>
+            <p>Research rows: {budget.analog_reference.ledger_ids.join(', ') || 'None enumerated'}</p>
+          </details>
           <p>{budget.ordering_block}</p>
         </>}
       </section>
@@ -254,7 +260,7 @@ export function DigitalIO({ scheme, bays, editor, result, pending, error, retry,
         {result?.ledger.filter(item => allEndpoints || item.source === device || item.destination === device || item.owner.label === relayName(device)).map(item => <article className="input-fit" key={item.ledger_id}>
           <strong>{item.name}</strong><p>{item.source_endpoint.label} → {item.destination_endpoint.label} · {item.method} · {item.included ? 'Included' : 'Excluded'}</p>
           <p>Owner: {item.owner.label} ({item.owner_state}) · {item.authority.replaceAll('_', ' ')}</p>
-          <p>Source relay DO: {item.consumption.source_relay_do}; destination relay DI: {item.consumption.destination_relay_di}; external source contacts: {item.consumption.source_external_contacts ?? 'Unknown'}; destination coil drives: {item.consumption.destination_coil_drives ?? 'Unknown'}.</p>
+          <p>Source relay DO: {item.consumption.source_relay_do}; destination relay DI: {item.consumption.destination_relay_di}; external source contacts: {item.consumption.source_external_contacts ?? 'Unknown'}; destination coil drives: {item.consumption.destination_coil_drives ?? 'Unknown'}; destination CT channels: {item.consumption.destination_ct_channels}; destination VT channels: {item.consumption.destination_vt_channels}.</p>
           <p>{item.condition}</p><p>Research row {item.source_row_id} · {item.source_documents_required.map(doc => `${doc.tag}: ${doc.document} (${doc.state.replaceAll('_', ' ')})`).join('; ')}</p>
         </article>)}
       </details>

@@ -193,6 +193,68 @@ try {
   await visible(ioRegion().getByText(/actual approved drawing numbers have not been supplied/))
   assert.match(await ioRegion().innerText(), /external source contacts:/)
   assert.match(await ioRegion().innerText(), /unreviewed/)
+  // The same backend revision must own analog requirements and digital totals.
+  await page.getByRole('button', {name: 'Screen relay models', exact: true}).click()
+  await visible(page.getByRole('heading', {name: 'Screen relay models', exact: true}))
+  const selAnalog = () => page.getByRole('region', {name: /^SEL-487E.* backend analog screen$/})
+  const primaryRoleId = initial.analog_assessments[0].role_id
+  await visible(selAnalog())
+  assert.match(await selAnalog().innerText(), /Unknown neutral CT inputs · Unknown VT banks/)
+  await page.getByText('Adjust neutral CT and VT inputs', {exact: true}).click()
+  const analogInputs = page.locator('details.shortlist-inputs')
+  async function changeAnalog(field, value) {
+    const count = value === '' ? null : Number(value)
+    const received = responseFor(body => body.analog_requirements?.[primaryRoleId]?.[field] === count)
+    await analogInputs.getByLabel(field === 'neutral' ? 'Neutral CT inputs' : 'Three-phase VT banks', {exact: true}).fill(value)
+    const response = await received
+    assert.equal(response.status(), 200)
+    const result = await response.json()
+    await waitFingerprint(result.request_fingerprint)
+    await visible(selAnalog())
+    return result
+  }
+  let analogResult = await changeAnalog('neutral', '0')
+  assert.match(await selAnalog().innerText(), /0 neutral CT inputs · Unknown VT banks/)
+  assert.equal(analogResult.analog_assessments.find(item => item.role_id === primaryRoleId).neutral_inputs, 0)
+  analogResult = await changeAnalog('vt', '0')
+  assert.match(await selAnalog().innerText(), /0 neutral CT inputs · 0 VT banks/)
+  assert.match(await selAnalog().innerText(), /within modeled envelope/)
+  assert.equal(await selAnalog().locator('button.input-layout-choice').count(), 4)
+  analogResult = await changeAnalog('neutral', '4')
+  assert.match(await selAnalog().innerText(), /insufficient modeled capacity/)
+  assert.equal(await selAnalog().locator('button.input-layout-choice').count(), 0)
+  assert.equal(analogResult.analog_assessments.find(item => item.role_id === primaryRoleId).complete_fit, false)
+  await changeAnalog('neutral', '2')
+  assert.equal(await selAnalog().locator('button.input-layout-choice').count(), 2)
+  console.log('PASS analog role-ID requirements distinguish unknown and zero and drive backend SEL layout filtering')
+
+  let releaseAnalog
+  let analogHeldReady
+  const analogGate = new Promise(resolve => {releaseAnalog = resolve})
+  const analogStarted = new Promise(resolve => {analogHeldReady = resolve})
+  const holdAnalog = async route => {
+    const body = route.request().postDataJSON()
+    if (body.analog_requirements?.[primaryRoleId]?.neutral === 3) {
+      const response = await route.fetch()
+      const bytes = await response.body()
+      analogHeldReady()
+      await analogGate
+      try { await route.fulfill({response, body: bytes}) } catch { /* Obsolete requests may already be aborted. */ }
+    } else await route.continue()
+  }
+  await page.route('**/api/engineering/io', holdAnalog)
+  await analogInputs.getByLabel('Neutral CT inputs', {exact: true}).fill('3')
+  await Promise.race([analogStarted, new Promise((_, reject) => setTimeout(() => reject(new Error('Old analog response was never intercepted')), 15000))])
+  assert.equal(await selAnalog().count(), 0, 'Prior analog screen remains visible while requirements are pending')
+  const latestAnalog = await changeAnalog('neutral', '4')
+  assert.match(await selAnalog().innerText(), /insufficient modeled capacity/)
+  releaseAnalog()
+  await page.waitForTimeout(400)
+  assert.equal(await page.locator('[aria-label="Backend I/O assessment"]').getAttribute('data-fingerprint'), latestAnalog.request_fingerprint)
+  assert.match(await selAnalog().innerText(), /insufficient modeled capacity/)
+  assert.equal(await selAnalog().locator('button.input-layout-choice').count(), 0)
+  await page.unroute('**/api/engineering/io', holdAnalog)
+  console.log('PASS pending analog edits hide prior layouts and a delayed response cannot restore obsolete screening')
   assert.deepEqual(pageErrors, [], 'Uncaught browser errors')
   console.log('PASS endpoint ledger distinguishes external contacts and unreviewed source requirements')
   console.log('PASS engineering I/O browser gate')

@@ -12,6 +12,8 @@ import re
 from uuid import NAMESPACE_URL, uuid5
 
 from .assessment import assess
+from .analog_screening import analog_screening, SOURCE_SHA256 as ANALOG_SOURCE_SHA256
+from .relay_catalog import CATALOG
 from .engine import analyze
 from .options import device_requirements
 
@@ -19,7 +21,7 @@ DATA = Path(__file__).with_name('data')
 MANIFEST = json.loads((DATA / 'ledger_manifest.json').read_text())
 PATTERNS = [row for n in range(4) for row in json.loads((DATA / f'ledger_patterns_{n}.json').read_text())]
 EDITOR = json.loads((DATA / 'editor_matrix.json').read_text())
-VERSION = 'endpoint-budget-1'
+VERSION = 'endpoint-budget-2'
 SOLVER_SOURCE_SHA256 = sha256(Path(__file__).read_bytes()).hexdigest()
 DOCUMENTS = {
     'SLD': 'Approved protection one-line', 'AC': 'Approved CT/VT three-line and core assignments',
@@ -137,12 +139,16 @@ def validate_persisted_wiring(study, scheme, settings):
 def engineering_io(request):
     study = request.study.model_dump()
     settings = request.settings.model_dump()
+    analog_requirements = {key: value.model_dump() for key, value in request.analog_requirements.items()}
     assessment = assess(study)
     station_analysis = analyze(study)
+    roles = device_requirements(study, request.scheme, station_analysis)
     catalog_hash = sha256(json.dumps(EDITOR, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     ledger_hash = sha256(json.dumps({'manifest': MANIFEST, 'patterns': PATTERNS}, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     fingerprint = sha256(json.dumps({'catalog_hash': catalog_hash, 'ledger_hash': ledger_hash, 'solver_source': SOLVER_SOURCE_SHA256,
                                     'assessment_fingerprint': assessment['input_fingerprint'], 'policy_version': assessment['policy_version'], 'study': study, 'scheme': request.scheme, 'settings': settings,
+                                    'derived_role_requirements': roles, 'analog_requirements': analog_requirements, 'analog_source': ANALOG_SOURCE_SHA256, 'analog_catalog': CATALOG,
+                                    'analog_catalog_source': sha256(Path(__file__).with_name('relay_catalog.py').read_bytes()).hexdigest(),
                                     'solver': VERSION, 'matrix': MANIFEST['source_sha256']},
                                    sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
     base = {'schema_version': 1, 'solver_version': VERSION, 'matrix_version': MANIFEST['version'],
@@ -155,11 +161,11 @@ def engineering_io(request):
             'missing_evidence': ['Approved trip matrix, DC/OEM schematics and complete signal ownership',
                                  'DI voltage/threshold, output make/carry/break duty, speed, form and isolation',
                                  'Versioned module-slot/chassis/firmware compatibility and manufacturer confirmation'],
-            'editor': None, 'devices': [], 'ledger': [], 'budgets': {}, 'card_examples': []}
+            'editor': None, 'devices': [], 'ledger': [], 'budgets': {}, 'card_examples': [], 'analog_assessments': []}
     if not assessment['scope']['reference_hardware_supported']:
         return {**base, 'status': 'unsupported'}
     case, entry, defaults, signals, classes = wiring_inputs(study, request.scheme, settings)
-    roles = device_requirements(study, request.scheme, station_analysis)
+    analog_assessments = analog_screening(roles, study['auxiliary'], analog_requirements)
     role_by_name = {row['role']: row for row in roles}
     primary = roles[0]
     aliases = {'T-P': primary, 'T-S': role_by_name['Transformer Secondary']}
@@ -257,7 +263,12 @@ def engineering_io(request):
                   for key, used in sorted(demands.items())]
         checklist = [{'category': key, 'state': 'enumerated_unreviewed' if any(row['category'] == key for row in related) else 'unresolved',
                       'enumerated_rows': sum(row['category'] == key for row in related)} for key in CATEGORIES]
-        budgets[alias] = {'role_id': aliases[alias]['role_id'], 'completeness': 'partial', 'di': di, 'coil': coil, 'other': other, 'doUsed': coil + other,
+        analog_rows = [row for row in related if row['destination'] == alias and row['included'] and row['method'] in ('hardwired CT secondary', 'hardwired VT secondary')]
+        analog_reference = {'ct_channels': sum(row['consumption']['destination_ct_channels'] for row in analog_rows),
+                            'vt_channels': sum(row['consumption']['destination_vt_channels'] for row in analog_rows),
+                            'ledger_ids': [row['ledger_id'] for row in analog_rows], 'evidence_state': 'illustrative_unreviewed',
+                            'basis': 'Reference ledger only; conditional rows are not confirmed project requirements. Use the study phase envelope for screening.'}
+        budgets[alias] = {'role_id': aliases[alias]['role_id'], 'analog_reference': analog_reference, 'completeness': 'partial', 'di': di, 'coil': coil, 'other': other, 'doUsed': coil + other,
                           'open': sum(row['included'] and row['method'] == 'hardwired or communicated' for row in related),
                           'diRequired': reserve(di, settings['spare']['di'], settings['spare']['basis']),
                           'doRequired': sum(g['quantity'] for g in groups),
@@ -308,4 +319,4 @@ def engineering_io(request):
             'spare_policy': {**settings['spare'], 'rounding': 'ceil independently per mutually exclusive output capability group; no contact counted twice'},
             'editor': {'devices': entry['devices'], 'signals': signals},
             'devices': [{'alias': alias, **aliases[alias]} for alias in entry['devices']],
-            'ledger': ledger, 'budgets': budgets, 'card_examples': cards}
+            'ledger': ledger, 'budgets': budgets, 'card_examples': cards, 'analog_assessments': analog_assessments}

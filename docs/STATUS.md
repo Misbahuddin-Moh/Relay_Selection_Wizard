@@ -29,3 +29,23 @@ Stable study/bay IDs, backend role identities, semantic option keys and lifted u
 ## Backend I/O slice — candidate checkpoint
 
 The backend owns the digital ledger, counts/reserves and nominal card screening. The browser's duplicate calculator and matrix have been removed. Full reference field endpoints are traceable; fast/form-C conjunctions are modeled without reusing contacts, but missing manufacturer properties remain unknown. All budgets remain partial and ordering remains blocked. ENGINEERING_IO.md documents input/result contracts and limitations. Three browser gates must pass before staging promotion. The earlier staging service required an explicit API deploy after CI promotion; do not assume a successful branch update means deployment occurred.
+
+## Current staging continuation — 2026-11-15
+
+Supersedes historical source/runtime notes above: original main security hotfix is
+`b5ab0a5`; staging security baseline is `426e12a`. Both Render services were verified
+with after-checks-pass auto-deploy, `/api/health`, configured=false provider status
+and HTTP403 for all three paid routes. The owner reports Anthropic account steps
+completed; those console actions were not independently verified.
+
+The current candidate centralizes analog demand and preliminary SEL/T60 capacity
+screens with the existing backend digital result. It exposes reference-ledger
+analog traces without treating conditional research rows as project-confirmed
+requirements. Unknown requirements remain distinct from zero. Browser analog
+calculators are removed. See ENGINEERING_IO.md for API and evidence limits.
+
+This slice does not finish the per-relay signal budget, jointly allocate module
+slots, validate manufacturer order codes, add dedicated BF analog selection, or
+provide project authorization/redaction. All provider operations and ordering
+approval remain blocked. Release requires backend/unit/build/browser CI and exact
+staging deployment revision verification. Production feature promotion is separate.

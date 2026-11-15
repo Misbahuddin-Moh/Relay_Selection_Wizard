@@ -1,6 +1,6 @@
 import { budgetText, defaultDigitalSettings, DigitalIO, PrimaryDigitalFit } from './DigitalIO'
 import type { DigitalSettings } from './DigitalIO'
-import { T60InputFit } from './T60InputFit'
+import { AnalogScreen } from './AnalogScreen'
 import { modeledMinimum, ProjectRequirements } from './ProjectRequirements'
 import type { AppliedRequirement } from './ProjectRequirements'
 import { useEffect, useRef, useState } from 'react'
@@ -280,45 +280,6 @@ function ProtectionZoneReview({ study, analysis }: Snapshot) {
   )
 }
 
-function TerminalAllocation({ candidate, device, neutral, vt }: {
-  candidate: Option['device_requirements'][number]['candidates'][number]
-  device: Option['device_requirements'][number]
-  neutral: string
-  vt: string
-}) {
-  const [selectedLayout, setSelectedLayout] = useState('')
-  const complete = neutral !== '' && vt !== ''
-  const layouts = candidate.allocations.filter(layout =>
-    layout.fit !== 'Insufficient phase banks' &&
-    (neutral === '' || layout.neutral_inputs >= Number(neutral)) &&
-    (vt === '' || layout.vt_banks >= Number(vt)),
-  )
-  const active = layouts.find(layout => `${layout.y}/${layout.z}` === selectedLayout) ?? layouts[0]
-
-  return (
-    <section className="input-fit" aria-label="Input fit">
-      <h4>Input fit</h4>
-      <p><strong>Study needs</strong> · {phaseDemand(device)} · {neutral || 'Unknown'} neutral CT inputs · {vt || 'Unknown'} VT banks</p>
-      <p>{layouts.length === 0
-        ? 'No modeled layout meets the entered requirements.'
-        : !complete ? 'Possible layouts based on known inputs. Confirm neutral and VT requirements.'
-          : layouts.some(layout => layout.fit === 'All listed phase cases')
-            ? 'At least one layout meets the modeled input requirements.'
-            : 'Fits only the lower phase demand. Confirm which phase case applies.'}</p>
-      {layouts.map(layout => (
-        <button className="input-layout input-layout-choice" type="button" key={`${layout.y}/${layout.z}`}
-          aria-pressed={active === layout} onClick={() => setSelectedLayout(`${layout.y}/${layout.z}`)}>
-          <strong>{layout.neutral_inputs > 0 ? 'Keep dedicated neutral inputs' : 'Trade neutral inputs for a phase CT bank'}</strong>
-          <span>{layout.phase_banks} phase CT banks · {layout.neutral_inputs} neutral CT inputs · {layout.vt_banks} VT banks</span>
-          {layout.fit === 'Lower phase demand only' && <span className="layout-condition">Fits only the lower phase demand.</span>}
-          {layout.neutral_inputs === 0 && <span className="layout-condition">This layout leaves no dedicated neutral CT inputs.</span>}
-        </button>
-      ))}
-      <CatalogRelayDiagram model={candidate.model} source={candidate.source} selLayout={active} />
-    </section>
-  )
-}
-
 type Option = GeneratedOptions['options'][number]
 type Requirements = { neutral: string; vt: string }
 const unknownRequirements = { neutral: '', vt: '' }
@@ -385,9 +346,9 @@ function SelectedCoverage({ option, study }: { option: Option; study: Study }) {
 function DeviceInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="field"><span>{label}</span>
-      <input type="number" inputMode="numeric" min="0" step="1" placeholder="Unknown" value={value} onChange={event => {
+      <input type="number" inputMode="numeric" min="0" max="999" step="1" placeholder="Unknown" value={value} onChange={event => {
         const next = event.target.value
-        if (next === '' || (Number.isSafeInteger(Number(next)) && Number(next) >= 0)) onChange(next)
+        if (next === '' || (Number.isSafeInteger(Number(next)) && Number(next) >= 0 && Number(next) <= 999)) onChange(next)
       }} />
     </label>
   )
@@ -478,12 +439,6 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
     changeChoices({ ...choices, requirements: { ...requirements, [key]: { ...(requirements[key] ?? unknownRequirements), [field]: value } } })
   }
   const dio = digitalSettings[selection] ?? defaultDigitalSettings
-  const io = useEngineeringIO(study, option?.scheme ?? null, dio)
-  const referenceIO = analysis.assessment.scope.reference_hardware_supported ? io.editor : null
-  const ioDevice = row?.kind === 'feeder' ? `FP-F${study.bays.findIndex(bay => bay.id === row.role) + 1}`
-    : row?.kind === 'line' ? 'LINE-H' : row?.kind === 'bus' ? 'BUS'
-    : row?.role === 'Transformer Secondary' ? 'T-S' : row?.kind === 'meter' ? '' : 'T-P'
-  const shortlistIO = io.result?.budgets[ioDevice] ?? null
   const projectFindings = applied[selection] ?? []
   const effectiveValues = (index: number) => {
     const result = { ...values(index) }
@@ -493,6 +448,17 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
     }
     return result
   }
+
+  const analogInputs = Object.fromEntries((option?.device_requirements ?? []).map((device, index) => {
+    const counts = effectiveValues(index)
+    return [device.role_id, {neutral: counts.neutral === '' ? null : Number(counts.neutral), vt: counts.vt === '' ? null : Number(counts.vt)}]
+  }))
+  const io = useEngineeringIO(study, option?.scheme ?? null, dio, analogInputs)
+  const referenceIO = analysis.assessment.scope.reference_hardware_supported ? io.editor : null
+  const ioDevice = row?.kind === 'feeder' ? `FP-F${study.bays.findIndex(bay => bay.id === row.role) + 1}`
+    : row?.kind === 'line' ? 'LINE-H' : row?.kind === 'bus' ? 'BUS'
+    : row?.role === 'Transformer Secondary' ? 'T-S' : row?.kind === 'meter' ? '' : 'T-P'
+  const shortlistIO = io.result?.budgets[ioDevice] ?? null
 
   useEffect(() => {
     const controller = new AbortController()
@@ -620,11 +586,8 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
                           orderingNotes={choices.ordering_notes[`${selection}/${row.role_id}/${candidate.model === 'Multilin T60' ? 'GE T60' : 'SEL-487E-3'}`] ?? {}}
                           changeOrderingNotes={notes => changeChoices({ ...choices, ordering_notes: { ...choices.ordering_notes, [`${selection}/${row.role_id}/${candidate.model === 'Multilin T60' ? 'GE T60' : 'SEL-487E-3'}`]: notes } })} />}
                       <a href={candidate.source} target="_blank" rel="noreferrer">Manufacturer documentation</a>
-                      {candidate.model.startsWith('Multilin T60') && <T60InputFit
-                        minimum={row.phase_banks} maximum={row.alternate_phase_banks ?? row.phase_banks}
-                        vt={vt} neutral={neutral} auxiliaryUnknown={study.auxiliary === 'unknown' && (row.kind === 'combined' || row.kind === 'shared')} />}
-                      {candidate.allocations.length > 0 && <TerminalAllocation candidate={candidate} device={row} neutral={neutral} vt={vt} />}
-                      {candidate.allocations.length === 0 && <CatalogRelayDiagram model={candidate.model} source={candidate.source} />}
+                      <AnalogScreen assessment={io.result?.analog_assessments.find(item => item.role_id === row.role_id)}
+                        model={candidate.model} source={candidate.source} />
                     </article>
                   )
                 })}

@@ -1,11 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Assessment, Study } from './model'
 import type { DigitalSettings, Signal } from './DigitalIO'
+export type AnalogInputs = Record<string, {neutral: number | null; vt: number | null}>
+export interface AnalogCandidate {
+  model: string; manufacturer: string; screening: string; complete_fit: false
+  module_compatibility: string; electrical_fit: string; evidence_state: string; ordering_block: string; source_urls: string[]
+  layouts: {y: string; z: string; phase_banks: number; neutral_inputs: number; vt_banks: number; fit: string}[]
+  t60_cases: {phase_banks: number; mixed_modules: number; current_only_modules: number; module_count: number; within_three_module_example: boolean; populated_phase_banks: number; neutral_capacity: null; neutral_routing: string; vt_requirement_known: boolean}[]
+}
+export interface AnalogAssessment {
+  role_id: string; role: string; phase_banks_min: number; phase_banks_max: number
+  phase_channels_min: number; phase_channels_max: number; neutral_inputs: number | null; vt_banks: number | null
+  phase_basis: string; complete_fit: false; candidates: AnalogCandidate[]
+}
 export interface DigitalBudget {
   role_id: string; completeness: 'partial'; di: number; coil: number; other: number; doUsed: number; open: number
   diRequired: number; doRequired: number; coilRequired: number; fastRequired: number; formCRequired: number; fastUsed: number; formCUsed: number
   unresolved_endpoint_rows: number; complete_fit: false; ordering_block: string
   output_demands: {classes: string[]; used: number; quantity: number}[]
+  analog_reference: {ct_channels: number; vt_channels: number; ledger_ids: string[]; evidence_state: string; basis: string}
   category_review: {category: string; state: string; enumerated_rows: number}[]
 }
 export interface CardExample {
@@ -19,7 +32,7 @@ export interface LedgerRow {
   ledger_id: string; source_row_id: string; name: string; source: string; destination: string; method: string
   included: boolean; category: string; condition: string; authority: string; evidence_state: string; owner_state: string
   owner: {label: string; kind: string}; source_endpoint: {label: string; kind: string}; destination_endpoint: {label: string; kind: string}
-  consumption: {source_relay_do: number; destination_relay_di: number; source_external_contacts: number | null; destination_coil_drives: number | null; destination_external_inputs: number | null}
+  consumption: {source_relay_do: number; destination_relay_di: number; source_external_contacts: number | null; destination_coil_drives: number | null; destination_external_inputs: number | null; destination_ct_channels: number; destination_vt_channels: number}
   source_documents_required: {tag: string; document: string; state: string}[]
 }
 export interface EngineeringIOResult {
@@ -29,16 +42,17 @@ export interface EngineeringIOResult {
   editor: {devices: string[]; signals: Signal[]} | null
   devices: {alias: string; role_id: string; role: string}[]
   ledger: LedgerRow[]; budgets: Record<string, DigitalBudget>; card_examples: CardExample[]
+  analog_assessments: AnalogAssessment[]
   endpoint_count_basis?: string; ledger_findings?: {code: string; message: string; count: number}[]
 }
 export function budgetText(budget: DigitalBudget) {
   return `Partial interface budget · ${budget.di} DI / ${budget.doUsed} DO used · ${budget.diRequired} DI / ${budget.doRequired} DO with spares (${budget.coilRequired} coil-duty DO)${budget.open ? ` · ${budget.open} unresolved interface(s)` : ''}`
 }
-export function useEngineeringIO(study: Study, scheme: string | null, settings: DigitalSettings) {
+export function useEngineeringIO(study: Study, scheme: string | null, settings: DigitalSettings, analogInputs: AnalogInputs = {}) {
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<{key: string; template: string; result: EngineeringIOResult} | null>(null)
   const [failure, setFailure] = useState<{key: string; message: string} | null>(null)
-  const key = scheme ? JSON.stringify({study, scheme, settings}) : ''
+  const key = scheme ? JSON.stringify({study, scheme, settings, analog_requirements: analogInputs}) : ''
   const revision = useRef({key: '', value: 0})
   if (revision.current.key !== key) revision.current = {key, value: revision.current.value + 1}
   const requestKey = `${revision.current.value}/${attempt}:${key}`
