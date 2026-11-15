@@ -80,3 +80,18 @@ configurations. T60 ground/neutral routing remains unknown, even with a requeste
 count. SEL nominal layouts do not verify function options, CT suitability or
 ratings. Analog and digital slots are not jointly allocated. Every complete-fit
 flag remains false; module/electrical evidence and procurement release stay blocked.
+
+## Measurement applicability and semantic role identities
+
+Analog assessments now return measurement_status, absent_measurements,
+unknown_measurements and a measurement_basis alongside nominal capacity. An absent
+required source blocks application regardless of a channel-count example; an
+unassigned independent Secondary source remains unknown. Nominal capacity statuses
+are retained as capacity statements, not usable-zone approval. The frontend shows
+these separately.
+
+Role requirements include semantic purpose (primary/secondary). Alias resolution
+uses kind/purpose/equipment UUID rather than display labels. Reserved feeder names
+cannot hijack Secondary identity or budgets. Scope policy reference-alpha-2 also
+rejects hardware screening for HV <= collector voltage. Input voltages must be
+finite numeric values rather than booleans or strings.

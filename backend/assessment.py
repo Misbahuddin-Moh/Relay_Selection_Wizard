@@ -2,7 +2,7 @@
 import hashlib
 import json
 
-POLICY_VERSION = "reference-alpha-1"
+POLICY_VERSION = "reference-alpha-2"
 CT_KEYS = (
     "lv_breaker_135", "lv_breaker_246", "hv_breaker_135", "hv_breaker_246",
     "transformer_hv_phase", "transformer_lv_phase", "transformer_hv_neutral", "transformer_lv_neutral",
@@ -26,6 +26,9 @@ def assess(study):
             "review_state": "unreviewed",
         })
     reasons = []
+    if study['hv_kv'] <= study['mv_kv']:
+        reasons.append({'code': 'VOLTAGE_ORDER_OUTSIDE_REFERENCE',
+                        'message': 'The reference step-up station requires HV kV greater than collector kV. Correct the voltage entries before hardware screening.'})
     if len(study["bays"]) != 3:
         reasons.append({"code": "COLLECTOR_BREAKER_COUNT_OUTSIDE_REFERENCE",
                         "message": "Reference hardware screening covers three collector breakers only. Save this layout as a draft; its hardware configuration requires separate engineering."})

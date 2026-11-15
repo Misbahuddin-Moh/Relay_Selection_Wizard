@@ -21,6 +21,13 @@ def analog_screening(roles, auxiliary, requirements):
         maximum = role['alternate_phase_banks'] or minimum
         if auxiliary == 'unknown' and role['kind'] in ('bus', 'shared', 'combined'):
             maximum += 1
+        sources = role['measurement_sources']
+        absent = [row['label'] for row in sources if not row.get('remote') and row['state'] == 'absent']
+        unknown = [row['label'] for row in sources if row['state'] == 'unknown']
+        if role['kind'] == 'transformer' and role['purpose'] == 'secondary':
+            # Reference path has no assigned independent Secondary HV core.
+            unknown.append('Independent Secondary HV core and trip assignment')
+        measurement_status = 'absent' if absent else 'unknown' if unknown else 'present'
         candidates = []
         for candidate in role['candidates']:
             layouts = []
@@ -60,6 +67,9 @@ def analog_screening(roles, auxiliary, requirements):
                         'phase_channels_min': minimum * 3, 'phase_channels_max': maximum * 3,
                         'neutral_inputs': neutral, 'vt_banks': vt, 'requirements_state': 'unreviewed',
                         'phase_basis': 'Derived study boundaries; alternate input reuse and unknown auxiliary treatment remain separate phase cases.',
-                        'measurement_sources': role['measurement_sources'], 'candidates': candidates,
+                        'measurement_sources': sources, 'measurement_status': measurement_status,
+                        'absent_measurements': absent, 'unknown_measurements': unknown,
+                        'measurement_basis': 'Counts indicate modeled presence only. Nominal capacity does not establish usable CT boundaries or independent assignments.',
+                        'candidates': candidates,
                         'complete_fit': False})
     return results

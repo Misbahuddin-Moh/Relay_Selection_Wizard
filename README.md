@@ -57,6 +57,15 @@ Default quantities remain **assumed**. Editing one quantity records **user** ori
 
 Positive CT counts establish modeled presence only; they do not establish confirmation, CT suitability or independence. The inventory records quantities for the study and its what-if scenarios. Review boundary location, CT suitability, and assignment to primary and backup protection separately. Check winding grounding and the intended ground differential or restricted earth fault application before assigning neutral CTs. Phase-bank requirements are calculated from modeled measurement boundaries.
 
+## Compare protection approaches
+
+After confirming station analysis, **Compare protection approaches** puts zones,
+relay hosting, CT boundaries, phase-input envelopes, provisional trip targets and
+readiness side by side. Select **Inspect approach** to see its design blockers,
+required evidence and unconfirmed assumptions. Positive CT quantities mean modeled
+presence; they do not establish suitable independent cores or complete clearing.
+See [protection review and accuracy boundary](docs/PROTECTION_REVIEW.md).
+
 ## Review protection areas
 
 In the CT inventory, choose the station differential HV boundary and optionally include the POI line in the study. The zone review counts one local feeder area per collector breaker and shows the circuits served by that breaker. It also shows how selecting a different HV CT moves the station differential span. The optional POI line area is a preliminary 87L example with remote information left open. Coverage and trip targets remain subject to engineering review.

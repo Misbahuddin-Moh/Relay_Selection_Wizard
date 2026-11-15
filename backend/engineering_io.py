@@ -166,9 +166,8 @@ def engineering_io(request):
         return {**base, 'status': 'unsupported'}
     case, entry, defaults, signals, classes = wiring_inputs(study, request.scheme, settings)
     analog_assessments = analog_screening(roles, study['auxiliary'], analog_requirements)
-    role_by_name = {row['role']: row for row in roles}
     primary = roles[0]
-    aliases = {'T-P': primary, 'T-S': role_by_name['Transformer Secondary']}
+    aliases = {'T-P': primary, 'T-S': next(row for row in roles if row['kind'] == 'transformer' and row['purpose'] == 'secondary')}
     for role in roles:
         if role['kind'] == 'bus': aliases['BUS'] = role
         if role['kind'] == 'line': aliases['LINE-H'] = role

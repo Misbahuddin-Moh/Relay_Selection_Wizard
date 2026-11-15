@@ -153,12 +153,26 @@ export interface DrawingDraft {
 }
 
 
+export interface ProtectionReview {
+  version: string
+  readiness: 'blocked' | 'conditional' | 'outside_scope'
+  primary_measurements: Ct
+  secondary_measurements: Ct
+  summary: string
+  zones: {id: string; title: string; function: string; relay_roles: string[]; boundaries: {label: string; state: Ct}[]; measurement_status: Ct; trip_targets: string[]; clearing_state: 'unverified'}[]
+  roles: {role_id: string; role: string; kind: string; functions: string; phase_banks_min: number; phase_banks_max: number}[]
+  findings: {code: string; severity: 'blocker' | 'open'; title: string; detail: string; required_evidence: string[]; sources: {id: string; locator: string; url: string}[]; basis: string}[]
+  assumptions: {code: string; detail: string; state: 'unconfirmed'}[]
+  procurement_ready: false
+}
+
 export interface GeneratedOptions {
   options: {
     option_id: string
     scheme: string
     hv_boundary: HvBoundary
     rationale: string
+    review: ProtectionReview
     main_coverage: {
       transformer_a: { function: string; status: string }
       transformer_b: {
@@ -174,6 +188,7 @@ export interface GeneratedOptions {
     device_requirements: {
       role_id: string
       subject_id: string
+      purpose: 'primary' | 'secondary'
       kind: string
       role: string
       functions: string

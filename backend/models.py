@@ -50,8 +50,8 @@ class Study(BaseModel):
 
     uid: Identity = Field(default_factory=new_identity)
     title: Label
-    hv_kv: Annotated[float, Field(gt=0, allow_inf_nan=False)]
-    mv_kv: Annotated[float, Field(gt=0, allow_inf_nan=False)]
+    hv_kv: Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)]
+    mv_kv: Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)]
     lv_ct: Measurement
     hv_ct: Measurement
     bays: Annotated[list[Bay], Field(min_length=1, max_length=40)]
@@ -89,8 +89,8 @@ class StudyDraft(BaseModel):
     model_config = ConfigDict(extra="forbid")
     uid: Identity
     title: Annotated[str, StringConstraints(max_length=100)]
-    hv_kv: Annotated[float, Field(ge=0, allow_inf_nan=False)]
-    mv_kv: Annotated[float, Field(ge=0, allow_inf_nan=False)]
+    hv_kv: Annotated[float, Field(strict=True, ge=0, allow_inf_nan=False)]
+    mv_kv: Annotated[float, Field(strict=True, ge=0, allow_inf_nan=False)]
     lv_ct: Measurement
     hv_ct: Measurement
     bays: Annotated[list[DraftBay], Field(min_length=1, max_length=40)]

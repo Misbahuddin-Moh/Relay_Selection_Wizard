@@ -11,6 +11,7 @@ export interface AnalogCandidate {
 export interface AnalogAssessment {
   role_id: string; role: string; phase_banks_min: number; phase_banks_max: number
   phase_channels_min: number; phase_channels_max: number; neutral_inputs: number | null; vt_banks: number | null
+  measurement_status: 'present' | 'unknown' | 'absent'; absent_measurements: string[]; unknown_measurements: string[]; measurement_basis: string
   phase_basis: string; complete_fit: false; candidates: AnalogCandidate[]
 }
 export interface DigitalBudget {

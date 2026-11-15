@@ -7,6 +7,8 @@ from urllib.parse import unquote
 from fastapi import FastAPI, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from .drawing import CLAUDE_IMAGE_BYTES, FILE_TYPES, MAX_DRAWING_BYTES, ExtractionError, drawing_provider, extract_drawing
 from .engine import analyze
@@ -24,6 +26,13 @@ from uuid import NAMESPACE_URL, uuid5
 
 app = FastAPI(title="Relay Selection Wizard")
 app.middleware("http")(deny_provider_requests)
+
+@app.exception_handler(RequestValidationError)
+async def invalid_request(_request: Request, _error: RequestValidationError):
+    # Do not echo source inputs or serialize NaN/Infinity from validation errors.
+    return JSONResponse(status_code=422, content={
+        'detail': 'Invalid request. Check required fields, field types, finite positive voltages, counts and unique equipment identities.'})
+
 
 FIXTURE = Path(__file__).with_name("fixture.json")
 FRONTEND = Path(__file__).resolve().parents[1] / "frontend" / "dist"

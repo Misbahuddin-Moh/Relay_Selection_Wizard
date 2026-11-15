@@ -49,3 +49,17 @@ slots, validate manufacturer order codes, add dedicated BF analog selection, or
 provide project authorization/redaction. All provider operations and ordering
 approval remain blocked. Release requires backend/unit/build/browser CI and exact
 staging deployment revision verification. Production feature promotion is separate.
+
+## Protection review and correctness slice — 2026-11-15 candidate
+
+The next candidate adds visible step-2 comparison with zones, hosting roles,
+measurement demand, provisional trips, blockers and required evidence. It fixes
+reserved feeder-name/Secondary role collisions, displays measurement applicability
+beside nominal analog capacity, keys previews to current study revisions, rejects
+nonfinite/bool/string voltage inputs safely and suppresses reference hardware for
+reversed/equal voltage relationships. See PROTECTION_REVIEW.md.
+
+Staging release requires four browser gates, including the new comparison/stale
+preview/retry workflow. These changes do not complete project I/O, manufacturer
+order codes, coordination/settings, approved trip design or real-project acceptance.
+Public providers remain disabled. The original app stays on the security release.

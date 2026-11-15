@@ -12,6 +12,7 @@ from urllib.request import Request, urlopen
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .engine import analyze
+from .protection_review import protection_review
 from uuid import NAMESPACE_URL, uuid5
 from .relay_catalog import HIGH_IMPEDANCE, screen_devices
 
@@ -191,11 +192,12 @@ def device_requirements(study, scheme, analysis, coverage=None):
     def add(kind, role, functions, banks, note, alternate_banks=None, measurement_sources=None, subject=None, purpose=None):
         study_uid = study.get("uid", "legacy-unassigned")
         subject = subject or ("transformer" if kind in ("transformer", "shared", "combined") else kind)
-        purpose = purpose or ("secondary" if role == "Transformer Secondary" else "primary")
+        purpose = purpose or "primary"
         role_id = str(uuid5(NAMESPACE_URL, f"relay-wizard/{study_uid}/{subject}/{purpose}"))
         row = {
             "role_id": role_id,
             "subject_id": subject,
+            "purpose": purpose,
             "kind": kind,
             "role": role,
             "functions": functions,
@@ -223,7 +225,7 @@ def device_requirements(study, scheme, analysis, coverage=None):
         add("bus", "Collector bus · single path", "87B", bus_banks, "LV incomer, collector boundaries and measured tap if applicable.")
 
     add("transformer", "Transformer Secondary", "87T", 2,
-        "Separate IED. Verify its own HV/LV CT assignments and trip path.", measurement_sources=secondary_sources)
+        "Separate IED. Verify its own HV/LV CT assignments and trip path.", measurement_sources=secondary_sources, purpose="secondary")
     for area in analysis["feeder_areas"]:
         _, bus_side_ct = area["measurements"]
         add("feeder", area["breaker"], "51P; evaluate 51G/51N and directionality", 1,
@@ -267,6 +269,7 @@ def present_options(study, proposals, usage):
         candidate = next(item for item in checked["candidates"] if item["id"] == option.scheme)
         boundary = next(item for item in checked["hv_boundaries"] if item["id"] == option.hv_boundary)
         coverage = main_coverage(study, option, checked)
+        roles = device_requirements(study, option.scheme, checked, coverage)
         options.append({
             **option.model_dump(),
             "option_id": f"{option.scheme}:{option.hv_boundary}",
@@ -275,7 +278,8 @@ def present_options(study, proposals, usage):
             "check": candidate,
             "zones": checked["zones"],
             "main_coverage": coverage,
-            "device_requirements": device_requirements(study, option.scheme, checked, coverage),
+            "device_requirements": roles,
+            "review": protection_review(study, option, checked, coverage, roles, EVIDENCE),
             "boundary": boundary,
             "poi_line": checked["poi_line"],
             "sources": [ref for key in option.evidence for ref in EVIDENCE[key]["sources"]],

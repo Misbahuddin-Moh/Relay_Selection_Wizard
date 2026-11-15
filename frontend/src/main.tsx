@@ -1,6 +1,7 @@
 import { budgetText, defaultDigitalSettings, DigitalIO, PrimaryDigitalFit } from './DigitalIO'
 import type { DigitalSettings } from './DigitalIO'
 import { AnalogScreen } from './AnalogScreen'
+import { ProtectionComparison } from './ProtectionComparison'
 import { modeledMinimum, ProjectRequirements } from './ProjectRequirements'
 import type { AppliedRequirement } from './ProjectRequirements'
 import { useEffect, useRef, useState } from 'react'
@@ -405,22 +406,28 @@ function lineScreen(checks: LineChecks, model: string, localCt: Ct) {
   if (localCt !== 'present' || checks.remoteCt !== 'present') return '87L conditional · Confirm both CT banks.'
   if (!checks.channel) return '87L conditional · Verify the current channel for this pair.'
   if (checks.dtt === 'pending' || checks.dtt === 'unknown') return '87L pair and channel recorded · DTT review open.'
-  return '87L preferred candidate · Peer, CT banks, channel and DTT disposition recorded.'
+  return '87L user checks recorded · Engineering review remains open.'
 }
 
 function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices }: Snapshot & {
   onStation: () => void; choices: WorkflowChoices; changeChoices: (next: WorkflowChoices) => void
 }) {
-  const [preview, setPreview] = useState<GeneratedOptions | null>(null)
-  const [generated, setGenerated] = useState<GeneratedOptions | null>(null)
+  const [previewState, setPreviewState] = useState<{key: string; result: GeneratedOptions} | null>(null)
+  const [generatedState, setGeneratedState] = useState<{key: string; result: GeneratedOptions} | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [retry, setRetry] = useState(0)
+  const studyKey = JSON.stringify(study)
+  const previewRevision = useRef({key: '', value: 0})
+  if (previewRevision.current.key !== studyKey) previewRevision.current = {key: studyKey, value: previewRevision.current.value + 1}
+  const previewKey = `${previewRevision.current.value}/${retry}:${studyKey}`
+  const preview = previewState?.key === previewKey ? previewState.result : null
+  const generated = generatedState?.key === previewKey ? generatedState.result : null
   const [step, setStep] = useState(2)
   const selection = choices.selection
   const setSelection = (selection: string) => changeChoices({ ...choices, selection })
-  const [role, setRole] = useState(0)
+  const [roleIndex, setRole] = useState(0)
   const lineChecks = choices.line_checks
   const setLineChecks = (line_checks: LineChecks) => changeChoices({ ...choices, line_checks })
   const requirements = choices.requirements
@@ -432,6 +439,7 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
   ]
   const selected = options.find(item => item.id === selection)
   const option = selected?.option
+  const role = Math.min(roleIndex, Math.max(0, (option?.device_requirements.length ?? 1) - 1))
   const row = option?.device_requirements[role]
   const values = (index: number) => requirements[`${selection}/${option?.device_requirements[index]?.role_id}`] ?? unknownRequirements
   function changeInput(index: number, field: keyof Requirements, value: string) {
@@ -455,9 +463,9 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
   }))
   const io = useEngineeringIO(study, option?.scheme ?? null, dio, analogInputs)
   const referenceIO = analysis.assessment.scope.reference_hardware_supported ? io.editor : null
-  const ioDevice = row?.kind === 'feeder' ? `FP-F${study.bays.findIndex(bay => bay.id === row.role) + 1}`
+  const ioDevice = row?.kind === 'feeder' ? `FP-F${study.bays.findIndex(bay => bay.uid === row.subject_id) + 1}`
     : row?.kind === 'line' ? 'LINE-H' : row?.kind === 'bus' ? 'BUS'
-    : row?.role === 'Transformer Secondary' ? 'T-S' : row?.kind === 'meter' ? '' : 'T-P'
+    : row?.kind === 'transformer' && row.purpose === 'secondary' ? 'T-S' : row?.kind === 'meter' ? '' : 'T-P'
   const shortlistIO = io.result?.budgets[ioDevice] ?? null
 
   useEffect(() => {
@@ -465,17 +473,18 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
     setPreviewError(null)
     getJson<GeneratedOptions>('/api/protection-preview', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(study), signal: controller.signal,
-    }).then(setPreview).catch(error => { if (!controller.signal.aborted) setPreviewError(error.message) })
+    }).then(result => { if (!controller.signal.aborted) setPreviewState({key: previewKey, result}) }).catch(error => { if (!controller.signal.aborted) setPreviewError(error.message) })
     return () => controller.abort()
-  }, [study, retry])
+  }, [studyKey, retry])
 
   async function generate() {
     setBusy(true)
     setError(null)
     try {
-      setGenerated(await getJson<GeneratedOptions>('/api/protection-options', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(study),
-      }))
+      const result = await getJson<GeneratedOptions>('/api/protection-options', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: studyKey,
+      })
+      setGeneratedState({key: previewKey, result})
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unable to generate protection options.')
     } finally {
@@ -507,13 +516,14 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
         {error && <p className="draft-note" role="alert">{error} You can continue with the station checks below.</p>}
         {previewError && <p role="alert" className="draft-note">{previewError} <button type="button" className="text-button" onClick={() => setRetry(retry + 1)}>Retry station checks</button></p>}
         {!preview && !previewError && <p role="status">Loading station checks…</p>}
+        <ProtectionComparison choices={options} selection={selection} select={id => { setSelection(id); setRole(0) }} />
         <fieldset className="scheme-choices">
           <legend className="sr-only">Protection scheme</legend>
           {options.map(item => (
             <label className={`scheme-choice${item.id === selection ? ' selected' : ''}`} key={item.id}>
               <input type="radio" name="scheme" checked={item.id === selection} onChange={() => { setSelection(item.id); setRole(0) }} />
               <span><small>{item.source}</small><strong>{item.option.check.title}</strong><span>{item.option.rationale}</span></span>
-              <Status value={item.option.check.status} />
+              <Status value={item.option.review.readiness === 'blocked' ? 'Missing measurement' : item.option.review.readiness === 'outside_scope' ? 'Outside reference scope' : 'Engineering review open'} />
             </label>
           ))}
         </fieldset>
@@ -559,7 +569,7 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
               <RelayInputSelection values={values(role)} change={(field, value) => changeInput(role, field, value)} />
             </details>
             <p><strong>{row.functions}</strong> · {phaseDemand(row)} · {effectiveValues(role).neutral || 'Unknown'} neutral CT inputs · {effectiveValues(role).vt || 'Unknown'} VT banks</p>
-            {row.role === 'Transformer Secondary' && option.main_coverage.transformer_b.status !== 'Boundaries present' && <p className="draft-note">Secondary · {option.main_coverage.transformer_b.status}. The models below are function candidates.</p>}
+            {row.kind === 'transformer' && row.purpose === 'secondary' && option.main_coverage.transformer_b.status !== 'Boundaries present' && <p className="draft-note">Secondary · {option.main_coverage.transformer_b.status}. The models below are function candidates.</p>}
             {projectFindings.filter(finding => finding.role_id === row.role_id).map(finding =>
               <p key={finding.id}><strong>{modeledMinimum(finding) ? 'Extracted minimum' : 'Open ordering review'}</strong> · {finding.requirement} · {finding.source}, page {finding.page}</p>
             )}
@@ -580,7 +590,7 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
                       {row.kind === 'line' && <p><strong>{lineScreen(lineChecks, candidate.model, option.poi_line?.local_ct ?? 'unknown')}</strong></p>}
                       {candidate.allocations.length === 0 && <p>{candidate.capacity}</p>}
                       <p>{candidate.note}</p>
-                      {option.scheme === 'dedicated' && row.role === 'Transformer Primary' && referenceIO && shortlistIO &&
+                      {option.scheme === 'dedicated' && row.kind === 'transformer' && row.purpose === 'primary' && referenceIO && shortlistIO &&
                         <PrimaryDigitalFit cards={io.result?.card_examples ?? []} variant={dio.variant} budget={shortlistIO} model={candidate.model}
                           phase={row.phase_banks} neutral={neutral} vt={vt}
                           orderingNotes={choices.ordering_notes[`${selection}/${row.role_id}/${candidate.model === 'Multilin T60' ? 'GE T60' : 'SEL-487E-3'}`] ?? {}}

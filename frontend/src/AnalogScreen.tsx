@@ -14,6 +14,14 @@ export function AnalogScreen({ assessment, model, source }: {
     <h4>Analog input screening</h4>
     <p><strong>Study envelope</strong> · {assessment.phase_banks_min}–{assessment.phase_banks_max} phase CT banks · {assessment.neutral_inputs ?? 'Unknown'} neutral CT inputs · {assessment.vt_banks ?? 'Unknown'} VT banks</p>
     <p><strong>{candidate.screening.replaceAll('_', ' ')}</strong> · Unreviewed capacity examples.</p>
+    <p className={assessment.measurement_status === 'present' ? '' : 'draft-note'}>
+      <strong>{assessment.measurement_status === 'absent' ? 'Application blocked · Required measurement absent'
+        : assessment.measurement_status === 'unknown' ? 'Application unresolved · Measurement assignment unknown'
+          : 'Measurement presence modeled · Engineering review remains open'}</strong>
+    </p>
+    {assessment.absent_measurements.length > 0 && <p>Absent: {assessment.absent_measurements.join('; ')}.</p>}
+    {assessment.unknown_measurements.length > 0 && <p>Unresolved: {assessment.unknown_measurements.join('; ')}.</p>}
+    <p>{assessment.measurement_basis}</p>
     <p>{assessment.phase_basis}</p>
     {candidate.t60_cases.map(item => <p key={item.phase_banks}>
       <strong>{item.phase_banks} phase CT banks</strong> · {item.within_three_module_example
