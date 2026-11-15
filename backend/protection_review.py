@@ -27,7 +27,8 @@ def protection_review(study, option, checked, coverage, roles, evidence):
     secondary_boundaries = coverage['transformer_b']['boundaries']
     # Without an assigned HV boundary, the LV CT alone cannot make an 87T zone.
     if coverage['transformer_b']['hv_boundary'] == 'unresolved':
-        secondary_boundaries = [{'label': 'Independent Secondary HV CT assignment', 'state': 'unknown'}, *secondary_boundaries]
+        secondary_hv_state = 'absent' if all(row['state'] == 'absent' for row in checked['hv_boundaries']) else 'unknown'
+        secondary_boundaries = [{'label': 'Independent Secondary HV CT assignment', 'state': secondary_hv_state}, *secondary_boundaries]
     zone('transformer_secondary', 'Transformer-only Secondary zone', '87T', [secondary['role']], secondary_boundaries, primary_zone['trip_targets'])
     if not combined:
         bus = next((row for row in roles if row['kind'] == 'bus'), primary)

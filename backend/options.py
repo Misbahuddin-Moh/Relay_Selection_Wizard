@@ -150,7 +150,7 @@ def main_coverage(study, option, main_a_analysis):
             "function": "87T",
             "hv_boundary": main_b_hv,
             "status": transformer_b["status"] if transformer_b else (
-                "Missing measurement" if lv_boundary["state"] == "absent" else "Unresolved"
+                "Missing measurement" if lv_boundary["state"] == "absent" or all(row["state"] == "absent" for row in main_a_analysis["hv_boundaries"]) else "Unresolved"
             ),
             "boundaries": transformer_b["boundaries"] if transformer_b else [lv_boundary],
             "coverage": main_b_location["coverage"] if main_b_location else None,
@@ -173,7 +173,7 @@ def device_requirements(study, scheme, analysis, coverage=None):
     secondary_sources = secondary["boundaries"]
     if secondary["hv_boundary"] == "unresolved":
         bushing = next(boundary for boundary in analysis["hv_boundaries"] if boundary["id"] == "bushing")
-        secondary_sources = [{"label": f'{bushing["label"]} (candidate)', "state": bushing["state"]}, *secondary_sources]
+        secondary_sources = [{"label": f'{bushing["label"]} (candidate)', "state": bushing["state"], "candidate": True}, *secondary_sources]
     signals = {
         "shared": [*transformer, *zones["bus"]["boundaries"][1:]],
         "combined": zones["combined"]["boundaries"],
@@ -206,6 +206,9 @@ def device_requirements(study, scheme, analysis, coverage=None):
             "note": note,
             "measurement_sources": measurement_sources if measurement_sources is not None else signals[kind],
         }
+        if kind == 'transformer' and purpose == 'secondary':
+            row['secondary_hv_assignment'] = secondary['hv_boundary']
+            row['secondary_hv_candidates'] = analysis['hv_boundaries']
         scope = analysis["assessment"]["scope"]
         rows.append({**row,
                      "support": "reference" if scope["reference_hardware_supported"] else "unsupported",

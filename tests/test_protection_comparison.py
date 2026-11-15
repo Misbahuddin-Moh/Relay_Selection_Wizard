@@ -285,3 +285,18 @@ class ProtectionComparisonAcceptanceTests(TestCase):
                             response = client.post(route, content=json.dumps(study), headers={'content-type': 'application/json'})
                             self.assertEqual(response.status_code, 422)
                             self.assertNotIn('Confidential-title-sentinel', response.text)
+
+    def test_unassigned_secondary_does_not_treat_one_absent_candidate_as_all_hv_locations_absent(self):
+        self.study['ct_inventory']['transformer_hv_phase'] = 0
+        for option in self.options().values():
+            self.assertEqual(option['review']['secondary_measurements'], 'unknown')
+        io = self.engineering_io()
+        secondary = next(row for row in io['analog_assessments'] if row['role'] == 'Transformer Secondary')
+        self.assertEqual(secondary['measurement_status'], 'unknown')
+        for key in ('transformer_hv_phase', 'hv_breaker_135', 'hv_breaker_246'):
+            self.study['ct_inventory'][key] = 0
+        for option in self.options().values():
+            self.assertEqual(option['review']['secondary_measurements'], 'absent')
+            self.assertEqual(option['main_coverage']['transformer_b']['status'], 'Missing measurement')
+        secondary = next(row for row in self.engineering_io()['analog_assessments'] if row['role'] == 'Transformer Secondary')
+        self.assertEqual(secondary['measurement_status'], 'absent')

@@ -112,7 +112,19 @@ try {
   assert.match(await tableRow('Readiness and evidence').innerText(), /Procurement release unavailable/)
   await page.setViewportSize({width: 390, height: 844})
   const width = await page.evaluate(() => ({viewport: document.documentElement.clientWidth, body: document.body.scrollWidth, document: document.documentElement.scrollWidth}))
-  assert.ok(Math.max(width.body, width.document) <= width.viewport + 1, `Comparison causes page overflow: ${JSON.stringify(width)}`)
+  let overflowElements = []
+  if (Math.max(width.body, width.document) > width.viewport + 1) {
+    overflowElements = await page.evaluate(() => [...document.querySelectorAll('body *')].map(element => {
+      const rectangle = element.getBoundingClientRect()
+      const style = getComputedStyle(element)
+      return {tag: element.tagName.toLowerCase(), class: element.getAttribute('class'), ariaLabel: element.getAttribute('aria-label'),
+        left: rectangle.left, right: rectangle.right, width: rectangle.width, position: style.position,
+        overflowX: style.overflowX, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth}
+    }).filter(element => element.width > 0 && (element.right > document.documentElement.clientWidth + 1 || element.left < -1))
+      .sort((a, b) => b.right - a.right).slice(0, 35))
+  }
+  assert.ok(Math.max(width.body, width.document) <= width.viewport + 1,
+    `Comparison causes page overflow: ${JSON.stringify({dimensions: width, elements: overflowElements})}`)
   await page.setViewportSize({width: 1440, height: 1000})
   console.log('PASS visible comparison distinguishes separate, shared hardware and extended Primary while retaining Secondary and unresolved evidence')
 

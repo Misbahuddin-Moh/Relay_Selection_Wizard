@@ -158,6 +158,6 @@ class OptionsTests(TestCase):
             secondary = next(row for row in option["device_requirements"] if row["role"] == "Transformer Secondary")
             self.assertEqual(secondary["measurement_sources"][0], {
                 "label": "Transformer HV bushing phase CT bank (candidate)",
-                "state": "present",
+                "state": "present", "candidate": True,
             })
         self.assertIsNone(result["usage"]["input_tokens"])
