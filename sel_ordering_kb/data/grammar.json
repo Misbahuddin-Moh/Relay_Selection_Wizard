@@ -1,0 +1,178 @@
+{
+  "ordering_code_anatomy": {
+    "observed": "MOT string = zero-padded model number (0451, 0411L, 0487E, 0351S, 0700G, 07100...) followed by option fields. 'X' conventionally = None/not selected. '*' in MOT = additional cost. Digits are NOT portable across families.",
+    "evidence": [
+      "451/411L/487E/351S/700G headers",
+      "710/751A/787 tables"
+    ],
+    "confidence": "high"
+  },
+  "family_conventions": [
+    {
+      "family": "400-series",
+      "products": [
+        "451",
+        "411L",
+        "487E",
+        "487B",
+        "421",
+        "401"
+      ],
+      "power_supply": {
+        "2": "24-48 Vdc",
+        "4": "48-125 Vdc / 110-120 Vac",
+        "6": "125-250 Vdc / 110-240 Vac"
+      },
+      "control_voltage_digit": {
+        "1": "24",
+        "2": "48",
+        "3": "110",
+        "4": "125",
+        "5": "220",
+        "6": "250"
+      },
+      "mounting": {
+        "H": "horizontal rack",
+        "3": "horizontal panel",
+        "V": "vertical rack",
+        "4": "vertical panel"
+      },
+      "conformal_coat": {
+        "X": "none",
+        "2": "coated"
+      },
+      "confidence": "high"
+    },
+    {
+      "family": "700-series",
+      "products": [
+        "710",
+        "751A",
+        "751",
+        "787",
+        "700G"
+      ],
+      "power_supply_with_io": {
+        "1": "110-250 Vdc / 110-240 Vac",
+        "2": "24-48 Vdc"
+      },
+      "di_voltage_letter": {
+        "A": "125 Vdc/Vac",
+        "B": "24 Vdc/Vac",
+        "C": "48 Vdc/Vac",
+        "D": "110 Vdc/Vac",
+        "G": "220 Vdc/Vac",
+        "H": "250 Vdc/Vac"
+      },
+      "conformal_coat": {
+        "0": "none",
+        "1": "coated"
+      },
+      "slot_model": "Slots A (PSIO), B (CPU/COM), C/D/E (SELect I/O), Z (ACI/AVI)",
+      "confidence": "high"
+    },
+    {
+      "family": "300-series (legacy)",
+      "products": [
+        "311L",
+        "311C",
+        "351S"
+      ],
+      "power_supply": {
+        "2": "24/48 Vdc",
+        "3": "48/125 Vdc or 125 Vac",
+        "4": "125/250 Vdc or Vac"
+      },
+      "conformal_coat": {
+        "X": "none",
+        "2": "coated"
+      },
+      "confidence": "medium"
+    }
+  ],
+  "cross_family_traps": [
+    "Power-supply digit '4' = 48-125 V in 400-series but 125/250 V in 311L; digit '3' = 48/125 V in 311L only.",
+    "Conformal coat: X/2 in 400/300-series vs 0/1 in 700-series.",
+    "Letters A,B,C,D,G,H = DI voltage in 700-series but card type elsewhere (C = fast HC DO card; A = serial card in slot C; B = 3DI/4DO/1AO).",
+    "400-series control voltage digits 1-6 = 24..250 V; DI letters in 700-series use a different alphabet (no E/F)."
+  ],
+  "select_card_subpart_numbers": {
+    "pattern": "97<platform 2 digits> L <MOT slot code> <coat 0|1>   e.g. 9765L1A0 = PSIO 110-250V supply + 125V DI, no coat",
+    "evidence_examples": [
+      {
+        "pn": "9765L1A_",
+        "desc": "PSIO/2DI/3DO 125/250 Vdc, 125 V DI (2x16 LCD)",
+        "mot_code": "1A",
+        "slot": "A"
+      },
+      {
+        "pn": "9765L2C_",
+        "desc": "PSIO/2DI/3DO 24/48 Vdc, 48 V DI (2x16 LCD)",
+        "mot_code": "2C",
+        "slot": "A"
+      },
+      {
+        "pn": "9775L1AAB_",
+        "desc": "PSIO for 5-in color touchscreen, 125 V DI",
+        "mot_code": "1A(+AB?)",
+        "slot": "A"
+      },
+      {
+        "pn": "9717LA0_",
+        "desc": "Serial comm card EIA-232/485 (Slot C only)",
+        "mot_code": "A0",
+        "slot": "C"
+      },
+      {
+        "pn": "9719L9X_",
+        "desc": "10 RTD input (Slot D only)",
+        "mot_code": "9X",
+        "slot": "D"
+      },
+      {
+        "pn": "9762L5X_",
+        "desc": "8 AI +-20 mA/+-10 V jumper selectable",
+        "mot_code": "5X",
+        "slot": "C/D/E"
+      },
+      {
+        "pn": "9746L70_",
+        "desc": "Vsync/Vbat + arc-flash detection (SELect 2 AVI / 4 AFDI)",
+        "mot_code": "70",
+        "slot": "E"
+      },
+      {
+        "pn": "9775L77_",
+        "desc": "8 arc-flash detection inputs (Slot E only)",
+        "mot_code": "77",
+        "slot": "E"
+      },
+      {
+        "pn": "9787L81_",
+        "desc": "SEL-787 6 ACI, 1A W1 / 1A W2 (Slot Z)",
+        "mot_code": "81",
+        "slot": "Z"
+      },
+      {
+        "pn": "9787L3S71_",
+        "desc": "SEL-787-3S 3 ACI/4 AVI, 1 A winding 3 (Slot E)",
+        "mot_code": "3S71",
+        "slot": "E"
+      },
+      {
+        "pn": "9761L2X_",
+        "desc": "8 Form A electromechanical DO",
+        "mot_code": "2X",
+        "slot": "C/D/E"
+      }
+    ],
+    "trailing_underscore": "'_' = conformal coating digit: 0 without, 1 with (additional cost).",
+    "caveat": "The 97xx platform digits vary per relay for the same card type (e.g. RTD = 9719 on 710/751A, 9772 on 787/2411/2414; serial = 9717 vs 9751 on 2411). Needs a per-relay lookup table; only the examples above are evidenced.",
+    "confidence": "medium"
+  },
+  "relay_partno_string_note": {
+    "observation": "SEL-751 quick manual shows relay-stored PART NUM = 751001B5X1X7086020X (19 chars, no leading 0). Datasheet puts Slot E at MOT digits 12-13 and Slot Z at 14-15. Counting from the string WITHOUT the leading zero gives E='70', Z='86', which fits the 4-ACI Z-card codes seen in other 700-series MOTs. Leading digits '751' + '00' + PS '1B' also fit. This is a HYPOTHESIS for validation, not a fact.",
+    "implication": "The string stored in the relay may drop the MOT's leading zero. Decide which representation the BOM must carry.",
+    "confidence": "low"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "model": "SEL-751",
+  "doc_status": "source_not_text_extractable",
+  "layout_verified": false,
+  "fields": [],
+  "source": {
+    "doc_id": "download/97800 (WI-9222, 2026-05-20)"
+  },
+  "evidence": [
+    "Datasheet says Slot E card = MOT string digits 12,13; Slot Z card = digits 14,15.",
+    "Relay PARTNUM example from quick manual: 751001B5X1X7086020X (see grammar.json).",
+    "SELect I/O card kit PNs in download/114387 (WI-12625)."
+  ],
+  "constraints": [],
+  "accessories": [],
+  "open_questions": [
+    "Full MOT not yet ingested."
+  ]
+}

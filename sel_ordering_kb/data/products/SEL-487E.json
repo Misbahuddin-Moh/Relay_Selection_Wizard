@@ -1,0 +1,17 @@
+{
+  "model": "SEL-487E",
+  "doc_status": "partial_header_only",
+  "layout_verified": false,
+  "fields": [],
+  "source": {
+    "doc_id": "no direct MOT link found on docs page"
+  },
+  "evidence": [
+    "Header '0487E' + firmware 3 (std w/ V,F,dir OC,V/Hz) / 4 (station PMU); power supply 2/4/6 (same as 400-series)."
+  ],
+  "constraints": [],
+  "accessories": [],
+  "open_questions": [
+    "Full MOT not yet ingested."
+  ]
+}

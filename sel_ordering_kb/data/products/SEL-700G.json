@@ -1,0 +1,17 @@
+{
+  "model": "SEL-700G",
+  "doc_status": "partial_header_only",
+  "layout_verified": false,
+  "fields": [],
+  "source": {
+    "doc_id": "download/7583; I/O cards WI-16209 download/128475"
+  },
+  "evidence": [
+    "Header '0700G'; model options 700G0 ...; card PNs 9717LA0_, 9719L9X_ etc."
+  ],
+  "constraints": [],
+  "accessories": [],
+  "open_questions": [
+    "Full MOT not yet ingested."
+  ]
+}

@@ -1,0 +1,851 @@
+{
+  "model": "SEL-710",
+  "family": "700-series",
+  "category": "Motor protection (NOT the -5 variant)",
+  "prefix": "07100",
+  "prefix_note": "Source: '0 7 1 0 0'; unclear if fixed prefix or variable.",
+  "source": {
+    "doc_id": "download/3273",
+    "url": "https://selinc.com/api/download/3273/?lang=en-us",
+    "doc_date": "2018-12-07 (WI-5180)",
+    "method": "WebFetch LLM extraction of MOT PDF"
+  },
+  "doc_status": "legacy_possibly_superseded",
+  "layout_verified": false,
+  "fields": [
+    {
+      "id": "slot_a",
+      "name": "Slot A power supply w/ I/O",
+      "width": 2,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "1A",
+          "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1B",
+          "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1C",
+          "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1D",
+          "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1G",
+          "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1H",
+          "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "2A",
+          "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "2B",
+          "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "2C",
+          "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "2D",
+          "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "2G",
+          "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "2H",
+          "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 250 Vdc/Vac",
+          "extra_cost": false
+        }
+      ],
+      "order": 1
+    },
+    {
+      "id": "slot_b",
+      "name": "Slot B processor board (3-digit)",
+      "width": 3,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "000",
+          "desc": "EIA-232 rear, IRIG-B",
+          "extra_cost": false
+        },
+        {
+          "code": "010",
+          "desc": "EIA-485 rear, IRIG-B",
+          "extra_cost": false
+        },
+        {
+          "code": "020",
+          "desc": "EIA-232, IRIG-B, 10/100BASE-T, Modbus TCP",
+          "extra_cost": true
+        },
+        {
+          "code": "021",
+          "desc": "EIA-232, IRIG-B, 10/100BASE-T, Modbus TCP + IEC 61850",
+          "extra_cost": true
+        },
+        {
+          "code": "030",
+          "desc": "EIA-485, IRIG-B, 10/100BASE-T, Modbus TCP",
+          "extra_cost": true
+        },
+        {
+          "code": "031",
+          "desc": "EIA-485, IRIG-B, 10/100BASE-T, Modbus TCP + IEC 61850",
+          "extra_cost": true
+        },
+        {
+          "code": "040",
+          "desc": "EIA-232, IRIG-B, single 100BASE-FX, Modbus TCP",
+          "extra_cost": true
+        },
+        {
+          "code": "041",
+          "desc": "EIA-232, IRIG-B, single 100BASE-FX, Modbus TCP + IEC 61850",
+          "extra_cost": true
+        },
+        {
+          "code": "060",
+          "desc": "EIA-232, IRIG-B, dual 10/100BASE-T, Modbus TCP",
+          "extra_cost": true
+        },
+        {
+          "code": "063",
+          "desc": "EIA-232, IRIG-B, dual 10/100BASE-T, Modbus TCP + IEC 61850",
+          "extra_cost": true
+        },
+        {
+          "code": "080",
+          "desc": "EIA-232, IRIG-B, dual 100BASE-FX, Modbus TCP",
+          "extra_cost": true
+        },
+        {
+          "code": "083",
+          "desc": "EIA-232, IRIG-B, dual 100BASE-FX, Modbus TCP + IEC 61850",
+          "extra_cost": true
+        },
+        {
+          "code": "100",
+          "desc": "EIA-232, PTC thermistor",
+          "extra_cost": false
+        },
+        {
+          "code": "110",
+          "desc": "EIA-485, PTC thermistor",
+          "extra_cost": false
+        },
+        {
+          "code": "120",
+          "desc": "EIA-232, PTC, 10/100BASE-T, Modbus TCP",
+          "extra_cost": true
+        },
+        {
+          "code": "121",
+          "desc": "EIA-232, PTC, 10/100BASE-T, Modbus TCP + IEC 61850",
+          "extra_cost": true
+        },
+        {
+          "code": "130",
+          "desc": "EIA-485, PTC, 10/100BASE-T, Modbus TCP",
+          "extra_cost": true
+        },
+        {
+          "code": "131",
+          "desc": "EIA-485, PTC, 10/100BASE-T, Modbus TCP + IEC 61850",
+          "extra_cost": true
+        }
+      ],
+      "order": 2
+    },
+    {
+      "id": "slot_c",
+      "name": "Slot C card",
+      "width": 2,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "0X",
+          "desc": "Empty",
+          "extra_cost": false
+        },
+        {
+          "code": "BA",
+          "desc": "3 DI / 4 DO / 1 AO; DI 125 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BB",
+          "desc": "3 DI / 4 DO / 1 AO; DI 24 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BC",
+          "desc": "3 DI / 4 DO / 1 AO; DI 48 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BD",
+          "desc": "3 DI / 4 DO / 1 AO; DI 110 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BG",
+          "desc": "3 DI / 4 DO / 1 AO; DI 220 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BH",
+          "desc": "3 DI / 4 DO / 1 AO; DI 250 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "1A",
+          "desc": "4 DI / 4 DO electromechanical, DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1B",
+          "desc": "4 DI / 4 DO electromechanical, DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1C",
+          "desc": "4 DI / 4 DO electromechanical, DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1D",
+          "desc": "4 DI / 4 DO electromechanical, DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1G",
+          "desc": "4 DI / 4 DO electromechanical, DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1H",
+          "desc": "4 DI / 4 DO electromechanical, DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CA",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CB",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CC",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CD",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CG",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CH",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "5X",
+          "desc": "8 AI",
+          "extra_cost": true
+        },
+        {
+          "code": "6X",
+          "desc": "4 AI / 4 AO",
+          "extra_cost": true,
+          "note": "One per chassis"
+        },
+        {
+          "code": "3A",
+          "desc": "8 DI, DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3B",
+          "desc": "8 DI, DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3C",
+          "desc": "8 DI, DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3D",
+          "desc": "8 DI, DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3G",
+          "desc": "8 DI, DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3H",
+          "desc": "8 DI, DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DA",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DB",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DC",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DD",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DG",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DH",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "A0",
+          "desc": "Serial comm card EIA-232/485",
+          "extra_cost": true
+        }
+      ],
+      "order": 3
+    },
+    {
+      "id": "slot_d",
+      "name": "Slot D card",
+      "width": 2,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "0X",
+          "desc": "Empty",
+          "extra_cost": false
+        },
+        {
+          "code": "BA",
+          "desc": "3 DI / 4 DO / 1 AO; DI 125 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BB",
+          "desc": "3 DI / 4 DO / 1 AO; DI 24 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BC",
+          "desc": "3 DI / 4 DO / 1 AO; DI 48 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BD",
+          "desc": "3 DI / 4 DO / 1 AO; DI 110 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BG",
+          "desc": "3 DI / 4 DO / 1 AO; DI 220 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BH",
+          "desc": "3 DI / 4 DO / 1 AO; DI 250 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "1A",
+          "desc": "4 DI / 4 DO electromechanical, DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1B",
+          "desc": "4 DI / 4 DO electromechanical, DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1C",
+          "desc": "4 DI / 4 DO electromechanical, DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1D",
+          "desc": "4 DI / 4 DO electromechanical, DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1G",
+          "desc": "4 DI / 4 DO electromechanical, DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1H",
+          "desc": "4 DI / 4 DO electromechanical, DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CA",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CB",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CC",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CD",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CG",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CH",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "5X",
+          "desc": "8 AI",
+          "extra_cost": true
+        },
+        {
+          "code": "6X",
+          "desc": "4 AI / 4 AO",
+          "extra_cost": true,
+          "note": "One per chassis"
+        },
+        {
+          "code": "3A",
+          "desc": "8 DI, DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3B",
+          "desc": "8 DI, DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3C",
+          "desc": "8 DI, DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3D",
+          "desc": "8 DI, DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3G",
+          "desc": "8 DI, DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3H",
+          "desc": "8 DI, DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DA",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DB",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DC",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DD",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DG",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DH",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "9X",
+          "desc": "10 RTD input",
+          "extra_cost": true
+        }
+      ],
+      "order": 4
+    },
+    {
+      "id": "slot_e",
+      "name": "Slot E card",
+      "width": 2,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "0X",
+          "desc": "Empty",
+          "extra_cost": false
+        },
+        {
+          "code": "BA",
+          "desc": "3 DI / 4 DO / 1 AO; DI 125 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BB",
+          "desc": "3 DI / 4 DO / 1 AO; DI 24 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BC",
+          "desc": "3 DI / 4 DO / 1 AO; DI 48 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BD",
+          "desc": "3 DI / 4 DO / 1 AO; DI 110 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BG",
+          "desc": "3 DI / 4 DO / 1 AO; DI 220 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "BH",
+          "desc": "3 DI / 4 DO / 1 AO; DI 250 Vdc/Vac",
+          "extra_cost": false,
+          "note": "One per chassis"
+        },
+        {
+          "code": "1A",
+          "desc": "4 DI / 4 DO electromechanical, DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1B",
+          "desc": "4 DI / 4 DO electromechanical, DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1C",
+          "desc": "4 DI / 4 DO electromechanical, DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1D",
+          "desc": "4 DI / 4 DO electromechanical, DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1G",
+          "desc": "4 DI / 4 DO electromechanical, DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "1H",
+          "desc": "4 DI / 4 DO electromechanical, DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CA",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CB",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CC",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CD",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CG",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "CH",
+          "desc": "4 DI / 4 DO fast HC interrupting, DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "5X",
+          "desc": "8 AI",
+          "extra_cost": true
+        },
+        {
+          "code": "6X",
+          "desc": "4 AI / 4 AO",
+          "extra_cost": true,
+          "note": "One per chassis"
+        },
+        {
+          "code": "3A",
+          "desc": "8 DI, DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3B",
+          "desc": "8 DI, DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3C",
+          "desc": "8 DI, DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3D",
+          "desc": "8 DI, DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3G",
+          "desc": "8 DI, DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "3H",
+          "desc": "8 DI, DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DA",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 125 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DB",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 24 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DC",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 48 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DD",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 110 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DG",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 220 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "DH",
+          "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 250 Vdc/Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "71",
+          "desc": "3-phase AC voltage input (300 Vac)",
+          "extra_cost": true
+        },
+        {
+          "code": "72",
+          "desc": "3 AC current (motor differential) + 3-phase AC voltage",
+          "extra_cost": true
+        }
+      ],
+      "order": 5
+    },
+    {
+      "id": "slot_z",
+      "name": "Slot Z: 4 ACI",
+      "width": 2,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "81",
+          "desc": "1 A phase / 1 A neutral",
+          "extra_cost": false
+        },
+        {
+          "code": "82",
+          "desc": "1 A phase / 5 A neutral",
+          "extra_cost": false
+        },
+        {
+          "code": "83",
+          "desc": "1 A phase / 2.5 mA high-sense neutral",
+          "extra_cost": false
+        },
+        {
+          "code": "85",
+          "desc": "5 A phase / 5 A neutral",
+          "extra_cost": false
+        },
+        {
+          "code": "86",
+          "desc": "5 A phase / 1 A neutral",
+          "extra_cost": false
+        },
+        {
+          "code": "87",
+          "desc": "5 A phase / 2.5 mA high-sense neutral",
+          "extra_cost": false
+        }
+      ],
+      "order": 6
+    },
+    {
+      "id": "conformal",
+      "name": "Conformal coat",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "0",
+          "desc": "None",
+          "extra_cost": false
+        },
+        {
+          "code": "1",
+          "desc": "Conformally coated boards",
+          "extra_cost": true
+        }
+      ],
+      "order": 7
+    }
+  ],
+  "constraints": [
+    {
+      "id": "710-max-one-3di4do1ao",
+      "type": "max_per_chassis",
+      "fields": [
+        "slot_c",
+        "slot_d",
+        "slot_e"
+      ],
+      "match_prefix": "B",
+      "max": 1,
+      "confidence": "stated",
+      "note": "One 3DI/4DO/1AO card per chassis."
+    },
+    {
+      "id": "710-max-one-4ai4ao",
+      "type": "max_per_chassis",
+      "fields": [
+        "slot_c",
+        "slot_d",
+        "slot_e"
+      ],
+      "match_prefix": "6X",
+      "max": 1,
+      "confidence": "stated",
+      "note": "One 4AI/4AO card per chassis."
+    }
+  ],
+  "accessories": [
+    {
+      "item": "Printed manual",
+      "pn": "PM710-01",
+      "in_code": false
+    },
+    {
+      "item": "Configurable labels",
+      "pn": "9260134 / 9260135",
+      "in_code": false
+    }
+  ],
+  "open_questions": [
+    "SEL-710-5 (current product; WI-11297) MOT not retrieved -- this doc is the older SEL-710.",
+    "Whether '07100' is fixed prefix or variable.",
+    "Is Slot Z mandatory?"
+  ]
+}

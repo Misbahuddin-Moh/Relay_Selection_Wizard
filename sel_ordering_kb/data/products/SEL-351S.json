@@ -1,0 +1,17 @@
+{
+  "model": "SEL-351S",
+  "doc_status": "partial_header_only",
+  "layout_verified": false,
+  "fields": [],
+  "source": {
+    "doc_id": "download/4901 (data sheet 5514)"
+  },
+  "evidence": [
+    "Header '0351S'; firmware 5 (basic) / 6 (standard) / 7 (std + power elements, sag/swell); extra I/O options X/2/4/6."
+  ],
+  "constraints": [],
+  "accessories": [],
+  "open_questions": [
+    "Full MOT not yet ingested."
+  ]
+}
