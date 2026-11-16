@@ -54,7 +54,7 @@ async function openStudy(study) {
   return result
 }
 async function inspect(title) {
-  await table().getByRole('columnheader').filter({hasText: title}).getByRole('button').click()
+  await table().getByRole('columnheader').filter({has: page.getByText(title, {exact: true})}).getByRole('button').click()
   await visible(comparison().locator('details.comparison-detail'))
   assert.match(await comparison().locator('details.comparison-detail > summary').innerText(), new RegExp(title))
 }
