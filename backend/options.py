@@ -41,7 +41,7 @@ ShortText = Annotated[str, Field(min_length=1)]
 
 class Option(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    scheme: Literal["dedicated", "shared", "combined"]
+    scheme: Literal["dedicated", "shared", "combined", "redundant_separate", "dual_combined", "combined_separate_secondary"]
     hv_boundary: Literal["poi", "breaker_transformer", "bushing"]
     rationale: ShortText
     transformer_main_b_hv: Literal["poi", "breaker_transformer", "bushing", "unresolved"]
@@ -131,7 +131,7 @@ def request_options(summary: str, model: str):
 
 def main_coverage(study, option, main_a_analysis):
     zones = {zone["id"]: zone for zone in main_a_analysis["zones"]}
-    combined = option.scheme == "combined"
+    combined = option.scheme in ("combined", "dual_combined", "combined_separate_secondary")
     transformer_a = zones["combined" if combined else "transformer"]
     bus = zones["combined" if combined else "bus"]
     main_b_hv = option.transformer_main_b_hv
@@ -144,21 +144,34 @@ def main_coverage(study, option, main_a_analysis):
         main_b_analysis = analyze({**study, "hv_boundary": main_b_hv})
         transformer_b = next(zone for zone in main_b_analysis["zones"] if zone["id"] == "transformer")
 
+    if option.scheme == "dual_combined":
+        secondary_boundaries = ([{**main_b_location}] if main_b_location else []) + zones["combined"]["boundaries"][1:]
+        if not main_b_location:
+            hv_state = "absent" if all(row["state"] == "absent" for row in main_a_analysis["hv_boundaries"]) else "unknown"
+            secondary_boundaries.insert(0, {"label": "Independent Secondary HV CT assignment", "state": hv_state})
+        states = [row["state"] for row in secondary_boundaries]
+        secondary_status = "Missing measurement" if "absent" in states else "Unresolved" if "unknown" in states else "Boundaries present"
+    else:
+        secondary_boundaries = transformer_b["boundaries"] if transformer_b else [lv_boundary]
+        secondary_status = transformer_b["status"] if transformer_b else (
+            "Missing measurement" if lv_boundary["state"] == "absent" or all(row["state"] == "absent" for row in main_a_analysis["hv_boundaries"]) else "Unresolved"
+        )
     return {
         "transformer_a": {"function": "87TB" if combined else "87T", "status": transformer_a["status"]},
         "transformer_b": {
-            "function": "87T",
+            "function": "87TB" if option.scheme == "dual_combined" else "87T",
             "hv_boundary": main_b_hv,
-            "status": transformer_b["status"] if transformer_b else (
-                "Missing measurement" if lv_boundary["state"] == "absent" or all(row["state"] == "absent" for row in main_a_analysis["hv_boundaries"]) else "Unresolved"
-            ),
-            "boundaries": transformer_b["boundaries"] if transformer_b else [lv_boundary],
+            "status": secondary_status,
+            "boundaries": secondary_boundaries,
             "coverage": main_b_location["coverage"] if main_b_location else None,
             "alternatives": [
                 boundary["id"] for boundary in main_a_analysis["hv_boundaries"] if boundary["state"] == "present"
-            ] if main_b_hv == "unresolved" and lv_boundary["state"] == "present" else [],
+            ] if main_b_hv == "unresolved" and (option.scheme == "dual_combined" or lv_boundary["state"] == "present") else [],
         },
         "bus": {"function": "87TB (shared with transformer primary)" if combined else "87B", "status": bus["status"]},
+        "bus_secondary": {"function": "87TB" if option.scheme == "dual_combined" else "87B",
+                          "status": secondary_status if option.scheme == "dual_combined" else zones["bus"]["status"]}
+                         if option.scheme in ("redundant_separate", "dual_combined", "combined_separate_secondary") else None,
     }
 
 
@@ -206,7 +219,9 @@ def device_requirements(study, scheme, analysis, coverage=None):
             "note": note,
             "measurement_sources": measurement_sources if measurement_sources is not None else signals[kind],
         }
-        if kind == 'transformer' and purpose == 'secondary':
+        if purpose == 'secondary':
+            row['measurement_sources'] = [{**source, 'core_assignment': 'unverified'} for source in row['measurement_sources']]
+        if kind in ('transformer', 'combined') and purpose == 'secondary':
             row['secondary_hv_assignment'] = secondary['hv_boundary']
             row['secondary_hv_candidates'] = analysis['hv_boundaries']
         scope = analysis["assessment"]["scope"]
@@ -220,15 +235,30 @@ def device_requirements(study, scheme, analysis, coverage=None):
         add("shared", "Transformer Primary + collector bus", "87T + 87B simultaneously", bus_banks + 1,
             "Lower count assumes both elements can use the same LV incomer input. Higher count uses separate inputs.",
             alternate_banks=bus_banks + 2)
-    elif scheme == "combined":
+    elif scheme in ("combined", "dual_combined", "combined_separate_secondary"):
         add("combined", "Transformer Primary + collector bus", "One extended 87TB element", bus_banks,
             "Verify compensation and source mapping for the extended zone.")
     else:
         add("transformer", "Transformer Primary", "87T", 2, "Selected HV CT and transformer LV CT.")
-        add("bus", "Collector bus · single path", "87B", bus_banks, "LV incomer, collector boundaries and measured tap if applicable.")
+        add("bus", "Collector bus Primary" if scheme == "redundant_separate" else "Collector bus · single path", "87B", bus_banks, "LV incomer, collector boundaries and measured tap if applicable.")
 
-    add("transformer", "Transformer Secondary", "87T", 2,
-        "Separate IED. Verify its own HV/LV CT assignments and trip path.", measurement_sources=secondary_sources, purpose="secondary")
+    if scheme == "dual_combined":
+        # Inventory does not assign an independent Secondary core. Keep that
+        # missing assignment visible while counting the intended physical inputs.
+        hv_sources = secondary_sources[:1]
+        if secondary["hv_boundary"] == "unresolved":
+            hv_state = "absent" if all(row["state"] == "absent" for row in analysis["hv_boundaries"]) else "unknown"
+            hv_sources = [{"label": "Independent Secondary HV CT assignment", "state": hv_state}]
+        add("combined", "Transformer Secondary + collector bus", "One extended 87TB element", bus_banks,
+            "Separate Secondary IED. Independent HV/collector cores and trip paths are unverified.",
+            measurement_sources=[*hv_sources, *zones["combined"]["boundaries"][1:]], purpose="secondary")
+    else:
+        add("transformer", "Transformer Secondary", "87T", 2,
+            "Separate IED. Verify its own HV/LV CT assignments and trip path.", measurement_sources=secondary_sources, purpose="secondary")
+    if scheme in ("redundant_separate", "combined_separate_secondary"):
+        add("bus", "Collector bus Secondary", "87B", bus_banks,
+            "Separate Secondary bus IED. CT cores, DC supply and clearing path are unverified.",
+            purpose="secondary")
     for area in analysis["feeder_areas"]:
         _, bus_side_ct = area["measurements"]
         add("feeder", area["breaker"], "51P; evaluate 51G/51N and directionality", 1,
@@ -261,6 +291,9 @@ def preview_options(study):
             ("dedicated", "Separate transformer and bus protection devices.", ["T_SEPARATE", "B_FULL"]),
             ("shared", "Separate zones share a device for primary and bus protection.", ["SHARED_IED", "B_FULL"]),
             ("combined", "One extended primary differential zone covers transformer and bus.", ["TB_COMBINED"]),
+            ("redundant_separate", "Separate transformer and bus zones on both protection systems.", ["REDUNDANCY_ARCHITECTURES", "T_SEPARATE", "B_FULL"]),
+            ("dual_combined", "Extended transformer and bus differential on both protection systems.", ["REDUNDANCY_ARCHITECTURES", "TB_COMBINED"]),
+            ("combined_separate_secondary", "Extended Primary plus separate transformer and bus Secondary zones.", ["REDUNDANCY_ARCHITECTURES", "TB_COMBINED", "B_FULL"]),
         )
     ], {})
 

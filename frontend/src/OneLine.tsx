@@ -1,4 +1,5 @@
 import { withInventoryBoundaries } from './model'
+import { collectorCtStates, collectorGeometry } from './diagramModel'
 import type { Ct, ProtectionZone, Study } from './model'
 
 function CtSymbol({ x, y, state, label }: { x: number; y: number; state: Ct; label: string }) {
@@ -39,13 +40,13 @@ export function OneLine({ study: input, zones = [] }: {
     <div className="drawing-scroll" tabIndex={0} aria-label="Scrollable single-line diagram">
       <svg
         className="drawing"
-        viewBox={`0 0 ${width} 402`}
+        viewBox={`0 0 ${width} 424`}
         style={{ minWidth: zones.length ? Math.max(340, span - 65) : Math.max(540, width - 65) }}
         role="img"
         aria-label={`Utility, ${study.hv_kv} kV high-side breaker, transformer, and ${study.mv_kv} kV collector bus with ${study.bays.length} breaker positions`}
       >
         {zones.map(zone => (
-          <rect key={zone} {...highlights[zone]} rx="6" className={`zone-overlay zone-${zone}`} />
+          <rect key={zone} {...highlights[zone]} rx="6" data-protection={zone} data-end-ct={zone === 'transformer' ? 'transformer-lv' : 'circuit-side'} className={`zone-overlay zone-${zone}`} />
         ))}
         <g className="primary-wire">
           <path d={`M ${center} 39 V 246 M ${start} 246 H ${width - start}`} />
@@ -56,29 +57,30 @@ export function OneLine({ study: input, zones = [] }: {
           <circle cx={center} cy="167" r="11" className="transformer-winding" />
         </g>
         <CtSymbol x={center} y={hvY} state={study.hv_ct} label="Selected HV boundary CT" />
-        {!zones.includes('combined') && <CtSymbol x={center} y={207} state={study.lv_ct} label="Transformer LV CT" />}
+        <CtSymbol x={center} y={207} state={study.lv_ct} label="Transformer LV CT · core assignments unresolved; not an input to extended 87TB" />
         <g className="svg-label">
           <text x={center} y="27" textAnchor="middle" className="source-label">UTILITY SOURCE</text>
           <text x={center + 22} y="86">HV breaker</text>
           <text x={center - 18} y={hvY + 4} textAnchor="end">HV boundary CT</text>
           <text x={center + 22} y="156">MPT</text>
           <text x={center + 22} y="172" className="muted-svg">{study.hv_kv} / {study.mv_kv} kV</text>
-          {!zones.includes('combined') && <text x={center - 18} y="211" textAnchor="end">LV CT</text>}
+          <text x={center - 18} y="211" textAnchor="end">LV CT{zones.includes('combined') ? ' · outside Primary inputs' : ' · core review open'}</text>
           <text x={start} y="234" className="bus-label">{study.mv_kv} kV COLLECTOR BUS</text>
         </g>
         <path className="aux-wire" d={`M ${width - start - 10} 246 V 213`} />
         {zones.length > 0 && study.auxiliary !== 'excluded' && (
           <CtSymbol x={width - start - 10} y={221} state={study.auxiliary === 'included' ? 'present' : 'unknown'} label="Auxiliary tap phase CT" />
         )}
-        <text x={width - start - 10} y="202" textAnchor="middle" className="svg-label muted-svg">Auxiliary branch</text>
+        <text x={width - start - 10} y="202" textAnchor="middle" className="svg-label muted-svg">Auxiliary · isolation open</text>
         {study.bays.map((bay, index) => {
           const x = start + spans.slice(0, index).reduce((sum, value) => sum + value, 0) + spans[index] / 2
+          const ctStates = collectorCtStates(study, bay.ct)
           const ends = bay.branches.map((_, branchIndex) => x + (branchIndex - (bay.branches.length - 1) / 2) * 74)
           return (
             <g key={bay.id}>
               {zones.length > 0 && (
-                <rect x={ends[0] - 13} y="291" width={ends[ends.length - 1] - ends[0] + 26} height="73"
-                  rx="6" className="feeder-area-overlay" />
+                <rect data-protection="feeder-overcurrent" data-ct-source="bus-side" x={ends[0] - 18} y={collectorGeometry.busSideCt} width={ends[ends.length - 1] - ends[0] + 36} height={collectorGeometry.feederBottom - collectorGeometry.busSideCt}
+                  rx="6" className="feeder-area-overlay"><title>Illustrative feeder overcurrent protection area · bus-side CT · reach subject to coordination study</title></rect>
               )}
               <g className="primary-wire">
                 <path d={`M ${x} 246 V 327`} />
@@ -88,7 +90,10 @@ export function OneLine({ study: input, zones = [] }: {
                   <path key={branchIndex} d={`M ${end} 327 V 357 M ${end - 4} 352 L ${end} 357 L ${end + 4} 352`} />
                 ))}
               </g>
-              <CtSymbol x={x} y={309} state={bay.ct} label={`${bay.id} boundary CT`} />
+              <g data-ct-position="bus-side"><CtSymbol x={x} y={collectorGeometry.busSideCt} state={ctStates.busSide} label={`${bay.id} bus-side CT · feeder protection sensing`} /></g>
+              <g data-ct-position="circuit-side"><CtSymbol x={x} y={collectorGeometry.circuitSideCt} state={ctStates.circuitSide} label={`${bay.id} circuit-side CT · bus/combined differential boundary`} /></g>
+              <text x={x + 14} y="264" className="svg-label muted-svg">bus-side CT</text>
+              <text x={x + 14} y="313" className="svg-label muted-svg">circuit-side CT</text>
               <text x={x + 14} y="284" className="svg-label breaker-label">{bay.id}</text>
               {ends.map((end, branchIndex) => (
                 <text key={branchIndex} x={end} y="379" textAnchor="middle" className="svg-label branch-label"><title>{bay.branches[branchIndex]}</title>{branchLabel(bay.branches[branchIndex])}</text>
@@ -96,6 +101,10 @@ export function OneLine({ study: input, zones = [] }: {
             </g>
           )
         })}
+        {zones.length > 0 && <g className="svg-label muted-svg">
+          <text x={center} y="400" textAnchor="middle">Amber: feeder OC from bus-side CT; reach subject to coordination.</text>
+          <text x={center} y="416" textAnchor="middle">Bus/combined ends at circuit-side CT; core assignments and isolation unverified.</text>
+        </g>}
       </svg>
     </div>
   )

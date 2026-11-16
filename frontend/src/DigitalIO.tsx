@@ -105,11 +105,12 @@ export function DigitalIO({ scheme, bays, editor, result, pending, error, retry,
   const signals = settings.edits[settings.variant] ?? example.signals
   const related = signals.filter(signal => signal.source === device || signal.destination === device)
   const budget = result?.budgets[device]
+  const hardwareEvidence = result?.hardware_assessments?.find(item => item.role_id === result.devices.find(role => role.alias === device)?.role_id)
   const label = (value: string) => value.replace(/\bF([123])\b/g, (_, number) => bays[Number(number) - 1]).replace(/\bH\b/g, 'POI breaker')
   const primaryName = scheme === 'shared' ? 'Transformer Primary + bus protection'
-    : scheme === 'combined' ? 'Combined transformer + bus Primary' : 'Transformer Primary'
+    : ['combined', 'dual_combined', 'combined_separate_secondary'].includes(scheme) ? 'Combined transformer + bus Primary' : 'Transformer Primary'
   const relayNames: Record<string, string> = {
-    'T-P': primaryName, 'T-S': 'Transformer Secondary', BUS: 'Collector bus protection',
+    'T-P': primaryName, 'T-S': scheme === 'dual_combined' ? 'Combined transformer + bus Secondary' : 'Transformer Secondary', BUS: 'Collector bus Primary protection', 'BUS-S': 'Collector bus Secondary protection',
     'BF-H': 'POI breaker failure', 'LINE-H': 'POI line protection (local)',
   }
   bays.forEach((bay, index) => {
@@ -132,6 +133,7 @@ export function DigitalIO({ scheme, bays, editor, result, pending, error, retry,
     <section className="detail-block digital-io" aria-label="Digital I/O budget">
       <h3>Digital I/O budget</h3>
       <p><strong>Starting assumption</strong> · {variants[settings.variant].title}</p>
+      {result?.wiring_basis === 'derived_reference_template_unreviewed' && <p className="draft-note"><strong>Derived wiring template · unreviewed</strong>. This expanded coverage arrangement reuses reference signal patterns. It requires a project-specific signal ownership and clearing review before relying on quantities.</p>}
       <p>Example for a straight collector bus with three feeder breakers. This is a partial interface budget. Mechanical, control, status, supervision and other categories need a complete ownership review; adding spares does not establish completeness.</p>
       <details>
         <summary>Compare wiring examples</summary>
@@ -174,6 +176,13 @@ export function DigitalIO({ scheme, bays, editor, result, pending, error, retry,
             <p>Research rows: {budget.analog_reference.ledger_ids.join(', ') || 'None enumerated'}</p>
           </details>
           <p>{budget.ordering_block}</p>
+          {hardwareEvidence && <details className="digital-hardware-evidence"><summary>Hardware evidence for {relayName(device)} · unresolved</summary>
+            <p>{hardwareEvidence.basis}</p>
+            <p>Phase CT banks: {hardwareEvidence.requirements.phase_ct_banks_min ?? 'Not enumerated'}–{hardwareEvidence.requirements.phase_ct_banks_max ?? 'Not enumerated'}. Neutral CT inputs: {hardwareEvidence.requirements.neutral_inputs ?? 'Unknown'}. VT banks: {hardwareEvidence.requirements.vt_banks ?? 'Unknown'}.</p>
+            <ul>{hardwareEvidence.evidence_gates.map(gate => <li key={gate.code}><strong>{gate.code.replaceAll('_', ' ')} · not verified</strong>: {gate.required_evidence}</li>)}</ul>
+            <p>No complete hardware fit or order code. Breaker-failure current detection and physical CT routing require separate review.</p>
+          </details>}
+
         </>}
       </section>
       <details><summary>Adjust spare I/O</summary>

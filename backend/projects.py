@@ -90,7 +90,7 @@ class ProjectFile(StrictModel):
             raise ValueError('A relay decision references absent equipment. Retire it explicitly before saving.')
         if set(self.decisions.digital_settings) - options.keys():
             raise ValueError('Digital settings reference an unknown protection option.')
-        role_pattern = r'(dedicated|shared|combined):(poi|breaker_transformer|bushing)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+        role_pattern = r'(dedicated|shared|combined|redundant_separate|dual_combined|combined_separate_secondary):(poi|breaker_transformer|bushing)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
         for key in self.decisions.retired_requirements:
             if not re.fullmatch(role_pattern, key):
                 raise ValueError('Invalid retired role identity.')

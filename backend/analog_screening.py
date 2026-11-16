@@ -24,11 +24,13 @@ def analog_screening(roles, auxiliary, requirements):
         sources = role['measurement_sources']
         absent = [row['label'] for row in sources if not row.get('remote') and not row.get('candidate') and row['state'] == 'absent']
         unknown = [row['label'] for row in sources if row['state'] == 'unknown']
-        if role['kind'] == 'transformer' and role['purpose'] == 'secondary' and role.get('secondary_hv_assignment') == 'unresolved':
+        if role['kind'] in ('transformer', 'combined') and role['purpose'] == 'secondary' and role.get('secondary_hv_assignment') == 'unresolved':
             if all(row['state'] == 'absent' for row in role['secondary_hv_candidates']):
                 absent.append('No modeled Secondary HV CT location available')
             else:
                 unknown.append('Independent Secondary HV core and trip assignment')
+        if role['purpose'] == 'secondary' and any(row.get('core_assignment') == 'unverified' for row in sources):
+            unknown.append('Independent Secondary CT core assignments unverified')
         measurement_status = 'absent' if absent else 'unknown' if unknown else 'present'
         candidates = []
         for candidate in role['candidates']:

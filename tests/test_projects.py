@@ -95,7 +95,7 @@ class PortableProjectTests(TestCase):
     def test_option_and_role_keys_are_distinct_and_reproducible(self):
         options = self.preview(self.study)
         self.assertEqual([option['option_id'] for option in options],
-                         ['dedicated:poi', 'shared:poi', 'combined:poi'])
+                         [f'{scheme}:poi' for scheme in ('dedicated', 'shared', 'combined', 'redundant_separate', 'dual_combined', 'combined_separate_secondary')])
         for option in options:
             role_ids = [row['role_id'] for row in option['device_requirements']]
             self.assertEqual(len(role_ids), len(set(role_ids)))

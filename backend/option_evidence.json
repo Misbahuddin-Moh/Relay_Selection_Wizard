@@ -4,12 +4,12 @@
     "sources": [
       {
         "id": "PV24",
-        "locator": "§III.B Fig. 3 and §IV",
+        "locator": "\u00a7III.B Fig. 3 and \u00a7IV",
         "url": "https://selinc.com/api/download/140376/"
       },
       {
         "id": "ENT25",
-        "locator": "§10.11.5",
+        "locator": "\u00a710.11.5",
         "url": "https://rfp.entergy.com/ENTRFP/SEND/2025ELLBESSRFP/Documents/Appendix-B-2-BESS_BOT_Scope_Book_25-2.pdf"
       },
       {
@@ -24,7 +24,7 @@
     "sources": [
       {
         "id": "PV24",
-        "locator": "§III.A Fig. 5 and §IV.B.1",
+        "locator": "\u00a7III.A Fig. 5 and \u00a7IV.B.1",
         "url": "https://selinc.com/api/download/140376/"
       },
       {
@@ -34,12 +34,12 @@
       },
       {
         "id": "END20",
-        "locator": "§6.6",
+        "locator": "\u00a76.6",
         "url": "https://cache.industry.siemens.com/dl/files/351/109742351/att_1010616/v1/SIP5_7SS85_V08.01_Manual_C019-9_en.pdf"
       },
       {
         "id": "ENT25",
-        "locator": "§10.11.4",
+        "locator": "\u00a710.11.4",
         "url": "https://rfp.entergy.com/ENTRFP/SEND/2025ELLBESSRFP/Documents/Appendix-B-2-BESS_BOT_Scope_Book_25-2.pdf"
       }
     ]
@@ -49,17 +49,17 @@
     "sources": [
       {
         "id": "IEEE-BUS",
-        "locator": "§8.2 Fig. 42",
+        "locator": "\u00a78.2 Fig. 42",
         "url": "https://standards.ieee.org/ieee/C37.234/7037/"
       },
       {
         "id": "PSRC09",
-        "locator": "§VII",
+        "locator": "\u00a7VII",
         "url": "https://www.pes-psrc.org/kb/report/120.pdf"
       },
       {
         "id": "PV24",
-        "locator": "§III.B",
+        "locator": "\u00a7III.B",
         "url": "https://selinc.com/api/download/140376/"
       }
     ]
@@ -74,7 +74,7 @@
       },
       {
         "id": "END20",
-        "locator": "§6.6",
+        "locator": "\u00a76.6",
         "url": "https://cache.industry.siemens.com/dl/files/351/109742351/att_1010616/v1/SIP5_7SS85_V08.01_Manual_C019-9_en.pdf"
       }
     ]
@@ -84,12 +84,12 @@
     "sources": [
       {
         "id": "PV24",
-        "locator": "§III.B and §IV",
+        "locator": "\u00a7III.B and \u00a7IV",
         "url": "https://selinc.com/api/download/140376/"
       },
       {
         "id": "ENT25",
-        "locator": "§10.11.5",
+        "locator": "\u00a710.11.5",
         "url": "https://rfp.entergy.com/ENTRFP/SEND/2025ELLBESSRFP/Documents/Appendix-B-2-BESS_BOT_Scope_Book_25-2.pdf"
       }
     ]
@@ -99,17 +99,17 @@
     "sources": [
       {
         "id": "PV24",
-        "locator": "§III.A.3 Fig. 7",
+        "locator": "\u00a7III.A.3 Fig. 7",
         "url": "https://selinc.com/api/download/140376/"
       },
       {
         "id": "END20",
-        "locator": "§6.6",
+        "locator": "\u00a76.6",
         "url": "https://cache.industry.siemens.com/dl/files/351/109742351/att_1010616/v1/SIP5_7SS85_V08.01_Manual_C019-9_en.pdf"
       },
       {
         "id": "U-DOM",
-        "locator": "Attachment 3 §3 and Fig. 4",
+        "locator": "Attachment 3 \u00a73 and Fig. 4",
         "url": "https://www.pjm.com/-/media/DotCom/planning/plan-standards/private-dominion/facility-connection-requirements1.pdf"
       }
     ]
@@ -121,6 +121,16 @@
         "id": "SEL-CPC",
         "locator": "Additional Protection",
         "url": "https://selinc.com/products/487e/"
+      }
+    ]
+  },
+  "REDUNDANCY_ARCHITECTURES": {
+    "note": "Two overall differential paths, overall Primary plus separate transformer/bus Secondary, and duplicated separate transformer/bus zones are documented alternatives. The cited application uses transformer dual-breaker terminals, not this collector topology; evaluate CT security/sensitivity, clearing and owner acceptance separately. Duplication does not establish independent cores, DC or trips.",
+    "sources": [
+      {
+        "id": "AEP-SEL19",
+        "locator": "Section IV.C\u2013D, Figs. 13\u201315, pp. 13\u201315; dual-breaker application, not a collector-station approval",
+        "url": "https://selinc.com/api/download/124317/?lang=en"
       }
     ]
   }

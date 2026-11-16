@@ -206,7 +206,7 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
             }[selected_hv["id"]],
         }
 
-    return {
+    result = {
         "assessment": assessment,
         "counts": {
             "breakers": len(bays),
@@ -247,3 +247,14 @@ def analyze(study: dict[str, Any]) -> dict[str, Any]:
         "feeder_areas": feeder_areas,
         "poi_line": poi_line,
     }
+
+    for identity, title, reason, combined_primary in (
+        ("redundant_separate", "Fully redundant separate zones", "Primary and Secondary each propose separate 87T and 87B elements in dedicated IEDs.", False),
+        ("dual_combined", "Dual combined transformer and bus zones", "Primary and Secondary each propose an extended 87TB zone in separate IEDs.", True),
+        ("combined_separate_secondary", "Combined Primary with separate Secondary zones", "Primary proposes an extended 87TB zone; Secondary proposes separate 87T and 87B IEDs.", True),
+    ):
+        result["candidates"].append({"id": identity, "title": title,
+            "status": (combined_status if combined_primary else separate_status) or "Conditional",
+            "reason": reason + " Independent CT cores, supplies, clearing paths and owner acceptance remain unverified.",
+            "trip_targets": trip_targets})
+    return result

@@ -163,6 +163,12 @@ export interface ProtectionReview {
   roles: {role_id: string; role: string; kind: string; functions: string; phase_banks_min: number; phase_banks_max: number}[]
   findings: {code: string; severity: 'blocker' | 'open'; title: string; detail: string; required_evidence: string[]; sources: {id: string; locator: string; url: string}[]; basis: string}[]
   assumptions: {code: string; detail: string; state: 'unconfirmed'}[]
+  system_loss: {
+    unavailable: 'primary' | 'secondary'; remaining: string
+    paths: {role_id: string; role: string; function: string; assets: string[]; measurement_status: Ct; independence: 'unverified'; clearing: 'unverified'}[]
+    transformer_differential: boolean; bus_differential: boolean; independence_verified: false
+    summary: string; limitations: string
+  }[]
   procurement_ready: false
 }
 
@@ -184,6 +190,7 @@ export interface GeneratedOptions {
         alternatives: HvBoundary[]
       }
       bus: { function: string; status: string }
+      bus_secondary: { function: string; status: string } | null
     }
     device_requirements: {
       role_id: string

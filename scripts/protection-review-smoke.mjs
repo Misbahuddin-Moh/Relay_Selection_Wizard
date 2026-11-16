@@ -87,7 +87,7 @@ try {
   })
   await page.goto(base)
   const result = await openStudy(station)
-  assert.equal(await table().getByRole('columnheader').count(), 4)
+  assert.equal(await table().getByRole('columnheader').count(), 7)
   assert.match(await tableRow('Primary zones and functions').innerText(), /87T.*87B/s)
   assert.match(await tableRow('Primary zones and functions').innerText(), /87TB/)
   assert.match(await tableRow('Readiness and evidence').innerText(), /Engineering review open/)
@@ -110,6 +110,41 @@ try {
   assert.equal(await detail().getByRole('heading', {name: 'Transformer-only Secondary zone', exact: true}).count(), 1)
   assert.match(await detail().innerText(), /extended Primary zone reduces fault-location discrimination/)
   assert.match(await tableRow('Readiness and evidence').innerText(), /Procurement release unavailable/)
+  for (const option of result.options) {
+    await inspect(option.check.title)
+    const loss = comparison().getByRole('region', {name: 'Protection system loss assessment', exact: true})
+    await visible(loss)
+    for (const unavailable of ['primary', 'secondary']) {
+      const scenario = loss.locator(`article[data-unavailable="${unavailable}"]`)
+      assert.equal(await scenario.count(), 1)
+      const expectation = option.review.system_loss.find(row => row.unavailable === unavailable)
+      assert.match(await scenario.innerText(), /unverified|not proven|not verified/i)
+      assert.ok((await scenario.innerText()).includes(expectation.summary))
+    }
+    const diagram = page.locator('svg.drawing').filter({has: page.locator('[data-protection="feeder-overcurrent"]')}).last()
+    assert.equal(await diagram.locator('[data-protection="feeder-overcurrent"][data-ct-source="bus-side"]').count(), station.bays.length)
+    assert.equal(await diagram.locator('[data-ct-position="bus-side"]').count(), station.bays.length)
+    assert.equal(await diagram.locator('[data-ct-position="circuit-side"]').count(), station.bays.length)
+    const bounds = await diagram.evaluate(svg => {
+      const rect = svg.querySelector('[data-protection="feeder-overcurrent"]')
+      const busCt = svg.querySelector('[data-ct-position="bus-side"] .ct-symbol')
+      const circuitCt = svg.querySelector('[data-ct-position="circuit-side"] .ct-symbol')
+      const position = node => Number(node.getAttribute('transform').match(/translate\([^,]+,\s*([\d.]+)\)/)[1])
+      const zone = svg.querySelector('[data-end-ct="circuit-side"]')
+      return {start: Number(rect.getAttribute('y')), end: Number(rect.getAttribute('y')) + Number(rect.getAttribute('height')),
+        busCt: position(busCt), circuitCt: position(circuitCt),
+        differentialEnd: zone ? Number(zone.getAttribute('y')) + Number(zone.getAttribute('height')) : null}
+    })
+    assert.equal(bounds.start, bounds.busCt, 'Feeder box starts at its bus-side measurement')
+    assert.ok(bounds.end > bounds.circuitCt, 'Feeder box includes the breaker and outgoing circuits')
+    assert.equal(bounds.differentialEnd, bounds.circuitCt, 'Bus/combined zone ends at circuit-side CT')
+    assert.match(await diagram.textContent(), /reach subject to coordination/)
+    const combinedPrimary = option.main_coverage.transformer_a.function === '87TB'
+    assert.equal(await diagram.locator('[data-protection="combined"]').count(), Number(combinedPrimary))
+    assert.equal(await diagram.locator('[data-protection="bus"]').count(), Number(!combinedPrimary))
+  }
+  await page.screenshot({path: '/tmp/relay-coverage-desktop.png', fullPage: true})
+  console.log('PASS all six choices retain feeder boxes, explicit opposite-side sensing, differential CT endpoints and qualified system-loss explanations')
   await page.setViewportSize({width: 390, height: 844})
   const width = await page.evaluate(() => ({viewport: document.documentElement.clientWidth, body: document.body.scrollWidth, document: document.documentElement.scrollWidth}))
   let overflowElements = []
@@ -125,6 +160,7 @@ try {
   }
   assert.ok(Math.max(width.body, width.document) <= width.viewport + 1,
     `Comparison causes page overflow: ${JSON.stringify({dimensions: width, elements: overflowElements})}`)
+  await page.screenshot({path: '/tmp/relay-coverage-mobile.png', fullPage: true})
   await page.setViewportSize({width: 1440, height: 1000})
   console.log('PASS visible comparison distinguishes separate, shared hardware and extended Primary while retaining Secondary and unresolved evidence')
 

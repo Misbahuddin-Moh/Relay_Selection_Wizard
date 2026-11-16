@@ -1,65 +1,37 @@
-# Relay Selection Wizard — status / handoff
+# Relay Selection Wizard — current status
 
-Date: 2026-11-13. Delivery: foundation alpha, first implementation slice.
+Updated 2026-11-15. Feature target: `staging/quality-foundation`, promoted by passing CI to `staging/release` and deployed to `relay-selection-wizard-staging`. The original app receives security fixes separately.
 
-- Source baseline: `main` at `9b1c6a9706324c3c47c86b38865a702b94c9711c`; clean clone, no inherited working changes.
-- Observed production: Render `relay-selection-wizard`, Ohio, live deploy `dep-dbo8583rjlhs73am7l9g`, commit `d72c35a589352b5c60d5fbf7a894a70697b2adbf`. It differs from source baseline. Production is not the target of this release.
-- Target branch: `staging/quality-foundation`; CI promotes passing commits to `staging/release`; target service: `relay-selection-wizard-staging`, free plan, Ohio. Confirm resulting deploy revision before claiming success.
-- Baseline: 15 backend tests, frontend production build and local HTTP smoke passed. Keys unset; provider tests mocked.
-- New behavior: versioned assessment/fingerprint, per-count CT origin sidecars, all evidence unreviewed; positive counts are modeled presence, never confirmation. Partial digital budget blocks complete-fit/ordering readiness. API hardware candidates suppressed outside the three-breaker reference or for measured auxiliary taps.
-- Provider operations: all three public paid endpoints fail closed with HTTP 403. Status endpoints and UI report disabled. No production credentials are copied to staging. This is a temporary alpha boundary, not implemented authentication or pilot security.
-- New tests: independent HTTP quality gates, pure digital-budget tests and browser workflow checks. `bash scripts/verify.sh` is the release gate. CI verifies pushes/PRs. Docker repeats backend and frontend unit/build gates, so a failing image does not replace a healthy service.
-- Release: stage reviewed changes, run `bash scripts/release-staging.sh 'message'`. It refuses the wrong branch, unstaged/untracked work, or edits during verification; commits only after gates pass, then pushes normally. Render deploy acceptance is not success: verify health, static assets, provider denial and exact commit.
+## Current implementation scope
 
-## Remaining gates
+A single transformer, straight collector bus, no LV main. Reference hardware screening requires the three-collector-breaker envelope; measured auxiliary taps and unsupported voltage relationships are blocked from reference screening. Collector CT inventory is uniform across breakers. This is preliminary engineering software, not an approved station design or purchasing system.
 
-This is **not** G1 Honest Study or G2 Fully Traced Configuration. Stable equipment/role IDs, fact history, complete topology representation, autosave/save/import/undo, complete signal ownership, backend digital allocator, verified manufacturer catalog and order codes, project authorization/cost limits, exports and engineering approvals remain open. No source document is sent to a provider in this alpha.
+The coverage extension retains the three earlier options and adds redundant separate zones, dual combined zones, and combined Primary plus separate transformer/bus Secondary. Shared hardware remains a hosting choice with separate electrical zones. Each option derives semantic relay roles and explains modeled transformer/bus functions remaining after either system is removed. Those statements do not establish independent CT cores, DC supplies, trip coils or effective clearing.
 
-Next slice: stable project/equipment/role contracts and revision ownership, followed by recoverable project persistence. Resolve manufacturer scope and complete reference signal ownership before attempting catalog-validated T60 status. Fourth collector breaker and LV main remain later scope expansions.
+Corrected diagrams retain feeder overcurrent boxes, show bus-side sensing and circuit-side differential boundaries around collector breakers, and distinguish illustrative overcurrent areas from differential boundaries. Secondary assignments and auxiliary treatment must remain explicitly unresolved where project evidence is missing.
 
-## Verification checkpoint before CI
+The backend owns phase/neutral/VT screening and reference digital accounting, output classes and spares. Expanded budgets are derived examples, not approved complete project wiring. Hardware evidence gates separate nominal analog/digital capacity from exact simultaneous functions, module slots, electrical ratings, output duty, firmware and order-code compatibility. No complete fit or procurement release is granted.
 
-27 backend tests and four frontend digital-budget tests pass; TypeScript/Vite production build passes. The local Chromium process is blocked by the execution environment before page creation, and bundled browser downloads are truncated. This is **blocked browser verification**, not a pass. The initial source-branch commit is therefore a CI candidate only. CI must run the browser gate and advance `staging/release` before Render can deploy it. Local `release-staging.sh` correctly refuses to release while a required check cannot run.
+## Persistence and privacy
 
+Persistent equipment/role identities, portable schema-1 projects, browser autosave, conflict handling and recovery are implemented within the documented exclusions in PROJECTS.md. Studies are not a secure shared-project service.
 
-## Identity and recovery slice — candidate checkpoint
+Provider keys were cleared on both deployments. Public drawing extraction, requirements extraction and AI options routes are blocked independently of credential presence. Only engineering facts may enter any future provider flow; identifier removal, consent, access and cost controls remain reopening requirements. The owner reports Anthropic account work completed.
 
-Stable study/bay IDs, backend role identities, semantic option keys and lifted user choices are implemented. Portable schema-1 JSON, fresh analysis on recovery, browser autosave with cooperative locks/conflict detection, staged imports and pending-input undo are implemented. See PROJECTS.md for the bounded recovery scope (after first analysis; active study and pending edits only). Added independent project/identity HTTP tests, frontend reconciliation tests and a required second browser recovery gate. Candidate must pass both browser suites in CI before staging promotion. Full G1 remains open; manufacturer/catalog and complete signal derivation remain later gates.
+## Release and verification
 
-## Backend I/O slice — candidate checkpoint
+`bash scripts/verify.sh` runs backend tests, frontend tests/build and four browser suites. CI must pass before staging promotion. Confirm the exact Render revision, health, static assets, expanded API behavior and provider denial before calling a candidate live. Prior promotions have required explicit Render deploy triggers.
 
-The backend owns the digital ledger, counts/reserves and nominal card screening. The browser's duplicate calculator and matrix have been removed. Full reference field endpoints are traceable; fast/form-C conjunctions are modeled without reusing contacts, but missing manufacturer properties remain unknown. All budgets remain partial and ordering remains blocked. ENGINEERING_IO.md documents input/result contracts and limitations. Three browser gates must pass before staging promotion. The earlier staging service required an explicit API deploy after CI promotion; do not assume a successful branch update means deployment occurred.
+The coverage extension is a candidate until that verification completes; consult GitHub and Render for authoritative revision state. Test counts are recorded in the release result rather than retained as stale status claims.
 
-## Current staging continuation — 2026-11-15
+## Remaining engineering gates
 
-Supersedes historical source/runtime notes above: original main security hotfix is
-`b5ab0a5`; staging security baseline is `426e12a`. Both Render services were verified
-with after-checks-pass auto-deploy, `/api/health`, configured=false provider status
-and HTTP403 for all three paid routes. The owner reports Anthropic account steps
-completed; those console actions were not independently verified.
+- Reviewed project topology, approved protection philosophy, fault sources and clearing paths.
+- Full signal ownership, mechanical/supervision/control interfaces and electrical duties.
+- Independent CT core, DC and trip-path assignments; CT performance and coordination studies.
+- Manufacturer-backed joint analog/digital slot allocation and exact supported order codes.
+- Consistent selected station relay schedule/BOM and engineering release authority.
+- Accepted real-project backtests and named engineering/manufacturer review.
+- Privacy-safe document extraction, authenticated shared persistence and broader topology coverage.
 
-The current candidate centralizes analog demand and preliminary SEL/T60 capacity
-screens with the existing backend digital result. It exposes reference-ledger
-analog traces without treating conditional research rows as project-confirmed
-requirements. Unknown requirements remain distinct from zero. Browser analog
-calculators are removed. See ENGINEERING_IO.md for API and evidence limits.
-
-This slice does not finish the per-relay signal budget, jointly allocate module
-slots, validate manufacturer order codes, add dedicated BF analog selection, or
-provide project authorization/redaction. All provider operations and ordering
-approval remain blocked. Release requires backend/unit/build/browser CI and exact
-staging deployment revision verification. Production feature promotion is separate.
-
-## Protection review and correctness slice — 2026-11-15 candidate
-
-The next candidate adds visible step-2 comparison with zones, hosting roles,
-measurement demand, provisional trips, blockers and required evidence. It fixes
-reserved feeder-name/Secondary role collisions, displays measurement applicability
-beside nominal analog capacity, keys previews to current study revisions, rejects
-nonfinite/bool/string voltage inputs safely and suppresses reference hardware for
-reversed/equal voltage relationships. See PROTECTION_REVIEW.md.
-
-Staging release requires four browser gates, including the new comparison/stale
-preview/retry workflow. These changes do not complete project I/O, manufacturer
-order codes, coordination/settings, approved trip design or real-project acceptance.
-Public providers remain disabled. The original app stays on the security release.
+Software checks establish reproducible modeled behavior only. The tool cannot establish missing engineering facts, owner acceptance or manufacturer approval by inference.

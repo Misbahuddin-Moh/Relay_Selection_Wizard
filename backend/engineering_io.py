@@ -21,7 +21,7 @@ DATA = Path(__file__).with_name('data')
 MANIFEST = json.loads((DATA / 'ledger_manifest.json').read_text())
 PATTERNS = [row for n in range(4) for row in json.loads((DATA / f'ledger_patterns_{n}.json').read_text())]
 EDITOR = json.loads((DATA / 'editor_matrix.json').read_text())
-VERSION = 'endpoint-budget-2'
+VERSION = 'endpoint-budget-3'
 SOLVER_SOURCE_SHA256 = sha256(Path(__file__).read_bytes()).hexdigest()
 DOCUMENTS = {
     'SLD': 'Approved protection one-line', 'AC': 'Approved CT/VT three-line and core assignments',
@@ -115,11 +115,96 @@ def category(row):
     return 'supervision'
 
 
+EXTENDED_SCHEMES = {'redundant_separate', 'dual_combined', 'combined_separate_secondary'}
+EDITABLE_METHODS = {'hardwired', 'GOOSE', 'SCADA message', 'internal', 'teleprotection', 'hardwired or communicated'}
+
+
+def reference_rows(case):
+    return [dict(zip(MANIFEST['fields'], PATTERNS[index])) for index in MANIFEST['cases'][case]]
+
+
+def expanded_case(study, scheme, variant):
+    """Derive an unreviewed reference wiring example, preserving its source rows.
+
+    A copied bus/combined path is a proposed second system, not evidence of
+    independent CT cores, trip coils, DC, BF hosting or utility acceptance.
+    """
+    suffix = f"{variant}.L{int(study['include_poi_line'])}"
+    original = f"{'SEP' if scheme == 'redundant_separate' else 'COMB_ASYM'}.{suffix}"
+    entry = deepcopy(EDITOR['cases'][original])
+    rows = reference_rows(original)
+    for index, row in enumerate(rows):
+        row['template_source'] = f'{original}.{index + 1:05}'
+    cards = [deepcopy(EDITOR['cards'][index]) for index in entry['cards']]
+    if scheme == 'dual_combined':
+        # Replace the entire transformer-only Secondary path; retaining any
+        # T-S analog or digital rows would misstate its combined-zone demand.
+        rows = [row for row in rows if not ('T-S' in (row['source'], row['destination'], row['owner'])
+                or '87T-S' in row['signal'] or '87T-S' in row['source'] or '87T-S' in row['destination'])]
+        cards = [row for row in cards if row[0] != 'T-S']
+        templates = [(i, row) for i, row in enumerate(reference_rows(original))
+                     if 'T-P' in (row['source'], row['destination'], row['owner'])
+                     or '87TB-P' in row['signal'] or '87TB-P' in row['source'] or '87TB-P' in row['destination']]
+        if variant == 'LOCAL_H':
+            # LOCAL_H keeps the sole HV BF host in Primary. Cloning every
+            # T-P endpoint would also clone its BF current/retrip/timer/DTT
+            # logic and accidentally resurrect the old transformer-only BFI.
+            templates = [(i, row) for i, row in templates
+                         if not row['signal'].startswith('H BF')
+                         and row['signal'] not in ('H 52a', 'H 52b', '87TB-P BFI H', '87T-S BFI H')]
+            for index, template in enumerate(reference_rows(original)):
+                if template['signal'] == '87T-S BFI H':
+                    inbound = deepcopy(template)
+                    for key in ('signal', 'source', 'destination', 'owner'):
+                        inbound[key] = inbound[key].replace('87T-S', '87TB-S')
+                    inbound['template_source'] = f'{original}.{index + 1:05}'
+                    inbound['authority'] = 'derived_reference_template_unreviewed'
+                    inbound['notes'] = 'Derived combined Secondary BFI into the sole Primary-hosted HV BF logic. Independent trip/DC and lockout interfaces remain unverified.'
+                    rows.append(inbound)
+        replacements = [('87TB-P', '87TB-S'), ('T-P', 'T-S'), (':TC1', ':TC2')]
+        source_case, source_alias, target_alias = original, 'T-P', 'T-S'
+    else:
+        source_case = f'SEP.{suffix}'
+        templates = [(i, row) for i, row in enumerate(reference_rows(source_case))
+                     if 'BUS' in (row['source'], row['destination'], row['owner'])
+                     or '87B' in row['signal'] or '87B' in row['source'] or '87B' in row['destination']]
+        replacements = [('87B', '87B-S'), ('BUS', 'BUS-S'), (':TC1', ':TC2')]
+        source_alias, target_alias = 'BUS', 'BUS-S'
+        entry['devices'].append(target_alias)
+    for index, template in templates:
+        row = deepcopy(template)
+        for key in ('signal', 'source', 'destination', 'owner'):
+            for before, after in replacements:
+                row[key] = row[key].replace(before, after)
+        if row['method'] == 'hardwired CT secondary':
+            row['source'] += ':Secondary-core-unassigned'
+        row['template_source'] = f'{source_case}.{index + 1:05}'
+        row['authority'] = 'derived_reference_template_unreviewed'
+        row['notes'] = (row['notes'] + ' Derived second-system example. Independent CT cores, DC, TC2 availability, '
+                        'BF ownership and isolation are unverified; do not treat duplicated interfaces as approved wiring.').strip()
+        rows.append(row)
+    source_cards = EDITOR['cases'][source_case]['cards']
+    for index in source_cards:
+        card = deepcopy(EDITOR['cards'][index])
+        if card[0] == source_alias:
+            card[0] = target_alias
+            cards.append(card)
+    entry['card_rows'] = cards
+    entry['full_rows'] = rows
+    defaults = [editor_signal(row_signature(row), i) for i, row in enumerate(rows)
+                if row['method'] in EDITABLE_METHODS
+                and (row['source'] in entry['devices'] or row['destination'] in entry['devices'])]
+    return f'{scheme.upper()}.{suffix}', entry, defaults
+
+
 def wiring_inputs(study, scheme, settings):
-    prefix = {'dedicated': 'SEP', 'shared': 'SHARED', 'combined': 'COMB_ASYM'}[scheme]
-    case = f"{prefix}.{settings['variant']}.L{int(study['include_poi_line'])}"
-    entry = EDITOR['cases'][case]
-    defaults = [editor_signal(EDITOR['signals'][idx], i) for i, idx in enumerate(entry['signals'])]
+    if scheme in EXTENDED_SCHEMES:
+        case, entry, defaults = expanded_case(study, scheme, settings['variant'])
+    else:
+        prefix = {'dedicated': 'SEP', 'shared': 'SHARED', 'combined': 'COMB_ASYM'}[scheme]
+        case = f"{prefix}.{settings['variant']}.L{int(study['include_poi_line'])}"
+        entry = EDITOR['cases'][case]
+        defaults = [editor_signal(EDITOR['signals'][idx], i) for i, idx in enumerate(entry['signals'])]
     signals = deepcopy(settings['edits'].get(settings['variant'], defaults))
     classes = settings['output_classes'].get(settings['variant'], {})
     valid_ids = {str(signal['id']) for signal in signals}
@@ -134,6 +219,63 @@ def wiring_inputs(study, scheme, settings):
 def validate_persisted_wiring(study, scheme, settings):
     for variant in {settings['variant'], *settings['edits'], *settings['output_classes']}:
         wiring_inputs(study, scheme, {**settings, 'variant': variant})
+
+
+HARDWARE_GATES = (
+    ('function_options', 'Exact model/function options and simultaneous element/input support'),
+    ('analog_ratings', 'CT nominal rating/class, VT rating, neutral sensitivity and routing'),
+    ('digital_electrical_duty', 'DI voltage/threshold and DO make/carry/break duty, speed, form and isolation'),
+    ('joint_slot_allocation', 'Joint analog/digital card allocation, occupied slots and chassis size'),
+    ('firmware_compatibility', 'Version-pinned firmware and supported card/function combinations'),
+    ('ordering_symbols', 'Manufacturer-backed complete order code and accepted configuration'),
+)
+
+
+def joint_hardware_assessments(roles, analog, budgets, cards):
+    """Expose the missing proof per role; never combine nominal capacities into fit."""
+    results = []
+    for role in roles:
+        analog_result = next(row for row in analog if row['role_id'] == role['role_id'])
+        digital = next((value for value in budgets.values() if value['role_id'] == role['role_id']), None)
+        aliases = {alias for alias, value in budgets.items() if value['role_id'] == role['role_id']}
+        digital_examples = [row for row in cards if row['device'] in aliases]
+        results.append({
+            'role_id': role['role_id'], 'role': role['role'], 'status': 'unresolved',
+            'complete_fit': False, 'procurement_ready': False, 'order_code': None,
+            'requirements': {'phase_ct_banks_min': analog_result['phase_banks_min'],
+                             'phase_ct_banks_max': analog_result['phase_banks_max'],
+                             'neutral_inputs': analog_result['neutral_inputs'], 'vt_banks': analog_result['vt_banks'],
+                             'digital_budget': 'partial' if digital else 'not_enumerated',
+                             'di_after_spares': digital['diRequired'] if digital else None,
+                             'do_after_spares': digital['doRequired'] if digital else None},
+            'analog_candidate_models': [row['model'] for row in analog_result['candidates']],
+            'digital_example_models': sorted({row['model'] for row in digital_examples}),
+            'evidence_gates': [{'code': code, 'state': 'not_verified', 'required_evidence': description}
+                               for code, description in HARDWARE_GATES],
+            'basis': 'Separate inherited analog and digital capacity examples. No exact joint configuration has been manufacturer-validated.',
+        })
+    known = {row['role_id'] for row in roles}
+    for alias, budget in budgets.items():
+        if budget['role_id'] in known:
+            continue
+        # Dedicated BF devices are ledger roles, not phase-demand roles in the
+        # present topology model. No incidental CT row establishes their input
+        # rating, current-check logic or simultaneous hardware allocation.
+        results.append({
+            'role_id': budget['role_id'], 'role': alias, 'status': 'unresolved',
+            'complete_fit': False, 'procurement_ready': False, 'order_code': None,
+            'requirements': {'phase_ct_banks_min': None, 'phase_ct_banks_max': None,
+                             'neutral_inputs': None, 'vt_banks': None, 'digital_budget': 'partial',
+                             'di_after_spares': budget['diRequired'], 'do_after_spares': budget['doRequired']},
+            'analog_candidate_models': [],
+            'digital_example_models': sorted({row['model'] for row in cards if row['device'] == alias}),
+            'evidence_gates': [{'code': 'bf_current_detection', 'state': 'not_verified',
+                                'required_evidence': 'BF current-check/52a logic, CT source/rating, retrip and escalation ownership'}]
+                              + [{'code': code, 'state': 'not_verified', 'required_evidence': description}
+                                 for code, description in HARDWARE_GATES],
+            'basis': 'Dedicated breaker-failure analog demand is not enumerated. Reference ledger CT rows and digital counts do not establish a BF hardware configuration.',
+        })
+    return results
 
 
 def engineering_io(request):
@@ -161,15 +303,15 @@ def engineering_io(request):
             'missing_evidence': ['Approved trip matrix, DC/OEM schematics and complete signal ownership',
                                  'DI voltage/threshold, output make/carry/break duty, speed, form and isolation',
                                  'Versioned module-slot/chassis/firmware compatibility and manufacturer confirmation'],
-            'editor': None, 'devices': [], 'ledger': [], 'budgets': {}, 'card_examples': [], 'analog_assessments': []}
+            'editor': None, 'devices': [], 'ledger': [], 'budgets': {}, 'card_examples': [], 'analog_assessments': [], 'hardware_assessments': []}
     if not assessment['scope']['reference_hardware_supported']:
         return {**base, 'status': 'unsupported'}
     case, entry, defaults, signals, classes = wiring_inputs(study, request.scheme, settings)
     analog_assessments = analog_screening(roles, study['auxiliary'], analog_requirements)
     primary = roles[0]
-    aliases = {'T-P': primary, 'T-S': next(row for row in roles if row['kind'] == 'transformer' and row['purpose'] == 'secondary')}
+    aliases = {'T-P': primary, 'T-S': next(row for row in roles if row['kind'] in ('transformer', 'combined') and row['purpose'] == 'secondary')}
     for role in roles:
-        if role['kind'] == 'bus': aliases['BUS'] = role
+        if role['kind'] == 'bus': aliases['BUS-S' if role['purpose'] == 'secondary' else 'BUS'] = role
         if role['kind'] == 'line': aliases['LINE-H'] = role
         if role['kind'] == 'feeder':
             position = next(i for i, bay in enumerate(study['bays'], 1) if bay['uid'] == role['subject_id'])
@@ -190,7 +332,7 @@ def engineering_io(request):
         stable = re.sub(r'\bF([123])\b', lambda match: study['bays'][int(match[1])-1]['uid'], alias)
         return {'alias': alias, 'id': str(uuid5(NAMESPACE_URL, f"relay-wizard/{study['uid']}/external/{stable}")),
                 'label': label(alias), 'kind': 'external'}
-    full_rows = [dict(zip(MANIFEST['fields'], PATTERNS[index])) for index in MANIFEST['cases'][case]]
+    full_rows = entry['full_rows'] if 'full_rows' in entry else reference_rows(case)
     full_index = {json.dumps(row_signature(row)): i for i, row in enumerate(full_rows)}
     default_row_ids = {signal['id']: full_index[json.dumps(signature(signal))] for signal in defaults}
     modified = {signal['id']: signal for signal in signals}
@@ -232,6 +374,7 @@ def engineering_io(request):
                                 'destination_vt_channels': int(row['dst_vt_channels']) if not changed and s['included'] and s['method'] == 'hardwired VT secondary' else 0},
                 'ct_channels': int(row['dst_ct_channels']) if not changed else None,
                 'vt_channels': int(row['dst_vt_channels']) if not changed else None,
+                'template_source': row.get('template_source'),
                 'notes': row['notes'] if not changed else 'User edits require ownership, endpoint and electrical-duty review.'}
         item['category'] = category(item)
         ledger.append(item)
@@ -280,8 +423,8 @@ def engineering_io(request):
                           'unresolved_endpoint_rows': sum(row['included'] and row['owner_state'] == 'unresolved' for row in related),
                           'complete_fit': False, 'ordering_block': 'Partial signal budget and unverified electrical/module evidence. Complete I/O fit and procurement release are unavailable.'}
     cards = []
-    for index in entry['cards']:
-        alias, model, hardware, di, outputs, coil, status, gate, refs = EDITOR['cards'][index]
+    for card_row in entry.get('card_rows', [EDITOR['cards'][index] for index in entry['cards']]):
+        alias, model, hardware, di, outputs, coil, status, gate, refs = card_row
         budget = budgets[alias]
         nominal = lambda value: int(value) if str(value).isdigit() else None
         capacities = {'di': nominal(di), 'do': nominal(outputs), 'coil': nominal(coil), 'fast': None, 'form_c': None}
@@ -318,4 +461,6 @@ def engineering_io(request):
             'spare_policy': {**settings['spare'], 'rounding': 'ceil independently per mutually exclusive output capability group; no contact counted twice'},
             'editor': {'devices': entry['devices'], 'signals': signals},
             'devices': [{'alias': alias, **aliases[alias]} for alias in entry['devices']],
-            'ledger': ledger, 'budgets': budgets, 'card_examples': cards, 'analog_assessments': analog_assessments}
+            'ledger': ledger, 'budgets': budgets, 'card_examples': cards, 'analog_assessments': analog_assessments,
+            'wiring_basis': 'derived_reference_template_unreviewed' if request.scheme in EXTENDED_SCHEMES else 'historical_reference_example',
+            'hardware_assessments': joint_hardware_assessments(roles, analog_assessments, budgets, cards)}

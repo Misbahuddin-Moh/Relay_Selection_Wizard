@@ -150,14 +150,18 @@ class OptionsTests(TestCase):
         with patch("backend.options.request_options") as request:
             result = protection_preview(study)
         request.assert_not_called()
-        self.assertEqual([option["scheme"] for option in result["options"]], ["dedicated", "shared", "combined"])
+        self.assertEqual([option["scheme"] for option in result["options"]], ["dedicated", "shared", "combined", "redundant_separate", "dual_combined", "combined_separate_secondary"])
         for option in result["options"]:
             self.assertTrue(option["zones"])
             self.assertTrue(option["device_requirements"][0]["candidates"])
             self.assertEqual(option["main_coverage"]["transformer_b"]["hv_boundary"], "unresolved")
-            secondary = next(row for row in option["device_requirements"] if row["role"] == "Transformer Secondary")
+            secondary = next(row for row in option["device_requirements"] if row["purpose"] == "secondary" and row["kind"] in ("transformer", "combined"))
+            if option["scheme"] == "dual_combined":
+                self.assertEqual(secondary["measurement_sources"][0]["state"], "unknown")
+                self.assertEqual(secondary["measurement_sources"][0]["core_assignment"], "unverified")
+                continue
             self.assertEqual(secondary["measurement_sources"][0], {
                 "label": "Transformer HV bushing phase CT bank (candidate)",
-                "state": "present", "candidate": True,
+                "state": "present", "candidate": True, "core_assignment": "unverified",
             })
         self.assertIsNone(result["usage"]["input_tokens"])

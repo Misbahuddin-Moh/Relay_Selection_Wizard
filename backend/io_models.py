@@ -54,7 +54,7 @@ class AnalogRequirements(StrictModel):
 
 class EngineeringRequest(StrictModel):
     study: Study
-    scheme: Literal['dedicated', 'shared', 'combined']
+    scheme: Literal['dedicated', 'shared', 'combined', 'redundant_separate', 'dual_combined', 'combined_separate_secondary']
     settings: DigitalSettings
     analog_requirements: dict[Annotated[str, StringConstraints(max_length=100)], AnalogRequirements] = Field(default_factory=dict, max_length=100)
 

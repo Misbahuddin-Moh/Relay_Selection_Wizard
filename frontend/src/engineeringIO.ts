@@ -44,6 +44,14 @@ export interface EngineeringIOResult {
   devices: {alias: string; role_id: string; role: string}[]
   ledger: LedgerRow[]; budgets: Record<string, DigitalBudget>; card_examples: CardExample[]
   analog_assessments: AnalogAssessment[]
+  wiring_basis?: string
+  hardware_assessments?: {
+    role_id: string; role: string; status: 'unresolved'; complete_fit: false; procurement_ready: false; order_code: null
+    requirements: {phase_ct_banks_min: number | null; phase_ct_banks_max: number | null; neutral_inputs: number | null; vt_banks: number | null; digital_budget: 'partial' | 'not_enumerated'; di_after_spares: number | null; do_after_spares: number | null}
+    analog_candidate_models: string[]; digital_example_models: string[]
+    evidence_gates: {code: string; state: 'not_verified'; required_evidence: string}[]
+    basis: string
+  }[]
   endpoint_count_basis?: string; ledger_findings?: {code: string; message: string; count: number}[]
 }
 export function budgetText(budget: DigitalBudget) {

@@ -95,3 +95,26 @@ uses kind/purpose/equipment UUID rather than display labels. Reserved feeder nam
 cannot hijack Secondary identity or budgets. Scope policy reference-alpha-2 also
 rejects hardware screening for HV <= collector voltage. Input voltages must be
 finite numeric values rather than booleans or strings.
+
+
+## Six-arrangement extension
+
+All six selectable schemes feed the same backend I/O endpoint. The three added
+arrangements compose unreviewed Secondary bus or extended-zone examples from
+identified legacy reference rows. Derived rows retain their template source and
+carry an explicit unreviewed authority. Independent cores, DC and available trip
+coil/contact paths cannot be established by copying a reference interface.
+
+Every arrangement retains partial-budget status. Per-role analog demand, digital
+point/spare totals and source traces do not establish complete project wiring.
+The joint hardware assessment exposes separate unresolved gates for exact function
+options, analog ratings, digital electrical duties, joint analog/digital slots and
+chassis, firmware, and manufacturer ordering evidence. Analog and digital examples
+may refer to different model variants; their capacities cannot be added to create
+a supported configuration. No code, complete fit or procurement readiness is granted.
+
+For dual-combined `LOCAL_H`, the reference example retains the sole HV BF host in
+Primary and routes combined Secondary BFI to that host. It does not create a
+second independent HV BF system. Shared BF/86BF/DTT dependencies still require
+project review; the protection-system-loss comparison describes differential
+functions only, not availability of every BF or teleprotection function.

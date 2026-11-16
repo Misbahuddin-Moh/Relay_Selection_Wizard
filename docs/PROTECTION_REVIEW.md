@@ -3,15 +3,30 @@
 ## Visible workflow
 
 After entering/importing a study and confirming analysis, step 2 now shows the
-three reference approaches together. Select **Inspect approach** in a column to
+six reference approaches together. Select **Inspect approach** in a column to
 see the chosen zone boundaries, hosting relay roles, provisional trip targets,
 modeled phase-input envelope, design blockers and evidence still required.
 
 Dedicated and shared hardware keep separate transformer and bus zones. Their
 hardware hosting differs; they are not presented as different zone boundaries.
-The combined approach uses one extended Primary zone with transformer-only
-Secondary. The comparison is deterministic for this modeled station; it is not
-an exhaustive search of every owner-approved protection philosophy.
+The original combined approach uses one extended Primary zone with transformer-only
+Secondary. Added alternatives provide separate 87T/87B on both systems, extended
+87TB on both systems, and extended Primary with separate 87T/87B Secondary. The
+comparison is deterministic for this modeled station; it is not an exhaustive
+search of every owner-approved protection philosophy.
+
+The loss comparison removes the entire named Primary or Secondary system and
+lists remaining proposed transformer/bus functions, their measurement state and
+unverified independence/clearing. A retained function is not a proven working
+protection path. The first three options have no Secondary bus differential path.
+
+Collector diagrams show bus-side CTs for feeder sensing, circuit-side CTs for
+bus/combined differential boundaries, and the overlap across each breaker.
+Feeder boxes remain visible and are labeled illustrative overcurrent areas, with
+reach subject to a coordination study. The shared LV physical CT location does
+not establish separate core assignments or overlap at the transformer/bus junction.
+Secondary HV/core assignments and auxiliary isolation remain explicitly open;
+unassigned Secondary spans must not be drawn as established boundaries.
 
 The comparison remains visible before hardware screening. The signal and model
 screens retain their separate used-point/capacity detail. Analog nominal capacity
@@ -65,6 +80,7 @@ locators. They provide context, not a verified project drawing number or accepta
 Primary sources consulted during this slice include:
 
 - [SEL/BODEC collector-substation protection paper (2024)](https://selinc.com/api/download/140376/)
+- [AEP/SEL dual-breaker transformer arrangements, §IV.C–D, Figs. 13–15](https://selinc.com/api/download/124317/?lang=en) — architectural reference, not collector-station approval.
 - [SEL-487E manufacturer product/application information](https://selinc.com/products/487e/)
 
 This check does not revalidate every inherited document or establish applicability
@@ -88,7 +104,7 @@ the existing portable-project/browser recovery mechanisms.
 
 | Requirement | Independent check |
 |---|---|
-| Three approaches, zone/hosting differences, missing/unknown CTs | tests/test_protection_comparison.py |
+| Six approaches, zone/hosting differences, missing/unknown CTs | tests/test_protection_comparison.py |
 | Provisional trips, common gaps, remote-line limitations, unsupported scope | tests/test_protection_comparison.py |
 | No role collisions from display labels, stable ordinary IDs | tests/test_role_collisions.py |
 | Analog capacity distinguished from measurement applicability | tests/test_protection_comparison.py |

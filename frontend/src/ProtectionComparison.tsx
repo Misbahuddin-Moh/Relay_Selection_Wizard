@@ -20,7 +20,7 @@ export function ProtectionComparison({ choices, selection, select }: {
       <span className="tag">Preliminary engineering</span>
     </div>
     <div className="table-scroll" tabIndex={0} role="region" aria-label="Protection comparison table">
-      <table>
+      <table style={{minWidth: Math.max(850, 210 * (choices.length + 1))}}>
         <caption className="sr-only">Comparison of modeled protection approaches and unresolved engineering evidence</caption>
         <thead><tr><th scope="col">Engineering decision</th>{choices.map(item => <th scope="col" key={item.id} className={selection === item.id ? 'comparison-selected' : ''}>
           <span>{item.option.check.title}</span>
@@ -30,7 +30,8 @@ export function ProtectionComparison({ choices, selection, select }: {
         </th>)}</tr></thead>
         <tbody>
           <tr><th scope="row">Primary zones and functions</th>{choices.map(({id, option}) => <td key={id}>{option.main_coverage.transformer_a.function} · {option.main_coverage.bus.function}</td>)}</tr>
-          <tr><th scope="row">Transformer Secondary</th>{choices.map(({id, option}) => <td key={id}>Separate 87T IED<br />{measurementLabels[option.review.secondary_measurements]}</td>)}</tr>
+          <tr><th scope="row">Secondary zones and functions</th>{choices.map(({id, option}) => <td key={id}>{option.main_coverage.transformer_b.function}{option.main_coverage.bus_secondary ? ` · ${option.main_coverage.bus_secondary.function} bus path` : ' · no separate bus path'}<br />{measurementLabels[option.review.secondary_measurements]}</td>)}</tr>
+          {(['primary', 'secondary'] as const).map(system => <tr key={system}><th scope="row">If {system === 'primary' ? 'Primary' : 'Secondary'} is unavailable</th>{choices.map(({id, option}) => <td key={id}>{option.review.system_loss?.find(loss => loss.unavailable === system)?.summary ?? 'Assessment unresolved'}<br /><small>Independent CT cores, supplies and clearing paths remain unverified.</small></td>)}</tr>)}
           <tr><th scope="row">Primary CT boundaries</th>{choices.map(({id, option}) => <td key={id}>{measurementLabels[option.review.primary_measurements]}</td>)}</tr>
           <tr><th scope="row">Primary phase CT banks</th>{choices.map(({id, option}) => <td key={id}>{option.review.roles[0] ? `${option.review.roles[0].phase_banks_min}–${option.review.roles[0].phase_banks_max} banks` : 'Unresolved'}<br /><small>Input reuse and auxiliary treatment may change demand.</small></td>)}</tr>
           <tr><th scope="row">Provisional trip targets</th>{choices.map(({id, option}) => <td key={id}>{[...new Set(option.review.zones.flatMap(zone => zone.trip_targets))].join(', ') || 'Unresolved'}<br /><small>Clearing paths unverified.</small></td>)}</tr>
@@ -42,6 +43,17 @@ export function ProtectionComparison({ choices, selection, select }: {
     {review && selected && <details className="comparison-detail" open key={selected.id}>
       <summary>Engineering review · {selected.option.check.title}</summary>
       <p className={`comparison-readiness ${review.readiness}`}><strong>{readinessLabels[review.readiness]}</strong> · {review.summary}</p>
+      <section className="system-loss-review" aria-label="Protection system loss assessment">
+        <h4>Loss of either protection system</h4>
+        <p>These are modeled differential functions that remain, subject to measurement availability. Relay duplication does not establish independent protection.</p>
+        <div className="comparison-zone-grid">{review.system_loss?.map(loss => <article className="comparison-zone" key={loss.unavailable} data-unavailable={loss.unavailable}>
+          <h4>{loss.unavailable === 'primary' ? 'Primary' : 'Secondary'} unavailable</h4>
+          <p><strong>{loss.summary}</strong></p>
+          <ul>{loss.paths.map(path => <li key={path.role_id}>{path.role}: {path.function} · {measurementLabels[path.measurement_status]} · assets: {path.assets.join(', ')}</li>)}</ul>
+          <p>{loss.limitations}</p>
+          <p>Independence and clearing: unverified.</p>
+        </article>)}</div>
+      </section>
       <div className="comparison-zone-grid">{review.zones.map(zone => <article key={zone.id} className="comparison-zone">
         <h4>{zone.title}</h4><p><strong>{zone.function}</strong> · {measurementLabels[zone.measurement_status]}</p>
         <p>Hosted by: {zone.relay_roles.join('; ') || 'Unresolved'}</p>

@@ -42,7 +42,7 @@ class RoleCollisionTests(TestCase):
             for option in self.preview(study):
                 with self.subTest(name=name, scheme=option['scheme']):
                     rows = option['device_requirements']
-                    secondary = next(row for row in rows if row['kind'] == 'transformer' and row['purpose'] == 'secondary')
+                    secondary = next(row for row in rows if row['kind'] in ('transformer', 'combined') and row['purpose'] == 'secondary')
                     feeder = next(row for row in rows if row['kind'] == 'feeder' and row['subject_id'] == study['bays'][0]['uid'])
                     self.assertEqual(feeder['purpose'], 'primary')
                     self.assertEqual(feeder['role_id'], baseline_feeders[option['scheme']]['role_id'])
@@ -52,7 +52,7 @@ class RoleCollisionTests(TestCase):
                     ts = next(row for row in ledger['devices'] if row['alias'] == 'T-S')
                     fp = next(row for row in ledger['devices'] if row['alias'] == 'FP-F1')
                     self.assertEqual(ts['role_id'], secondary['role_id'])
-                    self.assertEqual(ts['kind'], 'transformer')
+                    self.assertEqual(ts['kind'], secondary['kind'])
                     self.assertEqual(fp['role_id'], feeder['role_id'])
                     self.assertEqual(ledger['budgets']['T-S']['role_id'], secondary['role_id'])
                     self.assertNotEqual(ledger['budgets']['T-S']['role_id'], ledger['budgets']['FP-F1']['role_id'])
@@ -62,7 +62,7 @@ class RoleCollisionTests(TestCase):
             for row in option['device_requirements']:
                 expected = str(uuid5(NAMESPACE_URL, f"relay-wizard/{self.study['uid']}/{row['subject_id']}/{row['purpose']}"))
                 self.assertEqual(row['role_id'], expected)
-                self.assertEqual(row['purpose'], 'secondary' if row['kind'] == 'transformer' and row['role'] == 'Transformer Secondary' else 'primary')
+                self.assertEqual(row['purpose'], 'secondary' if row['role'] in ('Transformer Secondary', 'Transformer Secondary + collector bus', 'Collector bus Secondary') else 'primary')
 
     def test_secondary_label_rename_and_reorder_keep_feeder_identity(self):
         original = next(row for row in self.preview(self.study)[0]['device_requirements'] if row['kind'] == 'feeder')

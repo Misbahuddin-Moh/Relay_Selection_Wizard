@@ -26,11 +26,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - run: bash scripts/verify.sh
-      - name: Preserve browser failure screenshots
-        if: failure()
+      - name: Preserve synthetic browser screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: browser-failure-screenshots
+          name: browser-screenshots
           path: /tmp/relay-*.png
           if-no-files-found: ignore
           retention-days: 3

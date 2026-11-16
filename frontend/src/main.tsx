@@ -253,7 +253,7 @@ function ProtectionZoneReview({ study, analysis }: Snapshot) {
       </div>
       <div className="zone-basis">
         <h3>Collector feeder protection areas</h3>
-        <p>The amber outlines show one local area per collector breaker. Circuits behind a shared breaker have a common local trip point.</p>
+        <p>The amber boxes start at each bus-side CT and include the breaker and outgoing circuits. They show illustrative feeder overcurrent areas; reach remains subject to coordination. Bus or combined differential ends at the circuit-side CT, showing intended breaker overlap.</p>
         <div className="table-scroll">
           <table>
             <thead><tr><th>Local trip breaker</th><th>Circuits served</th><th>PV circuit-side CT</th><th>Bus-side CT</th></tr></thead>
@@ -309,7 +309,7 @@ function StudySteps({ step, onBack }: { step: number; onBack?: (step: number) =>
 }
 
 function SelectedCoverage({ option, study }: { option: Option; study: Study }) {
-  const zones = option.zones.filter(zone => option.scheme === 'combined' ? zone.id === 'combined' : zone.id !== 'combined')
+  const zones = option.zones.filter(zone => option.main_coverage.transformer_a.function === '87TB' ? zone.id === 'combined' : zone.id !== 'combined')
   return (
     <section className="panel">
       <PanelHeader title={option.check.title} description={option.rationale} action={<Status value={option.check.status} />} />
@@ -319,9 +319,12 @@ function SelectedCoverage({ option, study }: { option: Option; study: Study }) {
           <h3>Protection paths</h3>
           <dl>
             <div><dt>Transformer Primary</dt><dd>{option.main_coverage.transformer_a.function} · {option.main_coverage.transformer_a.status}</dd></div>
-            <div><dt>Transformer Secondary</dt><dd>87T · {option.main_coverage.transformer_b.hv_boundary === 'unresolved' ? 'HV boundary unresolved' : hvBoundaryLabels[option.main_coverage.transformer_b.hv_boundary]} · {option.main_coverage.transformer_b.status}</dd></div>
-            <div><dt>Collector bus</dt><dd>{option.main_coverage.bus.function} · {option.main_coverage.bus.status}</dd></div>
+            <div><dt>Transformer Secondary</dt><dd>{option.main_coverage.transformer_b.function} · {option.main_coverage.transformer_b.hv_boundary === 'unresolved' ? 'HV boundary unresolved' : hvBoundaryLabels[option.main_coverage.transformer_b.hv_boundary]} · {option.main_coverage.transformer_b.status}</dd></div>
+            <div><dt>Collector bus Primary</dt><dd>{option.main_coverage.bus.function} · {option.main_coverage.bus.status}</dd></div>
+            {option.main_coverage.bus_secondary && <div><dt>Collector bus Secondary</dt><dd>{option.main_coverage.bus_secondary.function} · {option.main_coverage.bus_secondary.status}</dd></div>}
           </dl>
+          <p>Diagram shading shows Primary differential boundaries. Secondary HV/core assignments remain unresolved; no Secondary span is inferred. Auxiliary measurement and isolation require project review.</p>
+          <p>Both collector CT positions are shown. Amber feeder protection boxes overlap the differential boundary across each breaker; their reach is illustrative and subject to coordination.</p>
           <p>{option.check.reason}</p>
           <p><strong>Open item</strong> · {option.open_item}</p>
         </div>
@@ -463,10 +466,12 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
   }))
   const io = useEngineeringIO(study, option?.scheme ?? null, dio, analogInputs)
   const referenceIO = analysis.assessment.scope.reference_hardware_supported ? io.editor : null
-  const ioDevice = row?.kind === 'feeder' ? `FP-F${study.bays.findIndex(bay => bay.uid === row.subject_id) + 1}`
+  const matchedIODevice = io.result?.devices.find(device => device.role_id === row?.role_id)?.alias
+  const ioDevice = matchedIODevice ?? (row?.kind === 'feeder' ? `FP-F${study.bays.findIndex(bay => bay.uid === row.subject_id) + 1}`
     : row?.kind === 'line' ? 'LINE-H' : row?.kind === 'bus' ? 'BUS'
-    : row?.kind === 'transformer' && row.purpose === 'secondary' ? 'T-S' : row?.kind === 'meter' ? '' : 'T-P'
+    : row?.kind === 'transformer' && row.purpose === 'secondary' ? 'T-S' : row?.kind === 'meter' ? '' : 'T-P')
   const shortlistIO = io.result?.budgets[ioDevice] ?? null
+  const hardwareAssessment = io.result?.hardware_assessments?.find(item => item.role_id === row?.role_id)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -577,6 +582,16 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
             {(io.pending || io.error) && <p role={io.error ? 'alert' : 'status'}>{io.error ?? 'Calculating current backend I/O. Prior totals and ordering fit are not current.'}{io.error && <button type="button" className="button secondary" onClick={io.retry}>Retry I/O calculation</button>}</p>}
             {shortlistIO && <p><strong>Illustrative digital I/O · </strong>{budgetText(shortlistIO)}</p>}
           </div>
+          {hardwareAssessment && <section className="detail-block joint-hardware-review" aria-label="Joint hardware evidence review" data-role-id={hardwareAssessment.role_id}>
+            <h3>Joint hardware evidence review · {hardwareAssessment.role}</h3>
+            <p><strong>Configuration unresolved · No complete fit or order code</strong></p>
+            <p>{hardwareAssessment.requirements.phase_ct_banks_min ?? 'Unknown'}–{hardwareAssessment.requirements.phase_ct_banks_max ?? 'Unknown'} phase CT banks · {hardwareAssessment.requirements.neutral_inputs ?? 'Unknown'} neutral CT inputs · {hardwareAssessment.requirements.vt_banks ?? 'Unknown'} VT banks.</p>
+            <p>{hardwareAssessment.requirements.di_after_spares ?? 'Unresolved'} DI · {hardwareAssessment.requirements.do_after_spares ?? 'Unresolved'} DO after spares. Digital budget: {hardwareAssessment.requirements.digital_budget.replaceAll('_', ' ')}.</p>
+            <p>{hardwareAssessment.basis}</p>
+            <p>Analog candidates: {hardwareAssessment.analog_candidate_models.join(', ') || 'None supported'}. Digital capacity examples: {hardwareAssessment.digital_example_models.join(', ') || 'None enumerated'}.</p>
+            <p>Separate analog and digital capacity examples do not establish that these cards fit together in an ordered relay.</p>
+            <ul>{hardwareAssessment.evidence_gates.map(gate => <li key={gate.code} data-evidence-gate={gate.code}><strong>{gate.code.replaceAll('_', ' ')} · not verified</strong>: {gate.required_evidence}</li>)}</ul>
+          </section>}
           <div className="relay-grid">
             {(['GE', 'SEL'] as const).map(manufacturer => (
               <section className="relay-column" key={manufacturer} aria-label={`${manufacturer} devices`}>

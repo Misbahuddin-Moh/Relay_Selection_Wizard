@@ -12,6 +12,9 @@ from fastapi.testclient import TestClient
 from backend.main import app
 
 
+SCHEMES = ('dedicated', 'shared', 'combined', 'redundant_separate', 'dual_combined', 'combined_separate_secondary')
+COMBINED_PRIMARY = {'combined', 'dual_combined', 'combined_separate_secondary'}
+
 COMMON_GAPS = {
     'CT_SUITABILITY_UNREVIEWED', 'CT_CORE_INDEPENDENCE_UNVERIFIED',
     'TRIP_CLEARING_UNVERIFIED', 'BREAKER_FAILURE_UNRESOLVED',
@@ -49,16 +52,16 @@ class ProtectionComparisonAcceptanceTests(TestCase):
     def zones(option):
         return {zone['id']: zone for zone in option['review']['zones']}
 
-    def test_three_approaches_distinguish_zone_functions_and_relay_hosting(self):
+    def test_six_approaches_distinguish_zone_functions_and_relay_hosting(self):
         options = self.options()
-        self.assertEqual(set(options), {'dedicated', 'shared', 'combined'})
-        for scheme in ('dedicated', 'shared', 'combined'):
+        self.assertEqual(set(options), set(SCHEMES))
+        for scheme in SCHEMES:
             review = options[scheme]['review']
             zones = self.zones(options[scheme])
-            self.assertEqual(zones['transformer_primary']['function'], '87TB' if scheme == 'combined' else '87T')
-            self.assertEqual(zones['transformer_secondary']['function'], '87T')
+            self.assertEqual(zones['transformer_primary']['function'], '87TB' if scheme in COMBINED_PRIMARY else '87T')
+            self.assertEqual(zones['transformer_secondary']['function'], '87TB' if scheme == 'dual_combined' else '87T')
             self.assertNotEqual(zones['transformer_primary']['relay_roles'], zones['transformer_secondary']['relay_roles'])
-            if scheme == 'combined':
+            if scheme in COMBINED_PRIMARY:
                 self.assertNotIn('bus', zones)
             else:
                 self.assertEqual(zones['bus']['function'], '87B')
@@ -67,8 +70,10 @@ class ProtectionComparisonAcceptanceTests(TestCase):
                 else:
                     self.assertNotEqual(zones['transformer_primary']['relay_roles'], zones['bus']['relay_roles'])
             expected = {'transformer_primary', 'transformer_secondary', *('feeder/' + bay['uid'] for bay in self.study['bays'])}
-            if scheme != 'combined':
+            if scheme not in COMBINED_PRIMARY:
                 expected.add('bus')
+            if scheme in ('redundant_separate', 'combined_separate_secondary'):
+                expected.add('bus_secondary')
             self.assertEqual(set(zones), expected)
             self.assertTrue(review['version'])
 
@@ -89,10 +94,10 @@ class ProtectionComparisonAcceptanceTests(TestCase):
         self.assertEqual(options['combined']['review']['primary_measurements'], 'present')
         for scheme, option in options.items():
             review = option['review']
-            if scheme != 'combined':
+            if scheme not in COMBINED_PRIMARY:
                 self.assertEqual(review['primary_measurements'], 'absent')
-            self.assertEqual(review['secondary_measurements'], 'absent')
-            self.assertEqual(review['readiness'], 'blocked')
+            self.assertEqual(review['secondary_measurements'], 'unknown' if scheme == 'dual_combined' else 'absent')
+            self.assertEqual(review['readiness'], 'conditional' if scheme == 'dual_combined' else 'blocked')
             self.assertFalse(review['procurement_ready'])
 
     def test_unknown_and_absent_hv_measurements_are_not_interchangeable(self):
@@ -104,7 +109,7 @@ class ProtectionComparisonAcceptanceTests(TestCase):
                     self.assertEqual(option['review']['readiness'], readiness)
 
     def test_primary_phase_envelopes_preserve_shared_input_reuse_cases(self):
-        expected = {'dedicated': (2, 2), 'shared': (5, 6), 'combined': (4, 4)}
+        expected = {'dedicated': (2, 2), 'shared': (5, 6), 'combined': (4, 4), 'redundant_separate': (2, 2), 'dual_combined': (4, 4), 'combined_separate_secondary': (4, 4)}
         for scheme, option in self.options().items():
             primary = option['review']['roles'][0]
             self.assertEqual((primary['phase_banks_min'], primary['phase_banks_max']), expected[scheme])
@@ -196,9 +201,9 @@ class ProtectionComparisonAcceptanceTests(TestCase):
         after = self.options()
         for scheme in before:
             self.assertEqual(before[scheme]['review']['primary_measurements'], 'present')
-            self.assertEqual(after[scheme]['review']['primary_measurements'], 'absent' if scheme == 'combined' else 'present')
+            self.assertEqual(after[scheme]['review']['primary_measurements'], 'absent' if scheme in COMBINED_PRIMARY else 'present')
             self.assertEqual(after[scheme]['review']['readiness'], 'blocked')
-            if scheme != 'combined':
+            if scheme not in COMBINED_PRIMARY:
                 self.assertEqual(self.zones(after[scheme])['bus']['measurement_status'], 'absent')
             self.assertNotEqual(before[scheme]['assessment']['input_fingerprint'], after[scheme]['assessment']['input_fingerprint'])
 
