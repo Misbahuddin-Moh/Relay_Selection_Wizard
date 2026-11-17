@@ -1,401 +1,29 @@
 {
-  "model": "SEL-311L-0/-6",
-  "family": "300-series",
-  "category": "Line current differential (legacy)",
-  "prefix": "0311L",
-  "prefix_note": "Sample code in source '0 3 1 1 L 2 X' not mapped to fields.",
-  "source": {
-    "doc_id": "download/3208",
-    "url": "https://selinc.com/api/download/3208/?lang=en-us",
-    "doc_date": "2013-03-25",
-    "method": "WebFetch LLM extraction of MOT PDF"
-  },
-  "doc_status": "legacy_possibly_superseded",
-  "layout_verified": false,
-  "fields": [
+  "accessories": [
     {
-      "id": "firmware",
-      "name": "Firmware",
-      "width": 1,
-      "confidence": "medium",
-      "options": [
-        {
-          "code": "0",
-          "desc": "Standard, three-pole differential + distance",
-          "extra_cost": false
-        },
-        {
-          "code": "6",
-          "desc": "Standard + single-pole differential",
-          "extra_cost": true
-        }
-      ],
-      "order": 1
+      "in_code": false,
+      "item": "Printed manual",
+      "pn": "PM311L-01"
     },
     {
-      "id": "mounting",
-      "name": "Mounting",
-      "width": 1,
-      "confidence": "high",
-      "options": [
-        {
-          "code": "H",
-          "desc": "3U horizontal rack",
-          "extra_cost": false
-        },
-        {
-          "code": "3",
-          "desc": "3U horizontal panel",
-          "extra_cost": false
-        },
-        {
-          "code": "4",
-          "desc": "3U vertical panel",
-          "extra_cost": false
-        },
-        {
-          "code": "5",
-          "desc": "3U horizontal projection panel",
-          "extra_cost": true
-        },
-        {
-          "code": "J",
-          "desc": "4U horizontal rack",
-          "extra_cost": false
-        },
-        {
-          "code": "K",
-          "desc": "4U horizontal panel",
-          "extra_cost": false
-        },
-        {
-          "code": "L",
-          "desc": "4U vertical panel",
-          "extra_cost": false
-        },
-        {
-          "code": "N",
-          "desc": "4U horizontal projection panel",
-          "extra_cost": true
-        }
-      ],
-      "order": 2
-    },
-    {
-      "id": "diff_channels",
-      "name": "Line differential channel X;Y (2 chars)",
-      "width": 2,
-      "confidence": "low",
-      "options": [
-        {
-          "code": "A0",
-          "desc": "Ch X=A, Ch Y=0",
-          "extra_cost": false
-        },
-        {
-          "code": "AA",
-          "desc": "Ch X=A, Ch Y=A",
-          "extra_cost": false
-        },
-        {
-          "code": "B0",
-          "desc": "Ch X=B, Ch Y=0",
-          "extra_cost": false
-        },
-        {
-          "code": "BB",
-          "desc": "Ch X=B, Ch Y=B",
-          "extra_cost": false
-        },
-        {
-          "code": "C0",
-          "desc": "Ch X=C, Ch Y=0",
-          "extra_cost": false
-        },
-        {
-          "code": "CA",
-          "desc": "Ch X=C, Ch Y=A",
-          "extra_cost": false
-        },
-        {
-          "code": "CB",
-          "desc": "Ch X=C, Ch Y=B",
-          "extra_cost": false
-        },
-        {
-          "code": "CC",
-          "desc": "Ch X=C, Ch Y=C",
-          "extra_cost": false
-        },
-        {
-          "code": "D0",
-          "desc": "Ch X=D, Ch Y=0",
-          "extra_cost": false
-        },
-        {
-          "code": "DA",
-          "desc": "Ch X=D, Ch Y=A",
-          "extra_cost": false
-        },
-        {
-          "code": "DB",
-          "desc": "Ch X=D, Ch Y=B",
-          "extra_cost": false
-        },
-        {
-          "code": "DC",
-          "desc": "Ch X=D, Ch Y=C",
-          "extra_cost": false
-        },
-        {
-          "code": "DD",
-          "desc": "Ch X=D, Ch Y=D",
-          "extra_cost": false
-        },
-        {
-          "code": "E0",
-          "desc": "Ch X=E, Ch Y=0",
-          "extra_cost": false
-        },
-        {
-          "code": "EA",
-          "desc": "Ch X=E, Ch Y=A",
-          "extra_cost": false
-        },
-        {
-          "code": "EB",
-          "desc": "Ch X=E, Ch Y=B",
-          "extra_cost": false
-        },
-        {
-          "code": "EC",
-          "desc": "Ch X=E, Ch Y=C",
-          "extra_cost": false
-        },
-        {
-          "code": "ED",
-          "desc": "Ch X=E, Ch Y=D",
-          "extra_cost": false
-        },
-        {
-          "code": "EE",
-          "desc": "Ch X=E, Ch Y=E",
-          "extra_cost": false
-        },
-        {
-          "code": "H0",
-          "desc": "Ch X=H, Ch Y=0",
-          "extra_cost": false
-        },
-        {
-          "code": "HA",
-          "desc": "Ch X=H, Ch Y=A",
-          "extra_cost": false
-        },
-        {
-          "code": "HB",
-          "desc": "Ch X=H, Ch Y=B",
-          "extra_cost": false
-        },
-        {
-          "code": "HC",
-          "desc": "Ch X=H, Ch Y=C",
-          "extra_cost": false
-        },
-        {
-          "code": "HD",
-          "desc": "Ch X=H, Ch Y=D",
-          "extra_cost": false
-        },
-        {
-          "code": "HE",
-          "desc": "Ch X=H, Ch Y=E",
-          "extra_cost": false
-        },
-        {
-          "code": "HH",
-          "desc": "Ch X=H, Ch Y=H",
-          "extra_cost": false
-        }
-      ],
-      "note": "X/Y order inferred; only listed combinations are valid.",
-      "order": 3
-    },
-    {
-      "id": "power_supply",
-      "name": "Power supply",
-      "width": 1,
-      "confidence": "high",
-      "options": [
-        {
-          "code": "2",
-          "desc": "24/48 Vdc",
-          "extra_cost": false
-        },
-        {
-          "code": "3",
-          "desc": "48/125 Vdc or 125 Vac",
-          "extra_cost": false
-        },
-        {
-          "code": "4",
-          "desc": "125/250 Vdc or Vac",
-          "extra_cost": false
-        }
-      ],
-      "note": "WARNING: digit meanings differ from 400-series (3 here = 48/125, there 4 = 48-125).",
-      "order": 4
-    },
-    {
-      "id": "sec_voltage",
-      "name": "Secondary input voltage",
-      "width": 1,
-      "confidence": "high",
-      "options": [
-        {
-          "code": "2",
-          "desc": "Wye Va,Vb,Vc 150 Vac max P-N",
-          "extra_cost": false
-        }
-      ],
-      "order": 5
-    },
-    {
-      "id": "sec_current",
-      "name": "Secondary input current",
-      "width": 1,
-      "confidence": "high",
-      "options": [
-        {
-          "code": "1",
-          "desc": "1 A phase and polarizing",
-          "extra_cost": false
-        },
-        {
-          "code": "5",
-          "desc": "5 A phase and polarizing",
-          "extra_cost": false
-        }
-      ],
-      "order": 6
-    },
-    {
-      "id": "control_v",
-      "name": "Control input voltage",
-      "width": 1,
-      "confidence": "high",
-      "options": [
-        {
-          "code": "1",
-          "desc": "24 Vdc",
-          "extra_cost": false
-        },
-        {
-          "code": "2",
-          "desc": "48 Vdc",
-          "extra_cost": false
-        },
-        {
-          "code": "3",
-          "desc": "110 Vdc",
-          "extra_cost": false
-        },
-        {
-          "code": "4",
-          "desc": "125 Vdc",
-          "extra_cost": false
-        },
-        {
-          "code": "5",
-          "desc": "220 Vdc",
-          "extra_cost": false
-        },
-        {
-          "code": "6",
-          "desc": "250 Vdc",
-          "extra_cost": false
-        }
-      ],
-      "order": 7
-    },
-    {
-      "id": "io_board",
-      "name": "I/O board",
-      "width": 1,
-      "confidence": "medium",
-      "options": [
-        {
-          "code": "X",
-          "desc": "None (3U only)",
-          "extra_cost": false
-        },
-        {
-          "code": "2",
-          "desc": "8 inputs, 12 std outputs",
-          "extra_cost": true
-        },
-        {
-          "code": "5",
-          "desc": "8 inputs, 8 high-speed HC outputs",
-          "extra_cost": true
-        },
-        {
-          "code": "6",
-          "desc": "8 inputs, 12 HC interrupting outputs",
-          "extra_cost": true
-        }
-      ],
-      "order": 8
-    },
-    {
-      "id": "protocol",
-      "name": "Communications protocol",
-      "width": 1,
-      "confidence": "high",
-      "options": [
-        {
-          "code": "X",
-          "desc": "SEL ASCII/Fast Meter/MIRRORED BITS etc.",
-          "extra_cost": false
-        },
-        {
-          "code": "1",
-          "desc": "DNP3 Level 2 slave",
-          "extra_cost": true
-        }
-      ],
-      "order": 9
-    },
-    {
-      "id": "conformal",
-      "name": "Conformal coat",
-      "width": 1,
-      "confidence": "high",
-      "options": [
-        {
-          "code": "X",
-          "desc": "None",
-          "extra_cost": false
-        },
-        {
-          "code": "2",
-          "desc": "Conformal coated boards",
-          "extra_cost": true
-        }
-      ],
-      "order": 10
+      "in_code": false,
+      "item": "QuickSet CD",
+      "pn": "503001WX4"
     }
   ],
+  "category": "Line current differential (legacy)",
   "constraints": [
     {
+      "confidence": "stated",
       "id": "311L-io-needs-4u",
-      "type": "requires",
       "if": {
         "field": "io_board",
         "not_in": [
           "X"
         ]
       },
+      "note": "Additional I/O requires 4U mounting J/K/L/N.",
+      "scope": "ordering",
       "then": {
         "field": "mounting",
         "in": [
@@ -405,24 +33,486 @@
           "N"
         ]
       },
-      "confidence": "stated",
-      "note": "Additional I/O requires 4U mounting J/K/L/N."
+      "type": "requires"
     }
   ],
-  "accessories": [
+  "doc_status": "extracted_unverified",
+  "family": "300-series",
+  "fields": [
     {
-      "item": "Printed manual",
-      "pn": "PM311L-01",
-      "in_code": false
+      "confidence": "medium",
+      "id": "firmware",
+      "name": "Firmware",
+      "options": [
+        {
+          "code": "0",
+          "desc": "Standard, three-pole differential + distance",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "6",
+          "desc": "Standard + single-pole differential",
+          "extra_cost": true,
+          "token_status": "extracted"
+        }
+      ],
+      "order": 1,
+      "width": 1
     },
     {
-      "item": "QuickSet CD",
-      "pn": "503001WX4",
-      "in_code": false
+      "confidence": "high",
+      "id": "mounting",
+      "name": "Mounting",
+      "options": [
+        {
+          "code": "H",
+          "desc": "3U horizontal rack",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "3",
+          "desc": "3U horizontal panel",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "4",
+          "desc": "3U vertical panel",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "5",
+          "desc": "3U horizontal projection panel",
+          "extra_cost": true,
+          "token_status": "extracted"
+        },
+        {
+          "code": "J",
+          "desc": "4U horizontal rack",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "K",
+          "desc": "4U horizontal panel",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "L",
+          "desc": "4U vertical panel",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "N",
+          "desc": "4U horizontal projection panel",
+          "extra_cost": true,
+          "token_status": "extracted"
+        }
+      ],
+      "order": 2,
+      "width": 1
+    },
+    {
+      "confidence": "low",
+      "id": "diff_channels",
+      "name": "Line differential channel X;Y (2 chars)",
+      "note": "X/Y order inferred; only listed combinations are valid.",
+      "options": [
+        {
+          "code": "A0",
+          "desc": "Ch X=A, Ch Y=0",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "AA",
+          "desc": "Ch X=A, Ch Y=A",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "B0",
+          "desc": "Ch X=B, Ch Y=0",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "BB",
+          "desc": "Ch X=B, Ch Y=B",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "C0",
+          "desc": "Ch X=C, Ch Y=0",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "CA",
+          "desc": "Ch X=C, Ch Y=A",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "CB",
+          "desc": "Ch X=C, Ch Y=B",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "CC",
+          "desc": "Ch X=C, Ch Y=C",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "D0",
+          "desc": "Ch X=D, Ch Y=0",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "DA",
+          "desc": "Ch X=D, Ch Y=A",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "DB",
+          "desc": "Ch X=D, Ch Y=B",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "DC",
+          "desc": "Ch X=D, Ch Y=C",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "DD",
+          "desc": "Ch X=D, Ch Y=D",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "E0",
+          "desc": "Ch X=E, Ch Y=0",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "EA",
+          "desc": "Ch X=E, Ch Y=A",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "EB",
+          "desc": "Ch X=E, Ch Y=B",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "EC",
+          "desc": "Ch X=E, Ch Y=C",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "ED",
+          "desc": "Ch X=E, Ch Y=D",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "EE",
+          "desc": "Ch X=E, Ch Y=E",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "H0",
+          "desc": "Ch X=H, Ch Y=0",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "HA",
+          "desc": "Ch X=H, Ch Y=A",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "HB",
+          "desc": "Ch X=H, Ch Y=B",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "HC",
+          "desc": "Ch X=H, Ch Y=C",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "HD",
+          "desc": "Ch X=H, Ch Y=D",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "HE",
+          "desc": "Ch X=H, Ch Y=E",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "HH",
+          "desc": "Ch X=H, Ch Y=H",
+          "extra_cost": false,
+          "token_status": "extracted"
+        }
+      ],
+      "order": 3,
+      "width": 2
+    },
+    {
+      "confidence": "high",
+      "id": "power_supply",
+      "name": "Power supply",
+      "note": "WARNING: digit meanings differ from 400-series (3 here = 48/125, there 4 = 48-125).",
+      "options": [
+        {
+          "code": "2",
+          "desc": "24/48 Vdc",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "3",
+          "desc": "48/125 Vdc or 125 Vac",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "4",
+          "desc": "125/250 Vdc or Vac",
+          "extra_cost": false,
+          "token_status": "extracted"
+        }
+      ],
+      "order": 4,
+      "width": 1
+    },
+    {
+      "confidence": "high",
+      "id": "sec_voltage",
+      "name": "Secondary input voltage",
+      "options": [
+        {
+          "code": "2",
+          "desc": "Wye Va,Vb,Vc 150 Vac max P-N",
+          "extra_cost": false,
+          "token_status": "extracted"
+        }
+      ],
+      "order": 5,
+      "width": 1
+    },
+    {
+      "confidence": "high",
+      "id": "sec_current",
+      "name": "Secondary input current",
+      "options": [
+        {
+          "code": "1",
+          "desc": "1 A phase and polarizing",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "5",
+          "desc": "5 A phase and polarizing",
+          "extra_cost": false,
+          "token_status": "extracted"
+        }
+      ],
+      "order": 6,
+      "width": 1
+    },
+    {
+      "confidence": "high",
+      "id": "control_v",
+      "name": "Control input voltage",
+      "options": [
+        {
+          "code": "1",
+          "desc": "24 Vdc",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "2",
+          "desc": "48 Vdc",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "3",
+          "desc": "110 Vdc",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "4",
+          "desc": "125 Vdc",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "5",
+          "desc": "220 Vdc",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "6",
+          "desc": "250 Vdc",
+          "extra_cost": false,
+          "token_status": "extracted"
+        }
+      ],
+      "order": 7,
+      "width": 1
+    },
+    {
+      "confidence": "medium",
+      "id": "io_board",
+      "name": "I/O board",
+      "options": [
+        {
+          "code": "X",
+          "desc": "None (3U only)",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "2",
+          "desc": "8 inputs, 12 std outputs",
+          "extra_cost": true,
+          "token_status": "extracted"
+        },
+        {
+          "code": "5",
+          "desc": "8 inputs, 8 high-speed HC outputs",
+          "extra_cost": true,
+          "token_status": "extracted"
+        },
+        {
+          "code": "6",
+          "desc": "8 inputs, 12 HC interrupting outputs",
+          "extra_cost": true,
+          "token_status": "extracted"
+        }
+      ],
+      "order": 8,
+      "width": 1
+    },
+    {
+      "confidence": "high",
+      "id": "protocol",
+      "name": "Communications protocol",
+      "options": [
+        {
+          "code": "X",
+          "desc": "SEL ASCII/Fast Meter/MIRRORED BITS etc.",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "1",
+          "desc": "DNP3 Level 2 slave",
+          "extra_cost": true,
+          "token_status": "extracted"
+        }
+      ],
+      "order": 9,
+      "width": 1
+    },
+    {
+      "confidence": "high",
+      "id": "conformal",
+      "name": "Conformal coat",
+      "options": [
+        {
+          "code": "X",
+          "desc": "None",
+          "extra_cost": false,
+          "token_status": "extracted"
+        },
+        {
+          "code": "2",
+          "desc": "Conformal coated boards",
+          "extra_cost": true,
+          "token_status": "extracted"
+        }
+      ],
+      "order": 10,
+      "width": 1
     }
   ],
-  "open_questions": [
-    "Sample-code mapping missing; field order inferred.",
-    "SEL-311L-1/-7 MOT (download/3209) not retrieved."
+  "identity": {
+    "hardware_revision": null,
+    "lifecycle": null,
+    "manufacturer": "SEL",
+    "model": "SEL-311L-0/-6",
+    "variant_resolved": true,
+    "variants": [
+      "SEL-311L-0",
+      "SEL-311L-6"
+    ]
+  },
+  "model": "SEL-311L-0/-6",
+  "model_id": "SEL-311L",
+  "prefix": "0311L",
+  "prefix_note": "Sample code in source '0 3 1 1 L 2 X' not mapped to fields.",
+  "provenance_baseline_commit": "3cda2bcc36450d9bbf6470b7a78ad54d251bcedf",
+  "schema_version": 2,
+  "source": {
+    "date_basis": "extracted_text",
+    "doc_date": "2013-03-25",
+    "doc_id": "download/3208",
+    "kind": "mot_pdf",
+    "locators_recorded": false,
+    "method": "WebFetch LLM extraction of MOT PDF",
+    "retrieval": "llm_summary",
+    "revision": null,
+    "sha256": null,
+    "url": "https://selinc.com/api/download/3208/?lang=en-us"
+  },
+  "unresolved": [
+    {
+      "blocks": [
+        "layout",
+        "hardware"
+      ],
+      "id": "Q-SEL-311L-1",
+      "text": "Sample-code mapping missing; field order inferred."
+    },
+    {
+      "blocks": [
+        "layout",
+        "hardware"
+      ],
+      "id": "Q-SEL-311L-2",
+      "text": "SEL-311L-1/-7 MOT (download/3209) not retrieved."
+    }
   ]
 }

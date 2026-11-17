@@ -1,17 +1,40 @@
 {
-  "model": "SEL-351S",
+  "accessories": [],
+  "constraints": [],
   "doc_status": "partial_header_only",
-  "layout_verified": false,
-  "fields": [],
-  "source": {
-    "doc_id": "download/4901 (data sheet 5514)"
-  },
   "evidence": [
     "Header '0351S'; firmware 5 (basic) / 6 (standard) / 7 (std + power elements, sag/swell); extra I/O options X/2/4/6."
   ],
-  "constraints": [],
-  "accessories": [],
-  "open_questions": [
-    "Full MOT not yet ingested."
+  "fields": [],
+  "identity": {
+    "hardware_revision": null,
+    "lifecycle": null,
+    "manufacturer": "SEL",
+    "model": "SEL-351S",
+    "variant_resolved": false,
+    "variants": []
+  },
+  "model": "SEL-351S",
+  "model_id": "SEL-351S",
+  "provenance_baseline_commit": "3cda2bcc36450d9bbf6470b7a78ad54d251bcedf",
+  "schema_version": 2,
+  "source": {
+    "date_basis": null,
+    "doc_id": "download/4901 (data sheet 5514)",
+    "kind": "datasheet",
+    "locators_recorded": false,
+    "retrieval": "header_only",
+    "revision": null,
+    "sha256": null
+  },
+  "unresolved": [
+    {
+      "blocks": [
+        "layout",
+        "hardware"
+      ],
+      "id": "U-SEL-351S-DATA",
+      "text": "Full ordering data not ingested."
+    }
   ]
 }

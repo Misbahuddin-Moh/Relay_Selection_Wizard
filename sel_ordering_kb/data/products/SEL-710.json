@@ -1,851 +1,1042 @@
 {
-  "model": "SEL-710",
-  "family": "700-series",
+  "accessories": [
+    {
+      "in_code": false,
+      "item": "Printed manual",
+      "pn": "PM710-01"
+    },
+    {
+      "in_code": false,
+      "item": "Configurable labels",
+      "pn": "9260134 / 9260135"
+    }
+  ],
   "category": "Motor protection (NOT the -5 variant)",
-  "prefix": "07100",
-  "prefix_note": "Source: '0 7 1 0 0'; unclear if fixed prefix or variable.",
-  "source": {
-    "doc_id": "download/3273",
-    "url": "https://selinc.com/api/download/3273/?lang=en-us",
-    "doc_date": "2018-12-07 (WI-5180)",
-    "method": "WebFetch LLM extraction of MOT PDF"
-  },
-  "doc_status": "legacy_possibly_superseded",
-  "layout_verified": false,
+  "constraints": [
+    {
+      "confidence": "stated",
+      "fields": [
+        "slot_c",
+        "slot_d",
+        "slot_e"
+      ],
+      "id": "710-max-one-3di4do1ao",
+      "match_codes": [
+        "BA",
+        "BB",
+        "BC",
+        "BD",
+        "BG",
+        "BH"
+      ],
+      "max": 1,
+      "note": "One 3DI/4DO/1AO card per chassis.",
+      "scope": "ordering",
+      "type": "max_per_chassis"
+    },
+    {
+      "confidence": "stated",
+      "fields": [
+        "slot_c",
+        "slot_d",
+        "slot_e"
+      ],
+      "id": "710-max-one-4ai4ao",
+      "match_codes": [
+        "6X"
+      ],
+      "max": 1,
+      "note": "One 4AI/4AO card per chassis.",
+      "scope": "ordering",
+      "type": "max_per_chassis"
+    }
+  ],
+  "doc_status": "extracted_unverified",
+  "family": "700-series",
   "fields": [
     {
+      "confidence": "high",
       "id": "slot_a",
       "name": "Slot A power supply w/ I/O",
-      "width": 2,
-      "confidence": "high",
       "options": [
         {
           "code": "1A",
           "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1B",
           "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1C",
           "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1D",
           "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1G",
           "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1H",
           "desc": "110-250 Vdc, 110-240 Vac, 50/60 Hz; SELect PSIO / 2 DI / 3 DO; DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "2A",
           "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "2B",
           "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "2C",
           "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "2D",
           "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "2G",
           "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "2H",
           "desc": "24-48 Vdc; SELect PSIO / 2 DI / 3 DO; DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         }
       ],
-      "order": 1
+      "order": 1,
+      "width": 2
     },
     {
+      "confidence": "high",
       "id": "slot_b",
       "name": "Slot B processor board (3-digit)",
-      "width": 3,
-      "confidence": "high",
       "options": [
         {
           "code": "000",
           "desc": "EIA-232 rear, IRIG-B",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "010",
           "desc": "EIA-485 rear, IRIG-B",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "020",
           "desc": "EIA-232, IRIG-B, 10/100BASE-T, Modbus TCP",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "021",
           "desc": "EIA-232, IRIG-B, 10/100BASE-T, Modbus TCP + IEC 61850",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "030",
           "desc": "EIA-485, IRIG-B, 10/100BASE-T, Modbus TCP",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "031",
           "desc": "EIA-485, IRIG-B, 10/100BASE-T, Modbus TCP + IEC 61850",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "040",
           "desc": "EIA-232, IRIG-B, single 100BASE-FX, Modbus TCP",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "041",
           "desc": "EIA-232, IRIG-B, single 100BASE-FX, Modbus TCP + IEC 61850",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "060",
           "desc": "EIA-232, IRIG-B, dual 10/100BASE-T, Modbus TCP",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "063",
           "desc": "EIA-232, IRIG-B, dual 10/100BASE-T, Modbus TCP + IEC 61850",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "080",
           "desc": "EIA-232, IRIG-B, dual 100BASE-FX, Modbus TCP",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "083",
           "desc": "EIA-232, IRIG-B, dual 100BASE-FX, Modbus TCP + IEC 61850",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "100",
           "desc": "EIA-232, PTC thermistor",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "110",
           "desc": "EIA-485, PTC thermistor",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "120",
           "desc": "EIA-232, PTC, 10/100BASE-T, Modbus TCP",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "121",
           "desc": "EIA-232, PTC, 10/100BASE-T, Modbus TCP + IEC 61850",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "130",
           "desc": "EIA-485, PTC, 10/100BASE-T, Modbus TCP",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "131",
           "desc": "EIA-485, PTC, 10/100BASE-T, Modbus TCP + IEC 61850",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         }
       ],
-      "order": 2
+      "order": 2,
+      "width": 3
     },
     {
+      "confidence": "medium",
       "id": "slot_c",
       "name": "Slot C card",
-      "width": 2,
-      "confidence": "medium",
       "options": [
         {
           "code": "0X",
           "desc": "Empty",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "BA",
           "desc": "3 DI / 4 DO / 1 AO; DI 125 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BB",
           "desc": "3 DI / 4 DO / 1 AO; DI 24 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BC",
           "desc": "3 DI / 4 DO / 1 AO; DI 48 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BD",
           "desc": "3 DI / 4 DO / 1 AO; DI 110 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BG",
           "desc": "3 DI / 4 DO / 1 AO; DI 220 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BH",
           "desc": "3 DI / 4 DO / 1 AO; DI 250 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "1A",
           "desc": "4 DI / 4 DO electromechanical, DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1B",
           "desc": "4 DI / 4 DO electromechanical, DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1C",
           "desc": "4 DI / 4 DO electromechanical, DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1D",
           "desc": "4 DI / 4 DO electromechanical, DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1G",
           "desc": "4 DI / 4 DO electromechanical, DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1H",
           "desc": "4 DI / 4 DO electromechanical, DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CA",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CB",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CC",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CD",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CG",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CH",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "5X",
           "desc": "8 AI",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "6X",
           "desc": "4 AI / 4 AO",
           "extra_cost": true,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "3A",
           "desc": "8 DI, DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3B",
           "desc": "8 DI, DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3C",
           "desc": "8 DI, DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3D",
           "desc": "8 DI, DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3G",
           "desc": "8 DI, DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3H",
           "desc": "8 DI, DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DA",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DB",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DC",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DD",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DG",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DH",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "A0",
           "desc": "Serial comm card EIA-232/485",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         }
       ],
-      "order": 3
+      "order": 3,
+      "width": 2
     },
     {
+      "confidence": "medium",
       "id": "slot_d",
       "name": "Slot D card",
-      "width": 2,
-      "confidence": "medium",
       "options": [
         {
           "code": "0X",
           "desc": "Empty",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "BA",
           "desc": "3 DI / 4 DO / 1 AO; DI 125 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BB",
           "desc": "3 DI / 4 DO / 1 AO; DI 24 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BC",
           "desc": "3 DI / 4 DO / 1 AO; DI 48 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BD",
           "desc": "3 DI / 4 DO / 1 AO; DI 110 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BG",
           "desc": "3 DI / 4 DO / 1 AO; DI 220 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BH",
           "desc": "3 DI / 4 DO / 1 AO; DI 250 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "1A",
           "desc": "4 DI / 4 DO electromechanical, DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1B",
           "desc": "4 DI / 4 DO electromechanical, DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1C",
           "desc": "4 DI / 4 DO electromechanical, DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1D",
           "desc": "4 DI / 4 DO electromechanical, DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1G",
           "desc": "4 DI / 4 DO electromechanical, DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1H",
           "desc": "4 DI / 4 DO electromechanical, DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CA",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CB",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CC",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CD",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CG",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CH",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "5X",
           "desc": "8 AI",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "6X",
           "desc": "4 AI / 4 AO",
           "extra_cost": true,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "3A",
           "desc": "8 DI, DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3B",
           "desc": "8 DI, DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3C",
           "desc": "8 DI, DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3D",
           "desc": "8 DI, DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3G",
           "desc": "8 DI, DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3H",
           "desc": "8 DI, DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DA",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DB",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DC",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DD",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DG",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DH",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "9X",
           "desc": "10 RTD input",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         }
       ],
-      "order": 4
+      "order": 4,
+      "width": 2
     },
     {
+      "confidence": "medium",
       "id": "slot_e",
       "name": "Slot E card",
-      "width": 2,
-      "confidence": "medium",
       "options": [
         {
           "code": "0X",
           "desc": "Empty",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "BA",
           "desc": "3 DI / 4 DO / 1 AO; DI 125 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BB",
           "desc": "3 DI / 4 DO / 1 AO; DI 24 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BC",
           "desc": "3 DI / 4 DO / 1 AO; DI 48 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BD",
           "desc": "3 DI / 4 DO / 1 AO; DI 110 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BG",
           "desc": "3 DI / 4 DO / 1 AO; DI 220 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "BH",
           "desc": "3 DI / 4 DO / 1 AO; DI 250 Vdc/Vac",
           "extra_cost": false,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "1A",
           "desc": "4 DI / 4 DO electromechanical, DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1B",
           "desc": "4 DI / 4 DO electromechanical, DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1C",
           "desc": "4 DI / 4 DO electromechanical, DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1D",
           "desc": "4 DI / 4 DO electromechanical, DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1G",
           "desc": "4 DI / 4 DO electromechanical, DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1H",
           "desc": "4 DI / 4 DO electromechanical, DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CA",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CB",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CC",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CD",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CG",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "CH",
           "desc": "4 DI / 4 DO fast HC interrupting, DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "5X",
           "desc": "8 AI",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "6X",
           "desc": "4 AI / 4 AO",
           "extra_cost": true,
-          "note": "One per chassis"
+          "note": "One per chassis",
+          "token_status": "extracted"
         },
         {
           "code": "3A",
           "desc": "8 DI, DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3B",
           "desc": "8 DI, DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3C",
           "desc": "8 DI, DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3D",
           "desc": "8 DI, DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3G",
           "desc": "8 DI, DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "3H",
           "desc": "8 DI, DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DA",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 125 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DB",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 24 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DC",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 48 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DD",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 110 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DG",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 220 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "DH",
           "desc": "4 DI / 3 DO (2 Form C, 1 Form B), DI 250 Vdc/Vac",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "71",
           "desc": "3-phase AC voltage input (300 Vac)",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         },
         {
           "code": "72",
           "desc": "3 AC current (motor differential) + 3-phase AC voltage",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         }
       ],
-      "order": 5
+      "order": 5,
+      "width": 2
     },
     {
+      "confidence": "high",
       "id": "slot_z",
       "name": "Slot Z: 4 ACI",
-      "width": 2,
-      "confidence": "high",
       "options": [
         {
           "code": "81",
           "desc": "1 A phase / 1 A neutral",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "82",
           "desc": "1 A phase / 5 A neutral",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "83",
           "desc": "1 A phase / 2.5 mA high-sense neutral",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "85",
           "desc": "5 A phase / 5 A neutral",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "86",
           "desc": "5 A phase / 1 A neutral",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "87",
           "desc": "5 A phase / 2.5 mA high-sense neutral",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         }
       ],
-      "order": 6
+      "order": 6,
+      "width": 2
     },
     {
+      "confidence": "high",
       "id": "conformal",
       "name": "Conformal coat",
-      "width": 1,
-      "confidence": "high",
       "options": [
         {
           "code": "0",
           "desc": "None",
-          "extra_cost": false
+          "extra_cost": false,
+          "token_status": "extracted"
         },
         {
           "code": "1",
           "desc": "Conformally coated boards",
-          "extra_cost": true
+          "extra_cost": true,
+          "token_status": "extracted"
         }
       ],
-      "order": 7
+      "order": 7,
+      "width": 1
     }
   ],
-  "constraints": [
+  "identity": {
+    "hardware_revision": null,
+    "lifecycle": null,
+    "manufacturer": "SEL",
+    "model": "SEL-710",
+    "variant_resolved": true,
+    "variants": [
+      "SEL-710"
+    ]
+  },
+  "model": "SEL-710",
+  "model_id": "SEL-710",
+  "prefix": "07100",
+  "prefix_note": "Source: '0 7 1 0 0'; unclear if fixed prefix or variable.",
+  "provenance_baseline_commit": "3cda2bcc36450d9bbf6470b7a78ad54d251bcedf",
+  "schema_version": 2,
+  "source": {
+    "date_basis": "extracted_text",
+    "doc_date": "2018-12-07 (WI-5180)",
+    "doc_id": "download/3273",
+    "kind": "mot_pdf",
+    "locators_recorded": false,
+    "method": "WebFetch LLM extraction of MOT PDF",
+    "retrieval": "llm_summary",
+    "revision": "WI-5180",
+    "sha256": null,
+    "url": "https://selinc.com/api/download/3273/?lang=en-us"
+  },
+  "unresolved": [
     {
-      "id": "710-max-one-3di4do1ao",
-      "type": "max_per_chassis",
-      "fields": [
-        "slot_c",
-        "slot_d",
-        "slot_e"
+      "blocks": [
+        "layout",
+        "hardware"
       ],
-      "match_prefix": "B",
-      "max": 1,
-      "confidence": "stated",
-      "note": "One 3DI/4DO/1AO card per chassis."
+      "id": "Q-SEL-710-1",
+      "text": "SEL-710-5 (current product; WI-11297) MOT not retrieved -- this doc is the older SEL-710."
     },
     {
-      "id": "710-max-one-4ai4ao",
-      "type": "max_per_chassis",
-      "fields": [
-        "slot_c",
-        "slot_d",
-        "slot_e"
+      "blocks": [
+        "layout",
+        "hardware"
       ],
-      "match_prefix": "6X",
-      "max": 1,
-      "confidence": "stated",
-      "note": "One 4AI/4AO card per chassis."
-    }
-  ],
-  "accessories": [
-    {
-      "item": "Printed manual",
-      "pn": "PM710-01",
-      "in_code": false
+      "id": "Q-SEL-710-2",
+      "text": "Whether '07100' is fixed prefix or variable."
     },
     {
-      "item": "Configurable labels",
-      "pn": "9260134 / 9260135",
-      "in_code": false
+      "blocks": [
+        "layout",
+        "hardware"
+      ],
+      "id": "Q-SEL-710-3",
+      "text": "Is Slot Z mandatory?"
     }
-  ],
-  "open_questions": [
-    "SEL-710-5 (current product; WI-11297) MOT not retrieved -- this doc is the older SEL-710.",
-    "Whether '07100' is fixed prefix or variable.",
-    "Is Slot Z mandatory?"
   ]
 }

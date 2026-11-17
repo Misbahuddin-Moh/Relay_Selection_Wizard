@@ -1,0 +1,207 @@
+{
+  "baseline_commit": "3cda2bcc36450d9bbf6470b7a78ad54d251bcedf",
+  "derived": {
+    "sqlite_rows_sha256": "80e2b54dbe183a9f2be61fa9026f3bca19792b9a1d4a61aec75d24d4367dcd55"
+  },
+  "grammar_sha256": "db09ae4df69eea135b3811b713c2ccc75e2cb6f96a0bc9f44ed6032d3565f654",
+  "kb_version": "2.0.0",
+  "manifest_version": 1,
+  "products": {
+    "SEL-311L": {
+      "catalog_errors": 0,
+      "n_fields": 10,
+      "n_unresolved": 2,
+      "schema_version": 2,
+      "sha256": "1dd7eb5bc214c73504fb5d70451f4a46919c00f8c83bc70ce68edf46b76cebf3",
+      "source": {
+        "doc_date": "2013-03-25",
+        "doc_id": "download/3208",
+        "kind": "mot_pdf",
+        "retrieval": "llm_summary",
+        "revision": null,
+        "sha256": null
+      },
+      "tracks": {
+        "code_layout": "not_started",
+        "compatibility_rules_review": "not_started",
+        "configuration_evidence": "out_of_catalog_scope",
+        "data_extraction_review": "not_started"
+      }
+    },
+    "SEL-351S": {
+      "catalog_errors": 0,
+      "n_fields": 0,
+      "n_unresolved": 1,
+      "schema_version": 2,
+      "sha256": "230feb7b543e0e2ca28df3e998c39a80d738efa567d5550308cc1c762d856e92",
+      "source": {
+        "doc_date": null,
+        "doc_id": "download/4901 (data sheet 5514)",
+        "kind": "datasheet",
+        "retrieval": "header_only",
+        "revision": null,
+        "sha256": null
+      },
+      "tracks": {
+        "code_layout": "not_started",
+        "compatibility_rules_review": "not_started",
+        "configuration_evidence": "out_of_catalog_scope",
+        "data_extraction_review": "not_started"
+      }
+    },
+    "SEL-411L": {
+      "catalog_errors": 0,
+      "n_fields": 17,
+      "n_unresolved": 7,
+      "schema_version": 2,
+      "sha256": "fcb21da1f226c708bc9b499b738b56f6690d45ad5a3dcf85261c28c0f1f6f692",
+      "source": {
+        "doc_date": null,
+        "doc_id": "download/10530",
+        "kind": "mot_pdf",
+        "retrieval": "llm_summary",
+        "revision": null,
+        "sha256": null
+      },
+      "tracks": {
+        "code_layout": "not_started",
+        "compatibility_rules_review": "not_started",
+        "configuration_evidence": "out_of_catalog_scope",
+        "data_extraction_review": "not_started"
+      }
+    },
+    "SEL-451-5": {
+      "catalog_errors": 0,
+      "n_fields": 16,
+      "n_unresolved": 9,
+      "schema_version": 2,
+      "sha256": "3c403dfa3d927b19dd513d3bafa372235f45c84062638d70486502aa8d644aff",
+      "source": {
+        "doc_date": "2019-07-11",
+        "doc_id": "download/7423",
+        "kind": "mot_pdf",
+        "retrieval": "llm_summary",
+        "revision": "WI-8789",
+        "sha256": null
+      },
+      "tracks": {
+        "code_layout": "not_started",
+        "compatibility_rules_review": "not_started",
+        "configuration_evidence": "out_of_catalog_scope",
+        "data_extraction_review": "not_started"
+      }
+    },
+    "SEL-487E": {
+      "catalog_errors": 0,
+      "n_fields": 0,
+      "n_unresolved": 1,
+      "schema_version": 2,
+      "sha256": "5d620268619f662741cd0c1feffcc985f4a2f6293be4d6423bdc96b9738802a8",
+      "source": {
+        "doc_date": null,
+        "doc_id": "no direct MOT link found on docs page",
+        "kind": "none",
+        "retrieval": "not_retrieved",
+        "revision": null,
+        "sha256": null
+      },
+      "tracks": {
+        "code_layout": "not_started",
+        "compatibility_rules_review": "not_started",
+        "configuration_evidence": "out_of_catalog_scope",
+        "data_extraction_review": "not_started"
+      }
+    },
+    "SEL-700G": {
+      "catalog_errors": 0,
+      "n_fields": 0,
+      "n_unresolved": 1,
+      "schema_version": 2,
+      "sha256": "16de43ab2ae342de28ef9cffc11775a665ea9798b4fb69fa54c7510159a32a41",
+      "source": {
+        "doc_date": null,
+        "doc_id": "download/7583; I/O cards WI-16209 download/128475",
+        "kind": "datasheet",
+        "retrieval": "header_only",
+        "revision": null,
+        "sha256": null
+      },
+      "tracks": {
+        "code_layout": "not_started",
+        "compatibility_rules_review": "not_started",
+        "configuration_evidence": "out_of_catalog_scope",
+        "data_extraction_review": "not_started"
+      }
+    },
+    "SEL-710": {
+      "catalog_errors": 0,
+      "n_fields": 7,
+      "n_unresolved": 3,
+      "schema_version": 2,
+      "sha256": "0da3d1e410f20dd736c3c6828e363fdafa3d183030fa5af41c0f9c518829bb73",
+      "source": {
+        "doc_date": "2018-12-07 (WI-5180)",
+        "doc_id": "download/3273",
+        "kind": "mot_pdf",
+        "retrieval": "llm_summary",
+        "revision": "WI-5180",
+        "sha256": null
+      },
+      "tracks": {
+        "code_layout": "not_started",
+        "compatibility_rules_review": "not_started",
+        "configuration_evidence": "out_of_catalog_scope",
+        "data_extraction_review": "not_started"
+      }
+    },
+    "SEL-751": {
+      "catalog_errors": 0,
+      "n_fields": 0,
+      "n_unresolved": 1,
+      "schema_version": 2,
+      "sha256": "50ce1d99e7a4aa154fbad2a868bb07ec82c666d6c88b12cd45ac030c9e222c75",
+      "source": {
+        "doc_date": null,
+        "doc_id": "download/97800 (WI-9222, 2026-05-20)",
+        "kind": "mot_pdf",
+        "retrieval": "not_text_extractable",
+        "revision": "WI-9222",
+        "sha256": null
+      },
+      "tracks": {
+        "code_layout": "not_started",
+        "compatibility_rules_review": "not_started",
+        "configuration_evidence": "out_of_catalog_scope",
+        "data_extraction_review": "not_started"
+      }
+    },
+    "SEL-751A": {
+      "catalog_errors": 0,
+      "n_fields": 10,
+      "n_unresolved": 5,
+      "schema_version": 2,
+      "sha256": "4c276c269b7b84fb133431751ac1087534ea9ddb5a45802088d237cffc6d427f",
+      "source": {
+        "doc_date": null,
+        "doc_id": "download/3278",
+        "kind": "mot_pdf",
+        "retrieval": "llm_summary",
+        "revision": null,
+        "sha256": null
+      },
+      "tracks": {
+        "code_layout": "not_started",
+        "compatibility_rules_review": "not_started",
+        "configuration_evidence": "out_of_catalog_scope",
+        "data_extraction_review": "not_started"
+      }
+    }
+  },
+  "release_flags": {
+    "manufacturer_orderable": false,
+    "note": "Catalog data is documentary. No product is manufacturer-confirmed.",
+    "procurement_ready": false
+  },
+  "schema_version": 2,
+  "validator_version": "2.0.0"
+}

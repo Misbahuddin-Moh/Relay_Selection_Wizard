@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Generates data/products/*.json and data/grammar.json.
+"""SEED/MIGRATION tool for data/products/*.json (schema v2). Canonical data is the JSON, not this script.
+Refuses to overwrite an existing record unless --force (used once for the v1->v2 migration).
+Generates data/products/*.json and data/grammar.json.
 
 Every product record carries provenance. Nothing here is "ground truth" until a
 product's `layout_verified` flag is flipped by tools/promote.py after real SEL-issued
@@ -468,30 +470,116 @@ GRAMMAR = {
 }
 
 
-def main():
-    def locked(key):
-        f = OUT / "products" / f"{key}.json"
-        if f.exists() and json.loads(f.read_text()).get("layout_verified"):
-            print(f"SKIP {key}: layout_verified=true (promoted); not overwriting")
-            return True
-        return False
 
-    for key, p in PRODUCTS.items():
-        if locked(key):
-            continue
-        for i, f in enumerate(p["fields"], 1):
-            f["order"] = i
-        (OUT / "products" / f"{key}.json").write_text(json.dumps(p, indent=2))
+# ====================================================================== schema v2 finalisation
+BASELINE_COMMIT = "3cda2bcc36450d9bbf6470b7a78ad54d251bcedf"
+
+IDENTITY = {  # model_id -> (variants, variant_resolved)
+    "SEL-451-5": (["SEL-451-5"], True), "SEL-411L": (["SEL-411L"], True), "SEL-751A": (["SEL-751A"], True),
+    "SEL-710": (["SEL-710"], True), "SEL-311L": (["SEL-311L-0", "SEL-311L-6"], True),
+    "SEL-751": (["SEL-751"], False), "SEL-487E": ([], False), "SEL-351S": ([], False), "SEL-700G": ([], False)}
+
+SOURCE_META = {  # kind, revision, date_basis, retrieval
+    "SEL-451-5": ("mot_pdf", "WI-8789", "reviewer_reported_2026-11-16_unverified_against_raw_pdf", "llm_summary"),
+    "SEL-411L": ("mot_pdf", None, None, "llm_summary"), "SEL-751A": ("mot_pdf", None, None, "llm_summary"),
+    "SEL-710": ("mot_pdf", "WI-5180", "extracted_text", "llm_summary"),
+    "SEL-311L": ("mot_pdf", None, "extracted_text", "llm_summary"),
+    "SEL-751": ("mot_pdf", "WI-9222", "search_snippet", "not_text_extractable"),
+    "SEL-487E": ("none", None, None, "not_retrieved"), "SEL-351S": ("datasheet", None, None, "header_only"),
+    "SEL-700G": ("datasheet", None, None, "header_only")}
+
+AUTHOR_LABEL_FIELDS = {"SEL-451-5": {"eth_ports"}}      # codes invented by the KB author, not SEL symbols
+EXTRA_UNRESOLVED = {
+    "SEL-451-5": [
+        ("U-451-1", "Exact widths/positions of eth_ports, io_b (3A/3B/7A/7B vs 1-char) and sec_voltage fields.", ["layout"]),
+        ("U-451-2", "Literal SEL symbols for Ethernet port options (A1/C0... are KB-author labels) and LEA voltage code.", ["layout"]),
+        ("U-451-3", "Allowed FIXED input-voltage symbols per I/O board option and positional symbol for voltage on an EMPTY board.", ["layout", "hardware"]),
+        ("U-451-4", "Audit every MOT footnote (LEA/conformal coating, output-class restrictions) into typed rules.", ["hardware"]),
+        ("U-451-5", "Confirm the user's actual variant (SEL-451-5 vs other family members) before use; no family substitution.", ["application"])],
+    "SEL-411L": [
+        ("U-411L-1", "Re-read exact MOT footnote on 87L channel/communications requirements; ordering-only vs application rules.", ["layout", "hardware"]),
+        ("U-411L-2", "Peer model, firmware group compatibility, channel medium and remote clearing are application inputs, not ordering data.", ["application"])]}
+
+TYPED_RULES = {
+    "SEL-451-5": [
+        # Source: MOT WI-8789 (reported rev 20190711) -- user-settable pickup only on I/O options 1, 5, 6.
+        {"id": "451-ioB-fixed-voltage-boards", "type": "requires", "scope": "ordering", "confidence": "stated",
+         "if": {"field": "io_b", "in": ["2", "3A", "3B", "4", "7", "7A", "7B", "8"]},
+         "then": {"field": "io_b_voltage", "not_in": ["X"]},
+         "note": "User-settable pickup (X) is only offered on I/O options 1, 5, 6; other boards need a fixed input-voltage code."},
+        {"id": "451-ioC-fixed-voltage-boards", "type": "requires", "scope": "ordering", "confidence": "stated",
+         "if": {"field": "io_c", "in": ["2", "4", "7", "8"]},
+         "then": {"field": "io_c_voltage", "not_in": ["X"]},
+         "note": "User-settable pickup (X) is only offered on I/O options 1, 5, 6; other boards need a fixed input-voltage code."}],
+    "SEL-411L": [
+        {"id": "411L-app-87L-needs-channel", "type": "requires_any", "scope": "application", "confidence": "inferred",
+         "when": {"input": "requires_87l", "equals": True},
+         "any": [{"field": "diff_ch1", "not_in": ["0"]}, {"field": "diff_ch2", "not_in": ["0"]}],
+         "note": "APPLICATION rule: an application that requires 87L needs at least one differential channel. "
+                 "Not an ordering restriction: a relay without channels is orderable."}]}
+DROP_RULES = {"SEL-411L": {"411L-87L-needs-channel"}}
+
+
+def finalize(key, p):
+    p = json.loads(json.dumps(p))
+    p["schema_version"] = 2
+    p["model_id"] = key
+    for k in ("layout_verified", "doc_status_old"):
+        p.pop(k, None)
+    variants, resolved = IDENTITY[key]
+    p["identity"] = {"manufacturer": "SEL", "model": p.get("model", key), "variants": variants,
+                     "variant_resolved": resolved, "hardware_revision": None, "lifecycle": None}
+    kind, rev, basis, retrieval = SOURCE_META[key]
+    s = p.setdefault("source", {})
+    s.update({"kind": kind, "revision": rev, "date_basis": basis, "retrieval": retrieval, "sha256": None,
+              "locators_recorded": False})
+    if key == "SEL-451-5":
+        s["doc_date"] = "2019-07-11"
+    p["doc_status"] = "extracted_unverified" if p["fields"] else p.get("doc_status", "stub")
+    labels = AUTHOR_LABEL_FIELDS.get(key, set())
+    for f in p["fields"]:
+        for o in f["options"]:
+            o["token_status"] = ("placeholder" if o["code"] == "UNRESOLVED"
+                                 else "author_label" if f["id"] in labels and o["code"] != "X" else "extracted")
+    cons = [c for c in p["constraints"] if c["id"] not in DROP_RULES.get(key, set())]
+    for c in cons:
+        c.setdefault("scope", "ordering")
+        if "match_prefix" in c:   # explicit codes instead of fuzzy prefix matching
+            pre = c.pop("match_prefix")
+            ids = set(c["fields"])
+            c["match_codes"] = sorted({o["code"] for f in p["fields"] if f["id"] in ids for o in f["options"]
+                                       if o["code"].startswith(pre) and o["code"] != "0X"})
+    cons += TYPED_RULES.get(key, [])
+    p["constraints"] = cons
+    unresolved = [{"id": f"Q-{key}-{i}", "text": q, "blocks": ["layout", "hardware"]}
+                  for i, q in enumerate(p.pop("open_questions", []), 1)]
+    unresolved += [{"id": i, "text": t, "blocks": b} for i, t, b in EXTRA_UNRESOLVED.get(key, [])]
+    if not p["fields"]:
+        unresolved.append({"id": f"U-{key}-DATA", "text": "Full ordering data not ingested.", "blocks": ["layout", "hardware"]})
+    p["unresolved"] = unresolved
+    for i, f in enumerate(p["fields"], 1):
+        f["order"] = i
+    p["provenance_baseline_commit"] = BASELINE_COMMIT
+    return p
+
+
+def main(force=False):
+    allp = dict(PRODUCTS)
     for key, s in STUBS.items():
-        if locked(key):
+        allp[key] = {"model": key, "doc_status": s["status"], "fields": [], "constraints": [], "accessories": [],
+                     "source": {"doc_id": s["doc"]}, "evidence": s["evidence"], "open_questions": []}
+    for key, p in allp.items():
+        out = OUT / "products" / f"{key}.json"
+        if out.exists() and not force:
+            print(f"SKIP {key}: exists (canonical data is the JSON; use --force only for a deliberate migration)")
             continue
-        (OUT / "products" / f"{key}.json").write_text(json.dumps(
-            {"model": key, "doc_status": s["status"], "layout_verified": False, "fields": [],
-             "source": {"doc_id": s["doc"]}, "evidence": s["evidence"], "constraints": [], "accessories": [],
-             "open_questions": ["Full MOT not yet ingested."]}, indent=2))
-    (OUT / "grammar.json").write_text(json.dumps(GRAMMAR, indent=2))
-    print("wrote", len(PRODUCTS), "full +", len(STUBS), "stub products")
+        out.write_text(json.dumps(finalize(key, p), indent=2, sort_keys=True) + "\n")
+    g = OUT / "grammar.json"
+    if force or not g.exists():
+        g.write_text(json.dumps(GRAMMAR, indent=2, sort_keys=True) + "\n")
+    print("wrote", len(allp), "records (schema v2)")
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    main(force="--force" in sys.argv)

@@ -1,17 +1,40 @@
 {
-  "model": "SEL-700G",
+  "accessories": [],
+  "constraints": [],
   "doc_status": "partial_header_only",
-  "layout_verified": false,
-  "fields": [],
-  "source": {
-    "doc_id": "download/7583; I/O cards WI-16209 download/128475"
-  },
   "evidence": [
     "Header '0700G'; model options 700G0 ...; card PNs 9717LA0_, 9719L9X_ etc."
   ],
-  "constraints": [],
-  "accessories": [],
-  "open_questions": [
-    "Full MOT not yet ingested."
+  "fields": [],
+  "identity": {
+    "hardware_revision": null,
+    "lifecycle": null,
+    "manufacturer": "SEL",
+    "model": "SEL-700G",
+    "variant_resolved": false,
+    "variants": []
+  },
+  "model": "SEL-700G",
+  "model_id": "SEL-700G",
+  "provenance_baseline_commit": "3cda2bcc36450d9bbf6470b7a78ad54d251bcedf",
+  "schema_version": 2,
+  "source": {
+    "date_basis": null,
+    "doc_id": "download/7583; I/O cards WI-16209 download/128475",
+    "kind": "datasheet",
+    "locators_recorded": false,
+    "retrieval": "header_only",
+    "revision": null,
+    "sha256": null
+  },
+  "unresolved": [
+    {
+      "blocks": [
+        "layout",
+        "hardware"
+      ],
+      "id": "U-SEL-700G-DATA",
+      "text": "Full ordering data not ingested."
+    }
   ]
 }

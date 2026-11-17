@@ -1,17 +1,40 @@
 {
-  "model": "SEL-487E",
+  "accessories": [],
+  "constraints": [],
   "doc_status": "partial_header_only",
-  "layout_verified": false,
-  "fields": [],
-  "source": {
-    "doc_id": "no direct MOT link found on docs page"
-  },
   "evidence": [
     "Header '0487E' + firmware 3 (std w/ V,F,dir OC,V/Hz) / 4 (station PMU); power supply 2/4/6 (same as 400-series)."
   ],
-  "constraints": [],
-  "accessories": [],
-  "open_questions": [
-    "Full MOT not yet ingested."
+  "fields": [],
+  "identity": {
+    "hardware_revision": null,
+    "lifecycle": null,
+    "manufacturer": "SEL",
+    "model": "SEL-487E",
+    "variant_resolved": false,
+    "variants": []
+  },
+  "model": "SEL-487E",
+  "model_id": "SEL-487E",
+  "provenance_baseline_commit": "3cda2bcc36450d9bbf6470b7a78ad54d251bcedf",
+  "schema_version": 2,
+  "source": {
+    "date_basis": null,
+    "doc_id": "no direct MOT link found on docs page",
+    "kind": "none",
+    "locators_recorded": false,
+    "retrieval": "not_retrieved",
+    "revision": null,
+    "sha256": null
+  },
+  "unresolved": [
+    {
+      "blocks": [
+        "layout",
+        "hardware"
+      ],
+      "id": "U-SEL-487E-DATA",
+      "text": "Full ordering data not ingested."
+    }
   ]
 }

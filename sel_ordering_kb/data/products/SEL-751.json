@@ -1,19 +1,44 @@
 {
-  "model": "SEL-751",
+  "accessories": [],
+  "constraints": [],
   "doc_status": "source_not_text_extractable",
-  "layout_verified": false,
-  "fields": [],
-  "source": {
-    "doc_id": "download/97800 (WI-9222, 2026-05-20)"
-  },
   "evidence": [
     "Datasheet says Slot E card = MOT string digits 12,13; Slot Z card = digits 14,15.",
     "Relay PARTNUM example from quick manual: 751001B5X1X7086020X (see grammar.json).",
     "SELect I/O card kit PNs in download/114387 (WI-12625)."
   ],
-  "constraints": [],
-  "accessories": [],
-  "open_questions": [
-    "Full MOT not yet ingested."
+  "fields": [],
+  "identity": {
+    "hardware_revision": null,
+    "lifecycle": null,
+    "manufacturer": "SEL",
+    "model": "SEL-751",
+    "variant_resolved": false,
+    "variants": [
+      "SEL-751"
+    ]
+  },
+  "model": "SEL-751",
+  "model_id": "SEL-751",
+  "provenance_baseline_commit": "3cda2bcc36450d9bbf6470b7a78ad54d251bcedf",
+  "schema_version": 2,
+  "source": {
+    "date_basis": "search_snippet",
+    "doc_id": "download/97800 (WI-9222, 2026-05-20)",
+    "kind": "mot_pdf",
+    "locators_recorded": false,
+    "retrieval": "not_text_extractable",
+    "revision": "WI-9222",
+    "sha256": null
+  },
+  "unresolved": [
+    {
+      "blocks": [
+        "layout",
+        "hardware"
+      ],
+      "id": "U-SEL-751-DATA",
+      "text": "Full ordering data not ingested."
+    }
   ]
 }

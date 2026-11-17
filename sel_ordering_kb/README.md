@@ -3,32 +3,24 @@
 Indexed, source-attributed model of how SEL builds part numbers (Model Option Tables, "MOTs"), for a
 SLD -> relay BOM web app where an EOR reviews the output.
 
-## Principle: never emit a part number the KB cannot prove
-Every product has `layout_verified` (default `false`). While false, `assemble()` returns a **spec**
-(field -> code -> description, with confidence + warnings) and `issuable=false`. A product is promoted
-only by `tools/promote.py`, which requires real SEL-issued part numbers (`data/golden/<model>.txt`) to
-decode cleanly and to exercise >=2 options per field. `build_kb.py` will not overwrite a promoted product.
+## Principle: fail closed, verify by evidence, release elsewhere
+`selpn.check()` returns one of `unsupported | invalid | unresolved | validated_within_scope`. An empty problem list never means valid.
+Nothing in catalog JSON can assert verification (the validator rejects it). Verification is four independent tracks
+(data extraction review, code layout, compatibility rules review, configuration evidence) recorded in content-bound files under
+`data/reviews/` and invalidated (`stale`) when the product record, golden set or validator version changes.
+`manufacturer_orderable` is always `false` here: manufacturer confirmation and engineering/procurement release are outside this component.
+Canonical data is `data/products/*.json`; SQLite and the manifest are derived/pinned. See `CHANGELOG.md` and `HANDOFF_STATUS.md`.
 
 ## Layout
-- `data/products/*.json` one file per relay: fields (order, width, options, extra-cost flag, confidence),
-  constraints (stated vs inferred), accessories, open questions, source doc + date.
-- `data/grammar.json` cross-product conventions, cross-family traps, SELect card sub-part-number pattern.
-- `data/sel_kb.sqlite` built index (FTS5 over every option). `tools/index.py search "48-125"`.
-- `tools/selpn.py` validate / assemble / parse.  `tools/promote.py` verification gate.  `tests/` 12 tests.
+- `data/products/*.json` schema-v2 records (fields, widths, options with `token_status`, typed rules with `scope`, `unresolved`, provenance).
+- `data/grammar.json` cross-product conventions and traps. `data/manifest.json` release pins. `data/sel_kb.sqlite` derived FTS index.
+- `data/golden/<model_id>.json` manufacturer-origin examples (none yet). `data/reviews/<model_id>.json` content-bound review records (none yet).
+- `tools/`: `selpn.py` engine, `verify.py` evidence tracks, `canon.py` hashing, `index.py`, `manifest.py`, `build_kb.py` (seed only).
+- `tests/test_catalog.py` 55 tests. Passing tests are NOT manufacturer approval or engineering acceptance.
 
 ## Coverage today (honest)
-| Product | Status | Notes |
-|---|---|---|
-| SEL-451-5 | extracted, unverified | 16 fields; widths of `sec_voltage`, `eth_ports` unresolved; LEA code garbled |
-| SEL-411L | extracted, unverified | 17 fields; several doubled-char widths unresolved |
-| SEL-751A | extracted, unverified | position order inferred; legacy product |
-| SEL-710 | legacy doc (2018, not -5) | widths explicit; needs the 710-5 MOT |
-| SEL-311L-0/-6 | legacy doc (2013) | channel X/Y order inferred |
-| SEL-751 (current) | **not extractable** | MOT PDF (WI-9222, 2026-05-20) is image-only; datasheet gives Slot E = digits 12-13, Z = 14-15 |
-| SEL-487E/-3/-4/-5, 351S, 700G | header only | MOT link not found / not yet ingested |
-| 487B, 421, 401, 735, 787-2/3/4, 710-5, 2414/2411, 3555, ... | not started | |
-
-`SEL-787` legacy doc was extracted but dropped from KB (low confidence, superseded by 787-2/-3/-4 WI-12174).
+Unchanged from v1: SEL-451-5, 411L, 751A (extracted, unverified), 710 and 311L (legacy documents), 751/487E/351S/700G (no field data).
+No product has a verified layout, a reviewed extraction, or a manufacturer golden case. All current states remain unverified.
 
 ## Findings that matter for BOM accuracy
 1. **Digits are not portable across families.** PS digit `4` = 48-125 V (400-series) but 125/250 V (311L); conformal coat is X/2 vs 0/1; letters A-H mean DI voltage in 700-series, card type elsewhere. Mappings are per-product, never global.
@@ -36,21 +28,11 @@ decode cleanly and to exercise >=2 options per field. `build_kb.py` will not ove
 3. **Relay-stored PART NUM may omit the MOT leading zero** (SEL-751 example `751001B5X1X7086020X`, 19 chars). Decide which form the BOM carries.
 4. Constraints marked `inferred` are my reading, not SEL's text; `stated` ones come from MOT footnotes.
 
-## Why not "complete" yet - and the fastest way to get there
-The shell here is blocked from selinc.com and WebFetch returns an LLM summary of each PDF, which loses table
-column alignment. Fixes, best first:
-1. **Golden part numbers** - 5-10 real SEL PNs per relay (past quotes, nameplates, or SEL's own *Configure and Order*
-   output). These settle widths/order/leading-zero questions deterministically and unlock `promote.py`.
-2. **Raw MOT PDFs** attached or placed in a connected folder -> I can parse with a layout-aware extractor instead of a summary,
-   and OCR the image-only SEL-751 MOT.
-3. **SEL Popular Models** - SEL publishes pre-configured part numbers per product page. For PV-substation scope, restricting
-   the first release to Popular Models (+ golden PNs) is the most defensible accuracy anchor.
-4. Treat SEL's Configure-and-Order / your SEL rep as the final authority; the EOR review should compare against it.
-
 ## Usage
 ```
-python3 tools/build_kb.py && python3 tools/index.py && python3 tests/test_kb.py
-python3 tools/selpn.py assemble SEL-710 '{"slot_a":"1A","slot_b":"000","slot_c":"0X","slot_d":"0X","slot_e":"0X","slot_z":"85","conformal":"0"}'
-python3 tools/index.py search '"arc-flash"'
-python3 tools/promote.py SEL-710 --min 5      # after adding data/golden/SEL-710.txt
+python3 tests/test_catalog.py
+python3 tools/selpn.py check SEL-451-5 '{...selection...}'
+python3 tools/index.py [search "48-125"|status|digest]     # derived index
+python3 tools/manifest.py write|check
+python3 tools/verify.py status SEL-451-5 | layout SEL-451-5 | review <model> <track> <reviewer> <YYYY-MM-DD> <sha256,...> "<note>"
 ```
