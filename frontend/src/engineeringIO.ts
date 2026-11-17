@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Assessment, Study } from './model'
 import type { DigitalSettings, Signal } from './DigitalIO'
+import type { CatalogReadinessResult } from './CatalogReadiness'
 export type AnalogInputs = Record<string, {neutral: number | null; vt: number | null}>
 export interface AnalogCandidate {
   model: string; manufacturer: string; screening: string; complete_fit: false
@@ -44,6 +45,7 @@ export interface EngineeringIOResult {
   devices: {alias: string; role_id: string; role: string}[]
   ledger: LedgerRow[]; budgets: Record<string, DigitalBudget>; card_examples: CardExample[]
   analog_assessments: AnalogAssessment[]
+  catalog_readiness?: CatalogReadinessResult
   wiring_basis?: string
   hardware_assessments?: {
     role_id: string; role: string; status: 'unresolved'; complete_fit: false; procurement_ready: false; order_code: null

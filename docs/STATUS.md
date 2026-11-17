@@ -35,3 +35,14 @@ The coverage extension is a candidate until that verification completes; consult
 - Privacy-safe document extraction, authenticated shared persistence and broader topology coverage.
 
 Software checks establish reproducible modeled behavior only. The tool cannot establish missing engineering facts, owner acceptance or manufacturer approval by inference.
+
+## Read-only SEL catalog preparation
+
+The catalog continuation adds a pinned nine-record SEL reference snapshot, a strict
+readiness adapter, three separate evidence tracks and a visible catalog package
+panel. Source commit, canonical product hashes and adapter/loader content enter
+result fingerprints. All existing records remain blocked. No variant is selected,
+no role mapping or joint allocation is performed, and no ordering/procurement
+permission is imported. Corrupt/unsupported packages leave partial signal
+accounting usable with catalog use unavailable. See CATALOG_INTEGRATION.md and
+SEL_KB_REVIEW.md for the developer handoff and remaining manufacturer-data work.

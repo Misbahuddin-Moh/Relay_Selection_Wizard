@@ -14,6 +14,7 @@ from uuid import NAMESPACE_URL, uuid5
 from .assessment import assess
 from .analog_screening import analog_screening, SOURCE_SHA256 as ANALOG_SOURCE_SHA256
 from .relay_catalog import CATALOG
+from .catalog_package import catalog_package
 from .engine import analyze
 from .options import device_requirements
 
@@ -283,6 +284,7 @@ def engineering_io(request):
     settings = request.settings.model_dump()
     analog_requirements = {key: value.model_dump() for key, value in request.analog_requirements.items()}
     assessment = assess(study)
+    package = catalog_package()
     station_analysis = analyze(study)
     roles = device_requirements(study, request.scheme, station_analysis)
     catalog_hash = sha256(json.dumps(EDITOR, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
@@ -291,9 +293,10 @@ def engineering_io(request):
                                     'assessment_fingerprint': assessment['input_fingerprint'], 'policy_version': assessment['policy_version'], 'study': study, 'scheme': request.scheme, 'settings': settings,
                                     'derived_role_requirements': roles, 'analog_requirements': analog_requirements, 'analog_source': ANALOG_SOURCE_SHA256, 'analog_catalog': CATALOG,
                                     'analog_catalog_source': sha256(Path(__file__).with_name('relay_catalog.py').read_bytes()).hexdigest(),
+                                    'catalog_package_fingerprint': package['fingerprint'],
                                     'solver': VERSION, 'matrix': MANIFEST['source_sha256']},
                                    sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
-    base = {'schema_version': 1, 'solver_version': VERSION, 'matrix_version': MANIFEST['version'],
+    base = {'catalog_readiness': package, 'schema_version': 1, 'solver_version': VERSION, 'matrix_version': MANIFEST['version'],
             'matrix_source_sha256': MANIFEST['source_sha256'], 'catalog_fingerprint': catalog_hash,
             'ledger_data_fingerprint': ledger_hash, 'solver_source_sha256': SOLVER_SOURCE_SHA256,
             'policy_version': assessment['policy_version'], 'request_fingerprint': fingerprint,

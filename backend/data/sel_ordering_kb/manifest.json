@@ -1,0 +1,53 @@
+{
+  "contract_version": 1,
+  "source_release_sha": "3cda2bcc36450d9bbf6470b7a78ad54d251bcedf",
+  "source_url": "https://github.com/Misbahuddin-Moh/Relay_Selection_Wizard/tree/3cda2bcc36450d9bbf6470b7a78ad54d251bcedf/sel_ordering_kb",
+  "products": [
+    {
+      "file": "SEL-311L.json",
+      "model": "SEL-311L-0/-6",
+      "product_sha256": "ec9c2ca0e6d05d3e403c8aca633256ff075e5f599a5121e5a7b9b9f273d6b4c0"
+    },
+    {
+      "file": "SEL-351S.json",
+      "model": "SEL-351S",
+      "product_sha256": "3adaa063f39740ec5ec5cf571a8f837a05fcf6d347332f94e9fe6f7ef2d813e2"
+    },
+    {
+      "file": "SEL-411L.json",
+      "model": "SEL-411L",
+      "product_sha256": "f8ec0032e01d830a4993b7d2b1780eeecee2bea7e9d3df5aa84998590a06ff2c"
+    },
+    {
+      "file": "SEL-451-5.json",
+      "model": "SEL-451-5",
+      "product_sha256": "10eb1f00f30d22e1aecd4ac5cbc1e8b0af7d36b2326ad08b1d9b9a9984ff7da4"
+    },
+    {
+      "file": "SEL-487E.json",
+      "model": "SEL-487E",
+      "product_sha256": "806f3b2d22668c12fba834ef3c14fb4ce5830f089990551ba460cef849b93f51"
+    },
+    {
+      "file": "SEL-700G.json",
+      "model": "SEL-700G",
+      "product_sha256": "a4cb5df3768fa40c870388998b2e2f583bde21ac65896e59dbdd3376bbaddeb1"
+    },
+    {
+      "file": "SEL-710.json",
+      "model": "SEL-710",
+      "product_sha256": "01db4fcd00654508311dbd195eadf338d2ec35eccd2f3060287a5a5e9c45eede"
+    },
+    {
+      "file": "SEL-751.json",
+      "model": "SEL-751",
+      "product_sha256": "a7decb82cd8620adcdb435318be4d0a262d6ba5fa3493d0f97da03536ba5032a"
+    },
+    {
+      "file": "SEL-751A.json",
+      "model": "SEL-751A",
+      "product_sha256": "3ea4112d479d9003166de501afd8fea2e1979deca72ca8971dcef3c6542c272d"
+    }
+  ],
+  "import_policy": "Pinned unreviewed reference data only; no vendor scripts, SQLite runtime or release permission imported."
+}

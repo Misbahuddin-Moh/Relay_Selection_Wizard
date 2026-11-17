@@ -383,3 +383,8 @@ details.detail-block { margin-top: 12px; }
 .comparison-evidence-note { margin-top: 14px; line-height: 1.5; }
 .comparison-prompt { margin-top: 14px; color: var(--muted); }
 @media (max-width: 750px) { .comparison-intro { flex-direction: column; } .protection-comparison { padding: 14px; } }
+
+.catalog-readiness code { overflow-wrap: anywhere; word-break: break-word; }
+.catalog-readiness dl > div { margin-block: 10px; }
+.catalog-readiness dt { font-weight: 700; }
+.catalog-readiness dd { margin: 3px 0 0; }

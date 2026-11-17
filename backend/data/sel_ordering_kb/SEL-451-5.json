@@ -1,0 +1,625 @@
+{
+  "model": "SEL-451-5",
+  "family": "400-series",
+  "category": "Protection, automation, bay control",
+  "prefix": "0451",
+  "prefix_note": "Source header reads '0 4 5 1 5 X'; firmware code 5 is field 1.",
+  "source": {
+    "doc_id": "download/7423",
+    "url": "https://selinc.com/api/download/7423",
+    "doc_date": null,
+    "method": "WebFetch LLM extraction of MOT PDF"
+  },
+  "doc_status": "extracted_unverified",
+  "layout_verified": false,
+  "fields": [
+    {
+      "id": "firmware",
+      "name": "Firmware",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "5",
+          "desc": "Standard (replaces SEL-451-2 and -4)",
+          "extra_cost": false
+        }
+      ],
+      "order": 1
+    },
+    {
+      "id": "power_supply",
+      "name": "Power supply",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "2",
+          "desc": "24-48 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "4",
+          "desc": "48-125 Vdc or 110-120 Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "6",
+          "desc": "125-250 Vdc or 110-240 Vac",
+          "extra_cost": false
+        }
+      ],
+      "order": 2
+    },
+    {
+      "id": "connector",
+      "name": "Connector type",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "1",
+          "desc": "Screw terminal block",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "Connectorized relay",
+          "extra_cost": true
+        }
+      ],
+      "order": 3
+    },
+    {
+      "id": "sec_current",
+      "name": "Secondary input current",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "1",
+          "desc": "1 A phase",
+          "extra_cost": false
+        },
+        {
+          "code": "5",
+          "desc": "5 A phase",
+          "extra_cost": false
+        },
+        {
+          "code": "D",
+          "desc": "1 A phase with high-impedance fault detection",
+          "extra_cost": true
+        },
+        {
+          "code": "E",
+          "desc": "5 A phase with high-impedance fault detection",
+          "extra_cost": true
+        }
+      ],
+      "order": 4
+    },
+    {
+      "id": "sec_voltage",
+      "name": "Secondary input voltage",
+      "width": 1,
+      "confidence": "low",
+      "options": [
+        {
+          "code": "X",
+          "desc": "300 V phase-neutral max (wye)",
+          "extra_cost": false
+        },
+        {
+          "code": "UNRESOLVED",
+          "desc": "Euro connector with IEEE C37.92 LEA inputs; code extracted as '1 2' (ambiguous)",
+          "extra_cost": true,
+          "note": "Also requires conformal coating per MOT footnote (3)."
+        }
+      ],
+      "note": "LEA code could not be extracted reliably; width may be 2.",
+      "order": 5
+    },
+    {
+      "id": "eth_protocols",
+      "name": "Ethernet communications protocols",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "X",
+          "desc": "None",
+          "extra_cost": false
+        },
+        {
+          "code": "B",
+          "desc": "FTP, Telnet, synchrophasors, DNP3 LAN/WAN",
+          "extra_cost": false
+        },
+        {
+          "code": "C",
+          "desc": "FTP, Telnet, synchrophasors, DNP3 LAN/WAN, IEC 61850",
+          "extra_cost": true
+        }
+      ],
+      "order": 6
+    },
+    {
+      "id": "eth_ports",
+      "name": "Ethernet connection options",
+      "width": null,
+      "confidence": "low",
+      "options": [
+        {
+          "code": "X",
+          "desc": "None",
+          "extra_cost": false
+        },
+        {
+          "code": "A1",
+          "desc": "Ports 5A/5B (PTP-capable): two 10/100BASE-T",
+          "extra_cost": false
+        },
+        {
+          "code": "A3",
+          "desc": "Ports 5A/5B (PTP-capable): two 100BASE-FX",
+          "extra_cost": false
+        },
+        {
+          "code": "A5",
+          "desc": "Ports 5A/5B (PTP-capable): one 10/100BASE-T, one 100BASE-FX",
+          "extra_cost": false
+        },
+        {
+          "code": "C0",
+          "desc": "Ports 5C/5D: two 10/100BASE-T",
+          "extra_cost": false
+        },
+        {
+          "code": "C2",
+          "desc": "Ports 5C/5D: two 100BASE-FX",
+          "extra_cost": false
+        },
+        {
+          "code": "C4",
+          "desc": "Ports 5C/5D: one 10/100BASE-T, one 100BASE-FX",
+          "extra_cost": false
+        }
+      ],
+      "note": "Codes 1/3/5 belong to ports 5A/5B and 0/2/4 to ports 5C/5D (prefix A/C here is MY label, not SEL's). Likely a 2-character field (one digit per port pair); unconfirmed.",
+      "order": 7
+    },
+    {
+      "id": "mainboard_input_v",
+      "name": "Main board input voltage",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "1",
+          "desc": "24 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "48 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "3",
+          "desc": "110 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "4",
+          "desc": "125 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "5",
+          "desc": "220 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "6",
+          "desc": "250 Vdc",
+          "extra_cost": false
+        }
+      ],
+      "note": "Main board: 3 HC interrupting outputs, 2 Form A, 3 Form C, 7 optoisolated inputs.",
+      "order": 8
+    },
+    {
+      "id": "mounting",
+      "name": "Mounting",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "H",
+          "desc": "Horizontal rack mount",
+          "extra_cost": false
+        },
+        {
+          "code": "3",
+          "desc": "Horizontal panel mount",
+          "extra_cost": false
+        },
+        {
+          "code": "V",
+          "desc": "Vertical rack mount",
+          "extra_cost": false
+        },
+        {
+          "code": "4",
+          "desc": "Vertical panel mount",
+          "extra_cost": false
+        }
+      ],
+      "order": 9
+    },
+    {
+      "id": "chassis",
+      "name": "Chassis",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "1",
+          "desc": "3U, standard I/O",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "4U, up to one additional I/O board",
+          "extra_cost": false
+        },
+        {
+          "code": "3",
+          "desc": "4U, front panel with 24 target LEDs, 12 pushbuttons, tri-color LEDs",
+          "extra_cost": true
+        },
+        {
+          "code": "6",
+          "desc": "5U, up to two additional I/O boards",
+          "extra_cost": false
+        },
+        {
+          "code": "7",
+          "desc": "5U, front panel with 24 target LEDs, 12 pushbuttons, tri-color LEDs",
+          "extra_cost": true
+        }
+      ],
+      "order": 10
+    },
+    {
+      "id": "io_b",
+      "name": "I/O board position B (4U/5U)",
+      "width": null,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "0",
+          "desc": "Empty",
+          "extra_cost": false
+        },
+        {
+          "code": "1",
+          "desc": "8 independent inputs, 13 Form A, 2 Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "2",
+          "desc": "8 optoisolated independent inputs, 13 Form A, 2 Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "4",
+          "desc": "24 optoisolated level-sensitive inputs, 8 outputs",
+          "extra_cost": true
+        },
+        {
+          "code": "5",
+          "desc": "8 independent inputs, 8 high-speed HC interrupting Form A",
+          "extra_cost": true
+        },
+        {
+          "code": "6",
+          "desc": "8 independent inputs, 13 HC interrupting Form A, 2 Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "7",
+          "desc": "8 optoisolated independent inputs, 13 HC interrupting Form A, 2 Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "8",
+          "desc": "8 optoisolated independent inputs, 8 high-speed HC interrupting Form A",
+          "extra_cost": true
+        },
+        {
+          "code": "3A",
+          "desc": "Aux trip/close pushbuttons, 24 optoisolated inputs, 4 HC interrupting Form A",
+          "extra_cost": true
+        },
+        {
+          "code": "7A",
+          "desc": "Same as 3A (5U chassis)",
+          "extra_cost": true
+        },
+        {
+          "code": "3B",
+          "desc": "Aux trip/close pushbuttons with guards, 24 inputs, 4 HC interrupting Form A",
+          "extra_cost": true
+        },
+        {
+          "code": "7B",
+          "desc": "Same as 3B (5U chassis)",
+          "extra_cost": true
+        }
+      ],
+      "note": "Options 3A/3B/7A/7B are 2 chars; required for 4U/5U chassis.",
+      "order": 11
+    },
+    {
+      "id": "io_c",
+      "name": "I/O board position C (5U only)",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "0",
+          "desc": "Empty",
+          "extra_cost": false
+        },
+        {
+          "code": "1",
+          "desc": "8 independent inputs, 13 Form A, 2 Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "2",
+          "desc": "8 optoisolated independent inputs, 13 Form A, 2 Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "4",
+          "desc": "24 optoisolated level-sensitive inputs, 8 outputs",
+          "extra_cost": true
+        },
+        {
+          "code": "5",
+          "desc": "8 independent inputs, 8 high-speed HC interrupting Form A",
+          "extra_cost": true
+        },
+        {
+          "code": "6",
+          "desc": "8 independent inputs, 13 HC interrupting Form A, 2 Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "7",
+          "desc": "8 optoisolated independent inputs, 13 HC interrupting Form A, 2 Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "8",
+          "desc": "8 optoisolated independent inputs, 8 high-speed HC interrupting Form A",
+          "extra_cost": true
+        }
+      ],
+      "order": 12
+    },
+    {
+      "id": "io_b_voltage",
+      "name": "I/O board B input voltage",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "X",
+          "desc": "User-settable pickup",
+          "extra_cost": false
+        },
+        {
+          "code": "1",
+          "desc": "24 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "48 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "3",
+          "desc": "110 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "4",
+          "desc": "125 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "5",
+          "desc": "220 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "6",
+          "desc": "250 Vdc",
+          "extra_cost": false
+        }
+      ],
+      "note": "User-settable only on I/O options 1, 5, 6.",
+      "order": 13
+    },
+    {
+      "id": "io_c_voltage",
+      "name": "I/O board C input voltage",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "X",
+          "desc": "User-settable pickup",
+          "extra_cost": false
+        },
+        {
+          "code": "1",
+          "desc": "24 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "48 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "3",
+          "desc": "110 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "4",
+          "desc": "125 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "5",
+          "desc": "220 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "6",
+          "desc": "250 Vdc",
+          "extra_cost": false
+        }
+      ],
+      "order": 14
+    },
+    {
+      "id": "conformal",
+      "name": "Conformal coat",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "X",
+          "desc": "None",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "Conformally coated boards",
+          "extra_cost": true
+        }
+      ],
+      "order": 15
+    },
+    {
+      "id": "front_overlay",
+      "name": "Front overlay",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "X",
+          "desc": "Standard",
+          "extra_cost": false
+        },
+        {
+          "code": "1",
+          "desc": "Bay control front overlay",
+          "extra_cost": false
+        }
+      ],
+      "order": 16
+    }
+  ],
+  "constraints": [
+    {
+      "id": "451-eth61850-needs-eth",
+      "type": "requires",
+      "if": {
+        "field": "eth_protocols",
+        "in": [
+          "B",
+          "C"
+        ]
+      },
+      "then": {
+        "field": "eth_ports",
+        "not_in": [
+          "X"
+        ]
+      },
+      "confidence": "inferred",
+      "note": "Protocols over Ethernet need a physical Ethernet option. Inferred, not stated in MOT."
+    },
+    {
+      "id": "451-chassis-io",
+      "type": "requires",
+      "if": {
+        "field": "chassis",
+        "in": [
+          "1"
+        ]
+      },
+      "then": {
+        "field": "io_b",
+        "in": [
+          "0"
+        ]
+      },
+      "confidence": "inferred",
+      "note": "3U chassis = standard I/O only."
+    },
+    {
+      "id": "451-io-c-5u",
+      "type": "requires",
+      "if": {
+        "field": "io_c",
+        "not_in": [
+          "0"
+        ]
+      },
+      "then": {
+        "field": "chassis",
+        "in": [
+          "6",
+          "7"
+        ]
+      },
+      "confidence": "stated",
+      "note": "Position C is 5U only."
+    }
+  ],
+  "accessories": [
+    {
+      "item": "Instruction manual set (SEL-451-5 & SEL-400 series)",
+      "pn": "PM451-KT-01",
+      "in_code": false
+    },
+    {
+      "item": "IRIG termination kit (50 ohm)",
+      "pn": "915900499",
+      "in_code": false,
+      "extra_cost": true
+    },
+    {
+      "item": "Connectorized wiring harness",
+      "pn": null,
+      "in_code": false,
+      "note": "Online MOT / SEL rep required; harness shipped separately."
+    }
+  ],
+  "open_questions": [
+    "Width of sec_voltage and eth_ports fields (1 vs 2 chars).",
+    "Whether io_b voltage field is positionally adjacent to io_b or grouped at the end.",
+    "LEA voltage code (extracted as '1 2').",
+    "Document date unknown; confirm MOT is current (SEL-451-6 also exists)."
+  ]
+}

@@ -38,6 +38,28 @@ const responseFor = predicate => page.waitForResponse(response => {
 }, {timeout: 15000})
 const ioRegion = () => page.getByRole('region', {name: 'Digital I/O budget', exact: true})
 const assessment = () => page.getByRole('region', {name: 'Backend I/O assessment', exact: true})
+const catalog = () => page.getByRole('region', {name: 'Catalog package readiness', exact: true})
+const catalogModels = ['SEL-311L-0/-6', 'SEL-351S', 'SEL-411L', 'SEL-451-5', 'SEL-487E', 'SEL-700G', 'SEL-710', 'SEL-751', 'SEL-751A']
+async function assertCatalog(result) {
+  await visible(catalog())
+  assert.deepEqual(await catalog().locator('article[data-catalog-product]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-catalog-product'))), catalogModels)
+  assert.equal(await catalog().getByRole('link', {name: 'Pinned catalog source ↗', exact: true}).getAttribute('href'), result.catalog_readiness.source_url)
+  assert.ok((await catalog().innerText()).includes(result.catalog_readiness.source_release_sha))
+  assert.match(await catalog().innerText(), /No role-to-product mapping has been performed/)
+  for (const model of catalogModels) {
+    const product = catalog().locator('article[data-catalog-product]').filter({has: page.getByRole('heading', {name: model, exact: true})})
+    assert.equal(await product.count(), 1)
+    assert.equal(await product.locator('[data-catalog-track]').count(), 3)
+    for (const track of ['code_layout', 'hardware_compatibility', 'application_review']) {
+      assert.match(await product.locator(`[data-catalog-track="${track}"]`).innerText(), /Blocked · evidence gaps remain/)
+    }
+    assert.match(await product.innerText(), /Evidence only · No complete fit or order code/)
+  }
+  assert.equal(await catalog().locator('input, select, textarea').count(), 0, 'Read-only catalog package must not add saved selections or release inputs')
+  assert.equal(result.catalog_readiness.complete_fit, false)
+  assert.equal(result.catalog_readiness.procurement_ready, false)
+}
+
 const waitFingerprint = async fingerprint => {
   await page.waitForFunction(expected => document.querySelector('[aria-label="Backend I/O assessment"]')?.getAttribute('data-fingerprint') === expected, fingerprint, {timeout: 15000})
 }
@@ -94,6 +116,14 @@ try {
   assert.equal(zero.budgets['T-P'].doRequired, 2)
   await page.getByRole('button', {name: 'Screen relay models', exact: true}).click()
   await visible(page.getByRole('heading', {name: 'Screen relay models', exact: true}))
+  await assertCatalog(zero)
+  await page.setViewportSize({width: 390, height: 844})
+  const catalogWidth = await page.evaluate(() => ({viewport: document.documentElement.clientWidth, body: document.body.scrollWidth, document: document.documentElement.scrollWidth}))
+  assert.ok(Math.max(catalogWidth.body, catalogWidth.document) <= catalogWidth.viewport + 1, `Catalog panel causes page overflow: ${JSON.stringify(catalogWidth)}`)
+  await page.screenshot({path: '/tmp/relay-catalog-mobile.png', fullPage: true})
+  await page.setViewportSize({width: 1440, height: 1000})
+  await page.screenshot({path: '/tmp/relay-catalog-desktop.png', fullPage: true})
+  console.log('PASS catalog readiness renders nine exact blocked evidence packages, pinned source, no role mapping or code, and no mobile document overflow')
   const geFit = page.getByRole('region', {name: 'Transformer Primary digital I/O fit', exact: true}).filter({hasText: 'GE T60'})
   await visible(geFit)
   await geFit.getByText('See point counts and hardware limits', {exact: true}).click()
@@ -246,7 +276,9 @@ try {
   await analogInputs.getByLabel('Neutral CT inputs', {exact: true}).fill('3')
   await Promise.race([analogStarted, new Promise((_, reject) => setTimeout(() => reject(new Error('Old analog response was never intercepted')), 15000))])
   assert.equal(await selAnalog().count(), 0, 'Prior analog screen remains visible while requirements are pending')
+  assert.equal(await catalog().count(), 0, 'Prior catalog readiness remains visible while analog requirements are pending')
   const latestAnalog = await changeAnalog('neutral', '4')
+  await assertCatalog(latestAnalog)
   assert.match(await selAnalog().innerText(), /insufficient modeled capacity/)
   releaseAnalog()
   await page.waitForTimeout(400)
@@ -254,7 +286,29 @@ try {
   assert.match(await selAnalog().innerText(), /insufficient modeled capacity/)
   assert.equal(await selAnalog().locator('button.input-layout-choice').count(), 0)
   await page.unroute('**/api/engineering/io', holdAnalog)
+  await assertCatalog(latestAnalog)
   console.log('PASS pending analog edits hide prior layouts and a delayed response cannot restore obsolete screening')
+  let failAnalogOnce = true
+  const unavailableAnalog = async route => {
+    const body = route.request().postDataJSON()
+    if (failAnalogOnce && body.analog_requirements?.[primaryRoleId]?.neutral === 6) {
+      failAnalogOnce = false
+      await route.fulfill({status: 503, contentType: 'application/json', body: JSON.stringify({detail: 'Synthetic catalog refresh unavailable'})})
+    } else await route.continue()
+  }
+  await page.route('**/api/engineering/io', unavailableAnalog)
+  await analogInputs.getByLabel('Neutral CT inputs', {exact: true}).fill('6')
+  await visible(page.getByRole('alert').filter({hasText: 'Synthetic catalog refresh unavailable'}))
+  assert.equal(await catalog().count(), 0, 'Catalog packages remain visible after the current request fails')
+  assert.equal(await selAnalog().count(), 0, 'Prior analog layouts remain visible after the current request fails')
+  await page.unroute('**/api/engineering/io', unavailableAnalog)
+  const catalogRetry = responseFor(body => body.analog_requirements?.[primaryRoleId]?.neutral === 6)
+  await page.getByRole('button', {name: 'Retry I/O calculation', exact: true}).click()
+  const recoveredCatalog = await (await catalogRetry).json()
+  await waitFingerprint(recoveredCatalog.request_fingerprint)
+  await assertCatalog(recoveredCatalog)
+  assert.match(await selAnalog().innerText(), /insufficient modeled capacity/)
+  console.log('PASS catalog packages hide during pending/failed analog updates and return only with a current successful result')
   assert.deepEqual(pageErrors, [], 'Uncaught browser errors')
   console.log('PASS endpoint ledger distinguishes external contacts and unreviewed source requirements')
   console.log('PASS engineering I/O browser gate')

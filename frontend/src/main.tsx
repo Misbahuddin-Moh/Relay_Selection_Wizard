@@ -1,6 +1,7 @@
 import { budgetText, defaultDigitalSettings, DigitalIO, PrimaryDigitalFit } from './DigitalIO'
 import type { DigitalSettings } from './DigitalIO'
 import { AnalogScreen } from './AnalogScreen'
+import { CatalogReadiness } from './CatalogReadiness'
 import { ProtectionComparison } from './ProtectionComparison'
 import { modeledMinimum, ProjectRequirements } from './ProjectRequirements'
 import type { AppliedRequirement } from './ProjectRequirements'
@@ -592,6 +593,7 @@ function ProtectionWorkflow({ study, analysis, onStation, choices, changeChoices
             <p>Separate analog and digital capacity examples do not establish that these cards fit together in an ordered relay.</p>
             <ul>{hardwareAssessment.evidence_gates.map(gate => <li key={gate.code} data-evidence-gate={gate.code}><strong>{gate.code.replaceAll('_', ' ')} · not verified</strong>: {gate.required_evidence}</li>)}</ul>
           </section>}
+          {io.result?.catalog_readiness && <CatalogReadiness assessment={io.result.catalog_readiness} />}
           <div className="relay-grid">
             {(['GE', 'SEL'] as const).map(manufacturer => (
               <section className="relay-column" key={manufacturer} aria-label={`${manufacturer} devices`}>

@@ -1,0 +1,643 @@
+{
+  "model": "SEL-411L",
+  "family": "400-series",
+  "category": "Line current differential + distance",
+  "prefix": "0411L",
+  "prefix_note": "Header '0 4 1 1 L X'; trailing X is first variable position.",
+  "source": {
+    "doc_id": "download/10530",
+    "url": "https://selinc.com/api/download/10530",
+    "doc_date": null,
+    "method": "WebFetch LLM extraction of MOT PDF"
+  },
+  "doc_status": "extracted_unverified",
+  "layout_verified": false,
+  "fields": [
+    {
+      "id": "firmware",
+      "name": "Firmware",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "0",
+          "desc": "Standard current differential and distance",
+          "extra_cost": false
+        },
+        {
+          "code": "1",
+          "desc": "Standard plus sub-cycle distance, series compensation logic, traveling-wave fault location",
+          "extra_cost": true
+        },
+        {
+          "code": "A",
+          "desc": "Standard current differential and distance, single breaker / three-pole tripping",
+          "extra_cost": true
+        }
+      ],
+      "note": "Third option extracted as 'A C' -- stray C unresolved.",
+      "order": 1
+    },
+    {
+      "id": "conformal",
+      "name": "Conformal coat",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "X",
+          "desc": "None",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "Conformally coated boards",
+          "extra_cost": true
+        }
+      ],
+      "order": 2
+    },
+    {
+      "id": "power_supply",
+      "name": "Power supply",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "2",
+          "desc": "24-48 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "4",
+          "desc": "48-125 Vdc or 110-120 Vac",
+          "extra_cost": false
+        },
+        {
+          "code": "6",
+          "desc": "125-250 Vdc or 110-240 Vac",
+          "extra_cost": false
+        }
+      ],
+      "order": 3
+    },
+    {
+      "id": "connector",
+      "name": "Connector type",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "X",
+          "desc": "Screw terminal block",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "Connectorized relay",
+          "extra_cost": true
+        }
+      ],
+      "order": 4
+    },
+    {
+      "id": "sec_inputs",
+      "name": "Secondary inputs",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "1",
+          "desc": "300 V P-N max (wye), 1 A phase",
+          "extra_cost": false
+        },
+        {
+          "code": "5",
+          "desc": "300 V P-N max (wye), 5 A phase",
+          "extra_cost": false
+        }
+      ],
+      "order": 5
+    },
+    {
+      "id": "eth_protocols",
+      "name": "Ethernet protocols and 87L",
+      "width": null,
+      "confidence": "low",
+      "options": [
+        {
+          "code": "X",
+          "desc": "None",
+          "extra_cost": false
+        },
+        {
+          "code": "B",
+          "desc": "FTP, Telnet, synchrophasors, DNP3 LAN/WAN",
+          "extra_cost": false
+        },
+        {
+          "code": "C",
+          "desc": "FTP, Telnet, synchrophasors, DNP3 LAN/WAN, IEC 61850",
+          "extra_cost": true
+        }
+      ],
+      "note": "Source shows 'X X' for None -- maybe 2 chars.",
+      "order": 6
+    },
+    {
+      "id": "eth_ports",
+      "name": "Ethernet connection options",
+      "width": null,
+      "confidence": "low",
+      "options": [
+        {
+          "code": "X",
+          "desc": "None",
+          "extra_cost": false
+        },
+        {
+          "code": "6",
+          "desc": "Four 10/100BASE-T",
+          "extra_cost": true
+        },
+        {
+          "code": "7",
+          "desc": "Four 100BASE-FX",
+          "extra_cost": true
+        },
+        {
+          "code": "8",
+          "desc": "Two 10/100BASE-T + two 100BASE-FX",
+          "extra_cost": true
+        }
+      ],
+      "order": 7
+    },
+    {
+      "id": "diff_ch1",
+      "name": "Line differential channel 1",
+      "width": null,
+      "confidence": "low",
+      "options": [
+        {
+          "code": "0",
+          "desc": "None",
+          "extra_cost": false
+        },
+        {
+          "code": "A",
+          "desc": "Isolated EIA-422",
+          "extra_cost": true
+        },
+        {
+          "code": "B",
+          "desc": "Isolated G.703 co-directional",
+          "extra_cost": true
+        },
+        {
+          "code": "C",
+          "desc": "850 nm IEEE C37.94 fiber",
+          "extra_cost": true
+        },
+        {
+          "code": "D",
+          "desc": "1300 nm fiber",
+          "extra_cost": true
+        },
+        {
+          "code": "E",
+          "desc": "1550 nm fiber",
+          "extra_cost": true
+        },
+        {
+          "code": "H",
+          "desc": "1300 nm IEEE C37.94 fiber",
+          "extra_cost": true
+        }
+      ],
+      "note": "'None' extracted as '0 0' -- width unresolved.",
+      "order": 8
+    },
+    {
+      "id": "diff_ch2",
+      "name": "Line differential channel 2",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "0",
+          "desc": "None",
+          "extra_cost": false
+        },
+        {
+          "code": "A",
+          "desc": "Isolated EIA-422",
+          "extra_cost": true
+        },
+        {
+          "code": "B",
+          "desc": "Isolated G.703 co-directional",
+          "extra_cost": true
+        },
+        {
+          "code": "C",
+          "desc": "850 nm IEEE C37.94 fiber",
+          "extra_cost": true
+        },
+        {
+          "code": "D",
+          "desc": "1300 nm fiber",
+          "extra_cost": true
+        },
+        {
+          "code": "E",
+          "desc": "1550 nm fiber",
+          "extra_cost": true
+        },
+        {
+          "code": "H",
+          "desc": "1300 nm IEEE C37.94 fiber",
+          "extra_cost": true
+        }
+      ],
+      "order": 9
+    },
+    {
+      "id": "mounting",
+      "name": "Mounting",
+      "width": 1,
+      "confidence": "high",
+      "options": [
+        {
+          "code": "H",
+          "desc": "Horizontal rack mount",
+          "extra_cost": false
+        },
+        {
+          "code": "3",
+          "desc": "Horizontal panel mount",
+          "extra_cost": false
+        },
+        {
+          "code": "V",
+          "desc": "Vertical rack mount",
+          "extra_cost": false
+        },
+        {
+          "code": "4",
+          "desc": "Vertical panel mount",
+          "extra_cost": false
+        }
+      ],
+      "order": 10
+    },
+    {
+      "id": "chassis",
+      "name": "Chassis",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "4",
+          "desc": "4U, one I/O board",
+          "extra_cost": false
+        },
+        {
+          "code": "5",
+          "desc": "5U, up to two I/O boards",
+          "extra_cost": false
+        },
+        {
+          "code": "6",
+          "desc": "6U, up to three I/O boards",
+          "extra_cost": false
+        }
+      ],
+      "order": 11
+    },
+    {
+      "id": "io_b",
+      "name": "I/O board position B",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "2",
+          "desc": "8 optoisolated inputs, 13 std Form A, 2 std Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "7",
+          "desc": "8 optoisolated inputs, 13 HC interrupting Form A, 2 std Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "C",
+          "desc": "24 optoisolated inputs, 2 std + 6 high-speed HC interrupting Form A",
+          "extra_cost": true
+        },
+        {
+          "code": "D",
+          "desc": "24 optoisolated inputs, 8 std Form A",
+          "extra_cost": true
+        },
+        {
+          "code": "E",
+          "desc": "8 optoisolated inputs, 8 high-speed HC interrupting Form A",
+          "extra_cost": true
+        }
+      ],
+      "note": "No 'empty' option listed for B.",
+      "order": 12
+    },
+    {
+      "id": "io_b_voltage",
+      "name": "I/O B input voltage",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "1",
+          "desc": "24 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "48 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "3",
+          "desc": "110 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "4",
+          "desc": "125 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "5",
+          "desc": "220 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "6",
+          "desc": "250 Vdc",
+          "extra_cost": false
+        }
+      ],
+      "order": 13
+    },
+    {
+      "id": "io_c",
+      "name": "I/O board position C (5U/6U)",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "0",
+          "desc": "Empty",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "8 optoisolated inputs, 13 std Form A, 2 std Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "7",
+          "desc": "8 optoisolated inputs, 13 HC interrupting Form A, 2 std Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "C",
+          "desc": "24 optoisolated inputs, 2 std + 6 high-speed HC Form A",
+          "extra_cost": true
+        },
+        {
+          "code": "D",
+          "desc": "24 optoisolated inputs, 8 std Form A",
+          "extra_cost": true
+        },
+        {
+          "code": "E",
+          "desc": "8 optoisolated inputs, 8 high-speed HC Form A",
+          "extra_cost": true
+        }
+      ],
+      "order": 14
+    },
+    {
+      "id": "io_c_voltage",
+      "name": "I/O C input voltage",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "1",
+          "desc": "24 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "48 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "3",
+          "desc": "110 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "4",
+          "desc": "125 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "5",
+          "desc": "220 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "6",
+          "desc": "250 Vdc",
+          "extra_cost": false
+        }
+      ],
+      "order": 15
+    },
+    {
+      "id": "io_d",
+      "name": "I/O board position D (6U)",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "0",
+          "desc": "Empty",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "8 opto inputs, 13 std Form A, 2 std Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "7",
+          "desc": "8 opto inputs, 13 HC Form A, 2 std Form C",
+          "extra_cost": true
+        },
+        {
+          "code": "C",
+          "desc": "24 opto inputs, 2 std + 6 high-speed HC Form A",
+          "extra_cost": true
+        },
+        {
+          "code": "D",
+          "desc": "24 opto inputs, 8 std Form A",
+          "extra_cost": true
+        },
+        {
+          "code": "E",
+          "desc": "8 opto inputs, 8 high-speed HC Form A",
+          "extra_cost": true
+        }
+      ],
+      "order": 16
+    },
+    {
+      "id": "io_d_voltage",
+      "name": "I/O D input voltage",
+      "width": 1,
+      "confidence": "medium",
+      "options": [
+        {
+          "code": "1",
+          "desc": "24 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "2",
+          "desc": "48 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "3",
+          "desc": "110 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "4",
+          "desc": "125 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "5",
+          "desc": "220 Vdc",
+          "extra_cost": false
+        },
+        {
+          "code": "6",
+          "desc": "250 Vdc",
+          "extra_cost": false
+        }
+      ],
+      "order": 17
+    }
+  ],
+  "constraints": [
+    {
+      "id": "411L-87L-needs-channel",
+      "type": "requires",
+      "if": {
+        "field": "diff_ch1",
+        "in": [
+          "0"
+        ]
+      },
+      "then": {
+        "field": "diff_ch2",
+        "in": [
+          "0"
+        ]
+      },
+      "confidence": "inferred",
+      "note": "No ch1 + ch2 present makes no sense; 87L needs >=1 channel (MOT fn 2 says 87L needs a serial option)."
+    },
+    {
+      "id": "411L-io-c-needs-5u",
+      "type": "requires",
+      "if": {
+        "field": "io_c",
+        "not_in": [
+          "0"
+        ]
+      },
+      "then": {
+        "field": "chassis",
+        "in": [
+          "5",
+          "6"
+        ]
+      },
+      "confidence": "stated",
+      "note": "Position C is 5U/6U only."
+    },
+    {
+      "id": "411L-io-d-needs-6u",
+      "type": "requires",
+      "if": {
+        "field": "io_d",
+        "not_in": [
+          "0"
+        ]
+      },
+      "then": {
+        "field": "chassis",
+        "in": [
+          "6"
+        ]
+      },
+      "confidence": "stated",
+      "note": "Position D is 6U only."
+    }
+  ],
+  "accessories": [
+    {
+      "item": "Instruction manual set (SEL-411L & SEL-400 series)",
+      "pn": "PM411L-KT-01",
+      "in_code": false
+    },
+    {
+      "item": "Connectorized wiring harness",
+      "pn": null,
+      "in_code": false
+    }
+  ],
+  "open_questions": [
+    "Widths of eth_protocols, eth_ports, diff_ch1 (extracted with doubled characters).",
+    "Meaning of trailing X in header '0411LX'.",
+    "Firmware 'A' vs stray 'C' in extraction.",
+    "Compatible firmware groups for 87L: R101-107, R108-123, R124-125, R126+ (each only with itself).",
+    "SEL-411L-A referenced in footnotes but not defined."
+  ],
+  "firmware_compat": [
+    [
+      "R101",
+      "R107"
+    ],
+    [
+      "R108",
+      "R123"
+    ],
+    [
+      "R124",
+      "R125"
+    ],
+    [
+      "R126",
+      null
+    ]
+  ]
+}
